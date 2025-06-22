@@ -1,0 +1,76 @@
+/* ==== Desktop (asosiy) sidebar ==== */
+.sidebar {
+  max-width:  270px;
+  color: #000;
+  height: 100vh;
+  padding: 20px;
+  background-color: #fff;
+  transition: left 0.3s ease;
+  z-index: 1000;
+   position: fixed;
+  top: 0;
+  left: 0;
+}
+
+.sidebar .logo {
+  display: flex;
+  align-items: center;
+  /* border: 1px solid #1A6291; */
+  padding: 4px;
+}
+
+.sidebar .logo img {
+  width: 100%;
+  max-width: 80px;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar li {
+  margin: 15px 0;
+}
+
+a {
+  color: #000;
+  text-decoration: none;
+}
+
+a.router-link-exact-active {
+  font-weight: bold;
+}
+
+
+/* ==== Mobil uchun responsiv qo‘shimchalar ==== */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: -100%; /* Yashirin holat */
+    width: 270px;
+    height: 100vh;
+    background-color: #fff;
+    box-shadow: 2px 0 6px rgba(0,0,0,0.1);
+    transition: left 0.3s ease;
+  }
+
+  .sidebar.open {
+    left: 0; /* Ko‘rinadigan holat */
+  }
+
+  .toggle-button {
+    position: fixed;
+    top: 10px;
+    left: 20px;
+    z-index: 1100;
+    background-color: #fff;
+    border: none;
+    padding: 10px 14px;
+    font-size: 22px;
+    cursor: pointer;
+    border-radius: 8px;
+    box-shadow: 0 0 6px rgba(0,0,0,0.2);
+  }
+}
