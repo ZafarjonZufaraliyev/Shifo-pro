@@ -49,7 +49,7 @@
 </template>
 
 <script>
-import "@/assets/css/Bemorlar.css"
+import "@/assets/css/bemorlar.css"
 export default {
   data() {
     return {
