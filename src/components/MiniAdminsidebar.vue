@@ -4,7 +4,6 @@
     <!-- <img src="" alt=""> -->
     <ul :class="['sidebar', { open: isSidebarOpen }]">
       <li><router-link to="/mini">🏠 Bosh sahifa</router-link></li>
-      <li><router-link to="/super/">🧍‍♂️Ro'yxatga olish</router-link></li>
       <li><router-link to="/mini/bemorlar">🧍‍♂️ Bemorlar</router-link></li>
       <li><router-link to="/mini/rooms">🏨 Xonalar</router-link></li>
       <li><router-link to="/mini/stats">📊 Statistika</router-link></li>

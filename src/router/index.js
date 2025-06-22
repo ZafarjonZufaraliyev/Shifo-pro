@@ -10,6 +10,7 @@ import MiniDashboard from '@/views/MiniDashboard.vue'
 import Bemorlar from '@/views/bemorlar.vue'
 import Rooms from '@/views/Rooms.vue'
 import Stats from '@/views/Stats.vue'
+import RoyxatgaOlish from '@/views/RoyxatgaOlish.vue'
 const routes = [
   {
     path: '/',
@@ -19,7 +20,11 @@ const routes = [
     path: '/login',
     component: Login
   },
- 
+  {
+        path: '/RoyxatgaOlish',
+        name: 'RoyxatgaOlish',
+        component: RoyxatgaOlish
+      },
 
   // Super admin marshrutlari
   {
@@ -46,7 +51,8 @@ const routes = [
         path: 'stats',
         name: 'SuperStats',
         component: Stats
-      }
+      },
+      
     ]
   },
 
@@ -75,7 +81,8 @@ const routes = [
         path: 'stats',
         name: 'MiniStats',
         component: Stats
-      }
+      } ,
+      
       // agar mini uchun bemorlar bo‘lsa, shu yerga qo‘shish mumkin
     ]
   }

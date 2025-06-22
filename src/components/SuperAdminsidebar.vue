@@ -3,12 +3,8 @@
     <!-- Mobil uchun sidebar toggle tugmasi -->
     <button class="toggle-button" @click="toggleSidebar">☰</button>
 
-    <!-- Overlay (mobilda) -->
-    <div
-      v-if="isSidebarOpen && !isDesktop"
-      class="overlay"
-      @click="closeSidebar"
-    ></div>
+    <!-- Overlay (mobil versiyada sidebar ochilganda) -->
+    <div v-if="isSidebarOpen && !isDesktop" class="overlay" @click="closeSidebar"></div>
 
     <!-- Sidebar -->
     <div :class="['sidebar', { open: isSidebarOpen || isDesktop, dark: isDarkMode }]">
@@ -29,6 +25,9 @@
         <li><router-link to="/super/rooms" @click.native="closeSidebar">Xonalar</router-link></li>
         <li><router-link to="/super/stats" @click.native="closeSidebar">Statistika</router-link></li>
       </ul>
+
+      <!-- Select - telefon uchun responsive -->
+        
     </div>
   </div>
 </template>
@@ -41,6 +40,7 @@ export default {
       isSidebarOpen: false,
       isDarkMode: false,
       isDesktop: window.innerWidth >= 768,
+      selectedType: "",
     };
   },
   mounted() {
@@ -72,119 +72,123 @@ export default {
 </script>
 
 <style scoped>
-/* --- Sidebar asosiy --- */
+/* Sidebar */
 .sidebar {
-  width: 270px;
-  height: 100vh;
-  padding: 20px 20px 0 20px;
-  background-color: #fff;
-  color: #000;
-  z-index: 1101;
   position: fixed;
   top: 0;
   left: 0;
-  transition: transform 0.3s ease;
-  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.1);
-  transform: translateX(-100%);
+  width: 270px;
+  height: 100vh;
+  background-color: #fff;
+  color: #000;
+  padding: 20px;
+  z-index: 1000;
+  overflow-y: auto;
+  transition: 0.3s ease;
   display: flex;
   flex-direction: column;
 }
 
-/* Sidebar ochilganda ko‘rinadi */
-.sidebar.open {
-  transform: translateX(0);
-}
-
-/* Dark mode */
-.dark .sidebar {
+.sidebar.dark {
   background-color: #1e1e1e;
-  color: #fff;
+  color: white;
 }
 
-/* Top bar: logo va dark toggle yonma-yon */
-.top-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #ddd;
-}
-
-.dark .top-bar {
-  border-color: #444;
-}
-
-/* Logo */
-.logo {
-  display: flex;
-  align-items: center;
-}
-
-.logo img {
-  width: 50px;
-  max-width: 50px;
-  margin-right: 10px;
-}
-
-/* Dark mode tugmasi */
-.dark-toggle {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 24px;
-  color: inherit;
-  padding: 5px;
-  border-radius: 6px;
-  transition: background-color 0.3s ease;
-}
-
-.dark-toggle:hover {
-  background-color: rgba(0, 0, 0, 0.1);
-}
-
-.dark .dark-toggle:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-/* Menu list */
 .sidebar ul {
   list-style: none;
   padding: 20px 0 0 0;
   margin: 0;
-  flex-grow: 1;
 }
 
 .sidebar li {
-  margin: 15px 0;
+  margin: 12px 0;
 }
 
-a {
-  color: inherit;
+.sidebar a {
   text-decoration: none;
-}
-
-a.router-link-exact-active {
-  font-weight: bold;
-}
-
-/* Mobil uchun toggle tugma */
-.toggle-button {
-  position: fixed;
-  top: 20px;
-  left: 20px;
-  z-index: 1201;
-  background-color: #fff;
-  border: none;
-  padding: 10px 14px;
-  font-size: 22px;
-  cursor: pointer;
+  color: inherit;
+  display: block;
+  padding: 10px 15px;
   border-radius: 8px;
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.2);
+  transition: background 0.2s;
+  font-weight: 500;
 }
 
-.dark .toggle-button {
-  background-color: #2c2c2c;
-  color: #fff;
+.sidebar a.router-link-exact-active,
+.sidebar a:hover {
+  background-color: #1A6291;
+  color: white;
+}
+
+/* Mobilda yopiq holatda */
+@media (max-width: 768px) {
+  .sidebar {
+    left: -100%;
+    width: 250px;
+  }
+  .sidebar.open {
+    left: 0;
+  }
+}
+
+/* Top bar */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 10px;
+}
+
+.logo img {
+  width: 40px;
+}
+
+.logo h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+/* Toggle dark */
+.dark-toggle {
+  font-size: 18px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 2px solid #1A6291;
+  background: white;
+  color: #1A6291;
+  cursor: pointer;
+}
+
+.dark .dark-toggle {
+  background: #1e1e1e;
+  color: white;
+}
+
+/* Mobil toggle button */
+.toggle-button {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .toggle-button {
+    display: block;
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1100;
+    background-color: #fff;
+    border: 2px solid #1A6291;
+    padding: 8px 14px;
+    font-size: 18px;
+    cursor: pointer;
+    border-radius: 8px;
+  }
+
+  .dark .toggle-button {
+    background-color: #333;
+    color: white;
+  }
 }
 
 /* Overlay */
@@ -192,21 +196,23 @@ a.router-link-exact-active {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
   height: 100vh;
-  background-color: rgba(0,0,0,0.5);
-  z-index: 1100;
+  width: 100vw;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 900;
 }
 
-/* Desktop uchun: sidebar doim ko‘rinadi, tugmalar va overlay yashirinadi */
-@media (min-width: 768px) {
-  .sidebar {
-    transform: translateX(0);
-  }
+/* Select (responsive) */
+.select-wrapper {
+  margin-top: auto;
+  padding-top: 20px;
+}
 
-  .toggle-button,
-  .overlay {
-    display: none;
-  }
+.custom-select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 16px;
 }
 </style>

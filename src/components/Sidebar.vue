@@ -11,7 +11,7 @@
       <div class="modal-content">
         <h3>{{ username }}</h3>
         <p>Email: {{ email }}</p>
-        <p>Kimsiz: {{ role }} admin</p>
+        <p>Kimsiz: {{ role }}Admin</p>
 
         <button @click="logout" class="logout-btn">Chiqish</button>
       </div>
@@ -25,7 +25,7 @@ export default {
   data() {
     return {
       username: localStorage.getItem("username") || "Foydalanuvchi",
-      email: localStorage.getItem("email") || "user@example.com", // misol uchun
+      email: localStorage.getItem("email") || "zufaraliyev@gmail.com", // misol uchun
       role: localStorage.getItem("role") || "Foydalanuvchi roli",
       isModalOpen: false,
     };
