@@ -2,7 +2,7 @@
   <div class="navbar">
     <!-- Profil bloki -->
     <div class="profile" @click="toggleModal">
-      <img class="profile-img" src="../assets/image/profile.png" alt="Profil" />
+      <img class="profile-img" src="#" alt="Profil" />
       <span class="username">{{ username }}</span>
     </div>
 
