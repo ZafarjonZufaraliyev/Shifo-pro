@@ -7,9 +7,9 @@ import MiniAdminLayout from '@/layouts/MiniAdminLayout.vue'
 
 import SuperDashboard from '@/views/SuperDashboard.vue'
 import MiniDashboard from '@/views/MiniDashboard.vue'
-import Bemorlar from '@/views/Bemorlar.vue'
-import Rooms from '@/views/Rooms.vue'
-import Stats from '@/views/Stats.vue'
+import Bemorlar from '@/components/Bemorlar.vue'
+import Rooms from '@/components/Rooms.vue'
+import Stats from '@/components/Stats.vue'
 import RoyxatgaOlish from '@/views/RoyxatgaOlish.vue'
 const routes = [
   {
