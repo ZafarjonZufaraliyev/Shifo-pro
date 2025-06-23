@@ -1,0 +1,167 @@
+.taklif-container {
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 30px 35px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: #222;
+}
+
+.title {
+  text-align: center;
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 32px;
+  color: #144a70;
+  letter-spacing: 1px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.form-group label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.form-group input,
+.form-group select {
+  padding: 14px 18px;
+  font-size: 16px;
+  border: 1.5px solid #ccc;
+  border-radius: 12px;
+  background-color: #fafafa;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #1a6291;
+  box-shadow: 0 0 8px rgba(26, 98, 145, 0.3);
+  outline: none;
+}
+
+.row {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.row .form-group {
+  flex: 1;
+  min-width: 150px;
+}
+
+.add-btn {
+  width: 48px;
+  height: 48px;
+  font-size: 28px;
+  line-height: 1;
+  padding: 0;
+  border-radius: 14px;
+  background-color: #1a6291;
+  color: white;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  user-select: none;
+}
+
+.add-btn:hover {
+  background-color: #124766;
+}
+
+.offers {
+  margin: 28px 0;
+  padding: 22px 25px;
+  border-radius: 14px;
+  background: #f0f7ff;
+  border: 1.8px solid #c5d9f9;
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 18px;
+}
+
+.offer-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 17px;
+  font-weight: 500;
+  color: #2c3e50;
+  user-select: none;
+}
+
+.offer-item input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  accent-color: #1a6291;
+  border-radius: 6px;
+}
+
+.total {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0d2e55;
+  margin-top: 18px;
+  text-align: right;
+  letter-spacing: 0.05em;
+}
+
+.submit-btn {
+  background-color: #1a6291;
+  color: white;
+  padding: 16px 36px;
+  font-size: 18px;
+  font-weight: 700;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  float: right;
+  box-shadow: 0 6px 14px rgba(26, 98, 145, 0.5);
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.submit-btn:hover {
+  background-color: #124766;
+  box-shadow: 0 8px 18px rgba(18, 71, 102, 0.8);
+}
+
+/* Responsive - Mobile & Tablet */
+@media (max-width: 768px) {
+  .taklif-container {
+    max-width: 100%;
+    padding: 20px;
+  }
+
+  .row {
+    flex-direction: column;
+  }
+
+  .offers {
+    grid-template-columns: 1fr;
+  }
+
+  .total {
+    text-align: left;
+  }
+
+  .submit-btn {
+    width: 100%;
+    float: none;
+    box-shadow: none;
+  }
+}
