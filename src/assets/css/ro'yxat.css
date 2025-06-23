@@ -1,95 +1,117 @@
 .register-container {
   max-width: 1200px;
-  margin: 0 auto;
-  padding: 30px 20px;
-  background-color: #ffffff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-radius: 12px;
+  margin: 40px auto;
+  padding: 40px 50px;
+  background-color: #fff;
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.07);
+  font-family: 'Segoe UI', sans-serif;
+  color: #222;
 }
 
 .title {
   text-align: center;
-  margin-bottom: 24px;
-  font-size: 28px;
-  font-weight: 600;
-  color: #333;
+  font-size: 32px;
+  font-weight: 700;
+  color: #154a7d;
+  margin-bottom: 30px;
+  letter-spacing: 0.5px;
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
+  gap: 8px;
 }
 
-.full-width {
-  width: 100%;
+.ismfamilya {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
 }
 
-input,
+.ismfamilya input {
+  flex: 1;
+  min-width: 30%;
+}
+
+input[type="text"],
+input[type="date"],
 select {
-  padding: 10px;
+  padding: 14px 18px;
+  border: 1.5px solid #ccc;
+  border-radius: 10px;
   font-size: 16px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  outline: none;
-  transition: border-color 0.3s;
+  background-color: #fefefe;
+  transition: border 0.3s ease, box-shadow 0.3s ease;
 }
 
 input:focus,
 select:focus {
-  border-color: #007bff;
-}
-
-.radio-group {
-  display: flex;
-  gap: 15px;
-  margin-top: 5px;
-}
-
-.two-columns {
-  display: flex;
-  gap: 30px;
-  flex-wrap: wrap;
-}
-
-.column {
-  flex: 1;
-  min-width: 250px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  border-color: #1a6291;
+  box-shadow: 0 0 6px rgba(26, 98, 145, 0.2);
+  outline: none;
 }
 
 .submit-btn {
-  padding: 12px 24px;
-  background-color: #007bff;
+  background-color: #1a6291;
   color: white;
-  font-size: 16px;
-  font-weight: bold;
+  font-size: 18px;
+  font-weight: 600;
+  padding: 16px 32px;
   border: none;
-  border-radius: 10px;
+  border-radius: 14px;
   cursor: pointer;
-  transition: background-color 0.3s;
   align-self: flex-end;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 6px 12px rgba(26, 98, 145, 0.4);
 }
 
 .submit-btn:hover {
-  background-color: #0056b3;
+  background-color: #124766;
+  box-shadow: 0 8px 18px rgba(18, 71, 102, 0.6);
 }
 
-/* Responsivlik */
-@media (max-width: 768px) {
-  .two-columns {
+/* Pasport va Tug‘ilgan sana qatori */
+.form-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.form-row .form-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+/* Responsive dizayn */
+@media (max-width: 992px) {
+  .ismfamilya {
     flex-direction: column;
   }
 
   .submit-btn {
     width: 100%;
     align-self: stretch;
+  }
+}
+
+@media (max-width: 600px) {
+  .register-container {
+    padding: 25px 20px;
+  }
+
+  .title {
+    font-size: 26px;
+  }
+
+  .form-row {
+    flex-direction: column;
   }
 }
