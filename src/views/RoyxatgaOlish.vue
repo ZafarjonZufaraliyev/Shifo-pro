@@ -44,7 +44,7 @@
         <!-- Viloyat -->
         <div v-if="form.fuqaro === 'O‘zbekiston'" class="form-group">
           <label>Viloyat</label>
-          <select v-model="form.viloyat" required>
+          <select v-model="form.viloyat" >
             <option disabled value="">Tanlang</option>
             <option v-for="(viloyat, index) in viloyatlar" :key="index" :value="viloyat.name">
               {{ viloyat.name }}
