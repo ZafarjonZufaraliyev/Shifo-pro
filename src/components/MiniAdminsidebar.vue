@@ -1,33 +1,78 @@
 <template>
-  <div class="sidebar">
-    <h3>Mini Admin Panel</h3>
-    <!-- <img src="" alt=""> -->
-    <ul :class="['sidebar', { open: isSidebarOpen }]">
-      <li><router-link to="/mini">🏠 Bosh sahifa</router-link></li>
-      <li><router-link to="/mini/bemorlar">🧍‍♂️ Bemorlar</router-link></li>
-      <li><router-link to="/mini/rooms">🏨 Xonalar</router-link></li>
-      <li><router-link to="/mini/stats">📊 Statistika</router-link></li>
-    </ul>
+  <div :class="{ dark: isDarkMode }">
+    <!-- Mobil uchun sidebar toggle tugmasi -->
+    <button class="toggle-button" @click="toggleSidebar">☰</button>
+
+    <!-- Overlay (mobil versiyada sidebar ochilganda) -->
+    <div v-if="isSidebarOpen && !isDesktop" class="overlay" @click="closeSidebar"></div>
+
+    <!-- Sidebar -->
+    <div :class="['sidebar', { open: isSidebarOpen || isDesktop, dark: isDarkMode }]">
+      <div class="top-bar">
+        <div class="logo">
+          <img src="../assets/image/logo.png" alt="Logo" />
+          <h3>Koinot Kavsari</h3>
+        </div>
+        <button class="dark-toggle" @click="toggleDarkMode" :title="isDarkMode ? 'Light mode' : 'Dark mode'">
+          <span v-if="isDarkMode">🌞</span>
+          <span v-else>🌙</span>
+        </button>
+      </div>
+
+      <ul>
+        <li><router-link to="/mini" @click.native="closeSidebar">🏠 Bosh sahifa</router-link></li>
+        <li><router-link to="/mini/bemorlar" @click.native="closeSidebar">Bemorlar</router-link></li>
+        <li><router-link to="/mini/rooms" @click.native="closeSidebar">Xonalar</router-link></li>
+        <li><router-link to="/mini/stats" @click.native="closeSidebar">Statistika</router-link></li>
+      </ul>
+
+      <!-- Select - telefon uchun responsive -->
+        
+    </div>
   </div>
 </template>
 
 <script>
-import "@/assets/css/miniNavbar.css"
+import "@/assets/css/superNavbar.css"
 export default {
-  name: 'MiniSidebar',
+  name: "MiniSidebar",
   data() {
-  return {
-    isSidebarOpen: false
-  };
-},
-methods: {
-  toggleSidebar() {
-    this.isSidebarOpen = !this.isSidebarOpen;
-  }
-}
-}
+    return {
+      isSidebarOpen: false,
+      isDarkMode: false,
+      isDesktop: window.innerWidth >= 768,
+      selectedType: "",
+    };
+  },
+  mounted() {
+    window.addEventListener("resize", this.handleResize);
+  },
+  beforeUnmount() {
+    window.removeEventListener("resize", this.handleResize);
+  },
+  methods: {
+    toggleSidebar() {
+      this.isSidebarOpen = !this.isSidebarOpen;
+    },
+    closeSidebar() {
+      if (!this.isDesktop) {
+        this.isSidebarOpen = false;
+      }
+    },
+    toggleDarkMode() {
+      this.isDarkMode = !this.isDarkMode;
+    },
+    handleResize() {
+      this.isDesktop = window.innerWidth >= 768;
+      if (this.isDesktop) {
+        this.isSidebarOpen = false;
+      }
+    },
+  },
+};
 </script>
 
 <style scoped>
+/* Sidebar */
 
 </style>

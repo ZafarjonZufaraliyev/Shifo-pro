@@ -5,6 +5,7 @@
       <Navbar />
       <router-view /> 
        <!-- Bu yerga ichki sahifalar yuklanadi -->
+        
     </div>
   </div>
 </template>

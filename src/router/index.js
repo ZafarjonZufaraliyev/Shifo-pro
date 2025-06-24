@@ -12,6 +12,7 @@ import Rooms from "@/components/Rooms.vue";
 import Stats from "@/components/Stats.vue";
 import RoyxatgaOlish from "@/views/RoyxatgaOlish.vue";
 import Takliflar from "@/views/Takliflar.vue";
+import Bemor_card from "@/components/PatientCard.vue";
 const routes = [
   {
     path: "/",
@@ -21,18 +22,6 @@ const routes = [
     path: "/login",
     component: Login,
   },
-  {
-    path: "/RoyxatgaOlish",
-    component: RoyxatgaOlish,
-    children: [
-      {
-        path: "taklif",
-        name: "Takliflar",
-        component: Takliflar,
-      },
-    ],
-  },
-
   // Super admin marshrutlari
   {
     path: "/super",
@@ -59,6 +48,23 @@ const routes = [
         name: "SuperStats",
         component: Stats,
       },
+      {
+        path: "/RoyxatgaOlish",
+        component: RoyxatgaOlish,
+        children: [
+          {
+            path: "taklif",
+            name: "Takliflar",
+            component: Takliflar,
+          },
+        ],
+      }
+      ,
+      {
+        path: "/Bemor_card/:id",
+        name: "Bemor_card",
+        component: Bemor_card,
+      }
     ],
   },
 
@@ -100,13 +106,13 @@ const router = createRouter({
 });
 
 // Global guard - role asosida sahifaga kirishni cheklash
-router.beforeEach((to, from, next) => {
-  const role = localStorage.getItem("role");
-  if (to.meta.role && to.meta.role !== role) {
-    next("/login");
-  } else {
-    next();
-  }
-});
+// router.beforeEach((to, from, next) => {
+//   const role = localStorage.getItem("role");
+//   if (to.meta.role && to.meta.role !== role) {
+//     next("/login");
+//   } else {
+//     next();
+//   }
+// });
 
 export default router;

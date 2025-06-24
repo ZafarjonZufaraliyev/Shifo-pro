@@ -1,10 +1,11 @@
 .register-container {
-  max-width: 1200px;
-  margin: 40px auto;
-  padding: 40px 50px;
-  background-color: #fff;
-  border-radius: 18px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.07);
+   max-width: 1200px;
+  /* padding: 20px; */
+  margin-left: 270px; 
+  /* padding: 40px 50px; */
+  /* background-color: #fff; */
+  /* border-radius: 18px; */
+  /* box-shadow: 0 10px 30px rgba(0, 0, 0, 0.07); */
   font-family: 'Segoe UI', sans-serif;
   color: #222;
 }
@@ -113,5 +114,11 @@ select:focus {
 
   .form-row {
     flex-direction: column;
+  }
+}
+@media (max-width: 768px) {
+  .register-container {
+    margin-left: 0;
+    padding: 20px;
   }
 }
