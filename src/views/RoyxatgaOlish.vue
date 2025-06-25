@@ -4,23 +4,23 @@
 
     <div v-if="!isChildVisible">
       <h2 class="title">Ro'yxatdan O'tkazish</h2>
-      <form @submit.prevent="handleSubmit" class="form">
+      <form method="POST" action="${http://192.168.63.12/api/v1/clients}" @submit.prevent="handleSubmit" class="form">
 
-       
+
 
         <!-- F.I.Sh. -->
         <div class="form-group">
           <label>Familiya, Ism, Sharif</label>
           <div class="ismfamilya">
-            <input v-model="form.familya" type="text" placeholder="Familiya" required />
-            <input v-model="form.ism" type="text" placeholder="Ism" required />
-            <input v-model="form.otasi" type="text" placeholder="Sharif (otasining ismi)" required />
+            <input v-model="form.familiya" type="text"  placeholder="Familiya" required />
+            <input v-model="form.ism" type="text" name="ism" placeholder="Ism" required />
+            <input v-model="form.sharif" type="text" name="sharif" placeholder="Sharif (otasining ismi)" required />
           </div>
         </div>
         <!-- Fuqarolik -->
         <div class="form-group">
           <label>Fuqaroligi</label>
-          <select v-model="form.fuqaro" required>
+          <select v-model="form.davlat" name="davlat" required>
             <option disabled value="">Tanlang</option>
             <option>O‘zbekiston</option>
             <option>Xorijiy</option>
@@ -30,55 +30,65 @@
         <div class="form-row">
           <div class="form-group">
             <label>Pasport seriyasi va raqami</label>
-            <input v-model="form.pasport" type="text" placeholder="AD1234567" required />
+            <input v-model="form.pasport" type="text" name="pasport" placeholder="AD1234567" required />
           </div>
 
           <div class="form-group">
             <label>Tug‘ilgan sana</label>
-            <input v-model="form.tugilganYil" type="number" required />
+            <input v-model="form.tugulgan_sana" type="date" name="tugulgan_sana" required />
           </div>
         </div>
 
-        
+
 
         <!-- Viloyat -->
         <div v-if="form.fuqaro === 'O‘zbekiston'" class="form-group">
           <label>Viloyat</label>
-          <select v-model="form.viloyat" >
+          <select v-model="form.viloyat" name="viloyat">
             <option disabled value="">Tanlang</option>
             <option v-for="(viloyat, index) in viloyatlar" :key="index" :value="viloyat.name">
               {{ viloyat.name }}
             </option>
           </select>
         </div>
-        <div v-else-if="form.fuqaro === 'Xorijiy'" class="form-group">
+        <div v-else-if="form.davlat === 'Xorijiy'" class="form-group">
           <label>Viloyat (yozma)</label>
-          <input v-model="form.viloyat" type="text" placeholder="Viloyatni kiriting" required />
+          <input v-model="form.viloyat" type="text" name="viloyat" placeholder="Viloyatni kiriting" required />
         </div>
 
         <!-- Tuman -->
-        <div v-if="form.fuqaro" class="form-group">
+        <div v-if="form.davlat" class="form-group">
           <label>Tuman (yozma)</label>
-          <input v-model="form.tuman" type="text" placeholder="Tuman nomini kiriting" required />
+          <input v-model="form.tuman" type="text" name="tuman" placeholder="Tuman nomini kiriting" required />
+        </div>
+
+        <div class="form-group">
+          <label>Telefon raqami (majburiy)</label>
+          <input v-model="form.tel1" type="tel" name="tel1" placeholder="+998 90 123 45 67" required />
+        </div>
+
+        <div class="form-group">
+          <label>Qo'shimcha telefon (ixtiyoriy)</label>
+          <input v-model="form.tel2" type="tel" name="tel2" placeholder="+998 90 123 45 68" />
         </div>
 
         <div class="form-group">
           <label>Uy manzili</label>
-          <input v-model="form.manzil" type="text" required />
+          <input v-model="form.manzil" type="text" name="manzil" required />
         </div>
-         <!-- Jins -->
-        <div class="form-group">
+        <!-- Jins -->
+        <!-- <div class="form-group">
           <label>Jins</label>
-          <select v-model="form.jins" required>
+          <select v-model="form.jins" name="referral" required>
             <option disabled value="">Tanlang</option>
             <option>Erkak</option>
             <option>Ayol</option>
           </select>
-        </div>
+        </div> -->
         <!-- Qayerdan eshitgan -->
         <div class="form-group">
           <label>Biz haqimizda qayerdan eshitdingiz?</label>
-          <select v-model="form.qayerdan" required>
+          <select v-model="form.referral" required>
             <option disabled value="">Tanlang</option>
             <option>Do‘stdan</option>
             <option>Reklama</option>
@@ -96,6 +106,7 @@
 
 <script>
 import "@/assets/css/ro'yxat.css";
+import api from "@/api";  // api.js joylashgan joyiga qarab yo‘lni o‘zgartiring
 
 export default {
   name: "RegisterPage",
@@ -104,17 +115,18 @@ export default {
       isChildVisible: false,
       viloyatlar: [],
       form: {
-        jins: "",
-        familya: "",
+        familiya: "",
         ism: "",
-        otasi: "",
-        fuqaro: "",
+        sharif: "",
+        davlat: "",               // "fuqaro" emas, "davlat" bo‘lishi kerak
         pasport: "",
+        tugulgan_sana: "",        // nomi `tugulgan_sana` bo‘lishi kerak
         viloyat: "",
         tuman: "",
         manzil: "",
-        tugilganYil: "",
-        qayerdan: ""
+        tel1: "",                 // telefon1 emas
+        tel2: "",                 // telefon2 emas
+        referral: "",
       }
     };
   },
@@ -132,9 +144,21 @@ export default {
         console.error("Viloyatlar yuklanishda xatolik:", error);
       }
     },
-    handleSubmit() {
-      localStorage.setItem("ro_yxat_form", JSON.stringify(this.form));
-      this.$router.push("/RoyxatgaOlish/taklif");
+    async handleSubmit() {
+      console.log("Yuborilayotgan ma'lumot:", this.form);
+      try {
+        const response = await api.post('/api/v1/clients', this.form);
+        console.log('Server javobi:', response.data);
+        console.log("Yuborilayotgan ma'lumot:", this.form);
+        // LocalStorage ga ham yozish mumkin
+        localStorage.setItem("ro_yxat_form", JSON.stringify(this.form));
+
+        // Keyingi sahifaga o'tish
+        this.$router.push("/RoyxatgaOlish/taklif");
+      } catch (error) {
+        console.error("Ma'lumot yuborishda xatolik:", error);
+        alert("Xatolik yuz berdi. Iltimos, keyinroq qayta urinib ko'ring.");
+      }
     }
   },
   watch: {
@@ -160,6 +184,4 @@ export default {
 };
 </script>
 
-<style scoped>
-
-</style>
+<style scoped></style>
