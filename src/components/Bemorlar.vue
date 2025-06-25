@@ -19,13 +19,33 @@
       <button @click="isCardView = false">Jadval Ko'rinish</button>
     </div>
 
+    <!-- Yuklanmoqda -->
+    <div v-if="loading" class="loading-container">
+      <div class="spinner"></div>
+    </div>
+
     <!-- CARD KO‘RINISHI -->
-    <div v-if="isCardView" class="cards">
-      <PatientCard
-        v-for="patient in filteredPatients"
-        :key="patient.id"
-        :patient="patient"
-      />
+    <div v-else-if="isCardView" class="cards">
+      <div v-for="patient in filteredPatients" :key="patient.id" :patient="patient">
+
+
+        <div class="patient-card">
+          <router-link :to="`/BemorCard/${patient.id}`">
+            <div class="card__header">
+              <h3>{{ patient.familiya }} {{ patient.ism }}</h3>
+              <span>{{ patient.age }} yosh | {{ patient.gender }}</span>
+            </div>
+          </router-link>
+
+          <div class="card__body">
+            <p><strong>📞 Telefon:</strong> {{ patient.tel1 || '—' }}</p>
+            <p><strong>📅 Keldi:</strong> {{ patient.keldi || '—' }}</p>
+            <p><strong>📤 Ketdi:</strong> {{ patient.ketdi || '—' }}</p>
+          </div>
+        </div>
+
+      </div>
+
     </div>
 
     <!-- JADVAL KO‘RINISHI -->
@@ -51,28 +71,31 @@ export default {
       isCardView: true,
       search: '',
       patients: [],
+      loading: true, // 👈 Qo‘shildi
     };
   },
   computed: {
     filteredPatients() {
-      return this.patients.filter(p =>
-        `${p.firstName} ${p.lastName}`.toLowerCase().includes(this.search.toLowerCase())
-      );
+      return this.patients.filter(p => {
+        const fullName = `${p.familiya} ${p.ism}`.toLowerCase();
+        return fullName.includes(this.search.trim().toLowerCase());
+      });
     },
   },
-  mounted() {
-    api.get('/api/v1/clients')
-      .then(res => {
-        this.patients = res.data;
-        console.log("Bemorlar:", this.patients);
-      })
-      .catch(err => {
-        console.error("API xatolik:", err);
-      });
+  async mounted() {
+    try {
+      const res = await api.get('/api/v1/clients');
+      this.patients = res.data;
+      console.log("Bemorlar:", this.patients);
+    } catch (err) {
+      console.error("API xatolik:", err);
+    } finally {
+      this.loading = false; // 👈 Ma'lumot keldi, yuklanish tugadi
+    }
   },
 };
 </script>
 
 <style scoped>
-
+/* Yuklanmoqda spinner */
 </style>

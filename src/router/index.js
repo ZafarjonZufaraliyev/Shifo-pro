@@ -22,6 +22,11 @@ const routes = [
     path: "/login",
     component: Login,
   },
+  {
+    path:"/BemorCard/:id",
+    name:"Bemor_card",
+    component:Bemor_card
+  },
   // Super admin marshrutlari
   {
     path: "/super",
@@ -59,12 +64,7 @@ const routes = [
           },
         ],
       }
-      ,
-      {
-        path: "/Bemor_card/:id",
-        name: "Bemor_card",
-        component: Bemor_card,
-      }
+      
     ],
   },
 

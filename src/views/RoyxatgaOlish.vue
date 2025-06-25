@@ -6,6 +6,8 @@
       <h2 class="title">Ro'yxatdan O'tkazish</h2>
       <form @submit.prevent="handleSubmit" class="form">
 
+       
+
         <!-- F.I.Sh. -->
         <div class="form-group">
           <label>Familiya, Ism, Sharif</label>
@@ -15,7 +17,6 @@
             <input v-model="form.otasi" type="text" placeholder="Sharif (otasining ismi)" required />
           </div>
         </div>
-
         <!-- Fuqarolik -->
         <div class="form-group">
           <label>Fuqaroligi</label>
@@ -25,7 +26,6 @@
             <option>Xorijiy</option>
           </select>
         </div>
-
         <!-- Pasport va Tug‘ilgan sana -->
         <div class="form-row">
           <div class="form-group">
@@ -35,14 +35,16 @@
 
           <div class="form-group">
             <label>Tug‘ilgan sana</label>
-            <input v-model="form.tugilganYil" type="" required />
+            <input v-model="form.tugilganYil" type="number" required />
           </div>
         </div>
+
+        
 
         <!-- Viloyat -->
         <div v-if="form.fuqaro === 'O‘zbekiston'" class="form-group">
           <label>Viloyat</label>
-          <select v-model="form.viloyat">
+          <select v-model="form.viloyat" >
             <option disabled value="">Tanlang</option>
             <option v-for="(viloyat, index) in viloyatlar" :key="index" :value="viloyat.name">
               {{ viloyat.name }}
@@ -64,8 +66,7 @@
           <label>Uy manzili</label>
           <input v-model="form.manzil" type="text" required />
         </div>
-
-        <!-- Jins -->
+         <!-- Jins -->
         <div class="form-group">
           <label>Jins</label>
           <select v-model="form.jins" required>
@@ -74,7 +75,6 @@
             <option>Ayol</option>
           </select>
         </div>
-
         <!-- Qayerdan eshitgan -->
         <div class="form-group">
           <label>Biz haqimizda qayerdan eshitdingiz?</label>
@@ -96,7 +96,6 @@
 
 <script>
 import "@/assets/css/ro'yxat.css";
-import api from '@/api';
 
 export default {
   name: "RegisterPage",
@@ -133,30 +132,9 @@ export default {
         console.error("Viloyatlar yuklanishda xatolik:", error);
       }
     },
-    async handleSubmit() {
-      const payload = {
-        firstName: this.form.ism,
-        lastName: this.form.familya,
-        patronymic: this.form.otasi,
-        gender: this.form.jins,
-        citizenship: this.form.fuqaro,
-        passport: this.form.pasport,
-        birthYear: this.form.tugilganYil,
-        region: this.form.viloyat,
-        district: this.form.tuman,
-        address: this.form.manzil,
-        referralSource: this.form.qayerdan
-      };
-
-      try {
-        const res = await api.post('/api/v1/clients', payload);
-        console.log("Yuborildi:", res.data);
-
-        this.$router.push("/RoyxatgaOlish/taklif");
-      } catch (error) {
-        console.error("Ma'lumot yuborishda xatolik:", error);
-        alert("Ma'lumot yuborishda xatolik yuz berdi.");
-      }
+    handleSubmit() {
+      localStorage.setItem("ro_yxat_form", JSON.stringify(this.form));
+      this.$router.push("/RoyxatgaOlish/taklif");
     }
   },
   watch: {
@@ -183,5 +161,5 @@ export default {
 </script>
 
 <style scoped>
-/* CSS yozilmagan, agar kerak bo‘lsa stylingni qo‘shaman */
+
 </style>

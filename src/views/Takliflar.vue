@@ -9,7 +9,7 @@
       <p><strong>Jinsi:</strong> {{ gender || "Ko'rsatilmagan" }}</p>
     </div>
 
-    <!-- Sana -->
+    <!-- Kelgan sana va Ketgan sana bir qatorda -->
     <div class="date-row">
       <div class="form-group">
         <label>Kelgan sana</label>
@@ -21,7 +21,7 @@
       </div>
     </div>
 
-    <!-- Xona bron qilish -->
+    <!-- Xona bron qilish va jami summa -->
     <div class="room-booking-row">
       <div class="form-group room-booking">
         <label>Xona bron qilish</label>
@@ -37,7 +37,7 @@
       </div>
     </div>
 
-    <!-- Xizmatlar -->
+    <!-- Xizmatlar, faqat tugmani bosganda ko'rinadi -->
     <div class="services-section">
       <h3>
         Xizmatlar
@@ -56,28 +56,27 @@
 
     <div class="history-section">
       <h3>Tarix</h3>
-      <p>Bu yerda xizmatlar tarixi ko‘rsatiladi</p>
+      <p>Bu yerda xizmatlar tarixi ko‘rsatiladi (keyin ishlanadi)</p>
     </div>
 
     <div class="results-section">
       <h3>Natijalar</h3>
-      <p>Bu yerda natijalar bo‘limi bo‘ladi</p>
+      <p>Bu yerda natijalar bo‘limi bo‘ladi (keyin ishlanadi)</p>
     </div>
 
+    <!-- Yuborish tugmasi -->
     <button class="submit-btn" @click="submitBooking">Bron qilish</button>
   </div>
 </template>
 
 <script>
-import axios from "axios";
-
+import "@/assets/css/taklif.css"
 export default {
   name: "TaklifPage",
   data() {
     return {
-      clientId: null,
       fullName: "",
-      birthYear: null,
+      birthYear: null, // tug‘ilgan yil
       age: null,
       gender: "",
       arrivalDate: "",
@@ -100,37 +99,29 @@ export default {
   },
   computed: {
     totalSum() {
-      const servicesSum = this.services
+      let servicesSum = this.services
         .filter(s => s.selected)
         .reduce((sum, s) => sum + s.price, 0);
-      const roomPrice = this.selectedRoom ? this.selectedRoom.price : 0;
+      let roomPrice = this.selectedRoom ? this.selectedRoom.price : 0;
       return servicesSum + roomPrice;
     }
   },
   mounted() {
-    // URL orqali ID ni olish (masalan: /takliflar/5)
-    this.clientId = this.$route.params.id;
-    this.fetchClientData();
+    // LocalStorage dan ro'yxatdan olingan ma'lumotlarni olish (agar bor bo'lsa)
+    const storedForm = JSON.parse(localStorage.getItem("ro_yxat_form"));
+    if (storedForm) {
+      this.fullName = `${storedForm.familya} ${storedForm.ism} ${storedForm.otasi}`;
+      this.birthYear = storedForm.tugilganYil || null; // tug‘ilgan yilni saqlang ro'yxatdan o‘tishda
+      this.gender = storedForm.jins || "";
+
+      // Yoshni hisoblash - hozirgi yil - tug‘ilgan yil
+      if (this.birthYear) {
+        const currentYear = new Date().getFullYear();
+        this.age = currentYear - this.birthYear;
+      }
+    }
   },
   methods: {
-    async fetchClientData() {
-      try {
-        const response = await axios.get(`http://localhost:8000/api/v1/clients/${this.clientId}`);
-        const data = response.data;
-
-        this.fullName = `${data.familya} ${data.ism} ${data.otasi}`;
-        this.birthYear = data.tugilganYil;
-        this.gender = data.jins;
-
-        if (this.birthYear) {
-          const currentYear = new Date().getFullYear();
-          this.age = currentYear - this.birthYear;
-        }
-      } catch (error) {
-        console.error("Foydalanuvchi ma'lumotlarini olishda xatolik:", error);
-        alert("Foydalanuvchi topilmadi yoki serverga ulanishda muammo bor.");
-      }
-    },
     submitBooking() {
       if (!this.arrivalDate || !this.leaveDate || !this.selectedRoom) {
         alert("Iltimos, barcha maydonlarni to‘ldiring!");
@@ -138,7 +129,6 @@ export default {
       }
 
       const bookingData = {
-        clientId: this.clientId,
         fullName: this.fullName,
         age: this.age,
         gender: this.gender,
@@ -160,5 +150,5 @@ export default {
 </script>
 
 <style scoped>
-/* Stylingni kerakli joyda qo‘shing */
+
 </style>
