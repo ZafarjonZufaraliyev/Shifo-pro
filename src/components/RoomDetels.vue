@@ -228,7 +228,7 @@ export default {
 <style scoped>
 .room-details {
   max-width: 1200px;
-  margin: 40px auto;
+  margin-left:270px;
   padding: 30px;
   background: #f9fcff;
   border-radius: 14px;

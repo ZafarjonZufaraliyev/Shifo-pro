@@ -285,6 +285,7 @@ export default {
   margin: 0;
   font-size: 18px;
   color: #2c3e50;
+  text-decoration:none;
 }
 
 .card__header span {
