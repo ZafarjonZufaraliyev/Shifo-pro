@@ -10,9 +10,10 @@ import MiniDashboard from "@/views/MiniDashboard.vue";
 import Bemorlar from "@/components/Bemorlar.vue";
 import Rooms from "@/components/Rooms.vue";
 import Stats from "@/components/Stats.vue";
-import RoyxatgaOlish from "@/views/RoyxatgaOlish.vue";
+import RoyxatgaOlish from "@/views/RegisterPage.vue";
 import Takliflar from "@/views/Takliflar.vue";
 import Bemor_card from "@/components/PatientCard.vue";
+import RoomDetels from "@/components/RoomDetels.vue";
 const routes = [
   {
     path: "/",
@@ -23,9 +24,14 @@ const routes = [
     component: Login,
   },
   {
-    path:"/BemorCard/:id",
-    name:"Bemor_card",
-    component:Bemor_card
+    path: "/BemorCard/:id",
+    name: "Bemor_card",
+    component: Bemor_card,
+  },
+  {
+    path: "/room/:id",
+    name: "RoomDetails",
+    component: RoomDetels,
   },
   // Super admin marshrutlari
   {
@@ -63,8 +69,7 @@ const routes = [
             component: Takliflar,
           },
         ],
-      }
-      
+      },
     ],
   },
 

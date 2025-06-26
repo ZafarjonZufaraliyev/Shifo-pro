@@ -10,14 +10,26 @@
     <div class="top-controls">
       <div class="search-box">
         <img src="@/assets/image/sorch.svg" alt="Qidiruv" />
-        <input type="search" placeholder="Ism yoki familiya bo‘yicha qidirish..." v-model="search" />
+        <input
+          type="search"
+          placeholder="Ism yoki familiya bo‘yicha qidirish..."
+          v-model="search"
+        />
       </div>
 
       <div class="view-toggle">
-        <button :class="{ active: isCardView }" @click="isCardView = true" title="Card Ko‘rinish">
+        <button
+          :class="{ active: isCardView }"
+          @click="isCardView = true"
+          title="Card Ko‘rinish"
+        >
           📇
         </button>
-        <button :class="{ active: !isCardView }" @click="isCardView = false" title="Jadval Ko‘rinish">
+        <button
+          :class="{ active: !isCardView }"
+          @click="isCardView = false"
+          title="Jadval Ko‘rinish"
+        >
           📋
         </button>
       </div>
@@ -28,31 +40,53 @@
     </div>
 
     <div v-else-if="isCardView" class="cards">
-      <Swiper
-        :slides-per-view="1"
-        :pagination="{ clickable: true }"
-        :space-between="30"
-        navigation
-        class="mySwiper"
-      >
-        <SwiperSlide v-for="chunk in paginatedPatients" :key="chunk[0].id">
-          <div class="card-page">
-            <div v-for="patient in chunk" :key="patient.id" class="patient-card">
-              <router-link :to="`/BemorCard/${patient.id}`">
-                <div class="card__header">
-                  <h3>{{ patient.firstName }} {{ patient.lastName }}</h3>
-                  <span>{{ patient.age }} yosh | {{ patient.gender }}</span>
-                </div>
-              </router-link>
-              <div class="card__body">
-                <p><strong>📞 Telefon:</strong> {{ patient.phone || '—' }}</p>
-                <p><strong>🗕 Keldi:</strong> {{ patient.weight || '—' }}</p>
-                <p><strong>📤 Ketdi:</strong> {{ patient.weight || '—' }}</p>
-              </div>
+      <div class="card-page">
+        <div
+          v-for="patient in paginatedPatients[activePage]"
+          :key="patient.id"
+          class="patient-card"
+        >
+          <router-link :to="`/BemorCard/${patient.id}`">
+            <div class="card__header">
+              <h3>{{ patient.firstName }} {{ patient.lastName }}</h3>
+              <span>{{ patient.age }} yosh | {{ patient.gender }}</span>
             </div>
+          </router-link>
+          <div class="card__body">
+            <p><strong>📞 Telefon:</strong> {{ patient.phone || '—' }}</p>
+            <p><strong>🗕 Keldi:</strong> {{ patient.weight || '—' }}</p>
+            <p><strong>📤 Ketdi:</strong> {{ patient.weight || '—' }}</p>
           </div>
-        </SwiperSlide>
-      </Swiper>
+        </div>
+      </div>
+
+      <!-- Sahifa raqamlari -->
+      <div class="pagination" v-if="paginatedPatients.length > 1">
+        <button
+          :disabled="activePage === 0"
+          @click="activePage--"
+          class="page-btn"
+        >
+          &lt;
+        </button>
+
+        <button
+          v-for="(page, index) in pageNumbersToShow"
+          :key="index"
+          :class="['page-btn', { active: activePage === page }]"
+          @click="activePage = page"
+        >
+          {{ page + 1 }}
+        </button>
+
+        <button
+          :disabled="activePage === paginatedPatients.length - 1"
+          @click="activePage++"
+          class="page-btn"
+        >
+          &gt;
+        </button>
+      </div>
     </div>
 
     <div v-else>
@@ -62,29 +96,25 @@
 </template>
 
 <script>
-import PatientTable from '@/components/PatientTable.vue';
-import { Swiper, SwiperSlide } from 'swiper/vue';
-import 'swiper/css';
-import 'swiper/css/pagination';
-import 'swiper/css/navigation';
+import PatientTable from "@/components/PatientTable.vue";
 
 export default {
   components: {
     PatientTable,
-    Swiper,
-    SwiperSlide,
   },
   data() {
     return {
       isCardView: true,
-      search: '',
+      search: "",
       patients: [],
       loading: true,
+      activePage: 0,
+      maxVisiblePages: 7, // maksimal ko'rsatiladigan sahifa raqamlari soni
     };
   },
   computed: {
     filteredPatients() {
-      return this.patients.filter(p => {
+      return this.patients.filter((p) => {
         const fullName = `${p.firstName} ${p.lastName}`.toLowerCase();
         return fullName.includes(this.search.trim().toLowerCase());
       });
@@ -95,12 +125,34 @@ export default {
       for (let i = 0; i < this.filteredPatients.length; i += perPage) {
         chunks.push(this.filteredPatients.slice(i, i + perPage));
       }
+      // activePage limitdan chiqmasligi uchun:
+      if (this.activePage > chunks.length - 1) this.activePage = chunks.length - 1;
+      if (this.activePage < 0) this.activePage = 0;
       return chunks;
+    },
+    pageNumbersToShow() {
+      const total = this.paginatedPatients.length;
+      const current = this.activePage;
+      const maxPages = this.maxVisiblePages;
+
+      let start = Math.max(0, current - Math.floor(maxPages / 2));
+      let end = start + maxPages - 1;
+
+      if (end >= total) {
+        end = total - 1;
+        start = Math.max(0, end - maxPages + 1);
+      }
+
+      const pages = [];
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      return pages;
     },
   },
   async mounted() {
     try {
-      const res = await fetch('https://dummyjson.com/users');
+      const res = await fetch("https://dummyjson.com/users");
       const data = await res.json();
       this.patients = data.users;
     } catch (err) {
@@ -116,7 +168,7 @@ export default {
 .patients-container {
   padding: 20px;
   max-width: 1200px;
-  margin: 0 auto;
+  margin-left: 270px;
 }
 
 .header-section {
@@ -248,5 +300,41 @@ export default {
 
 .card__body p {
   margin: 4px 0;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+  user-select: none;
+}
+
+.page-btn {
+  padding: 8px 14px;
+  border: 1.5px solid #4caf50;
+  background-color: white;
+  color: #4caf50;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.25s ease;
+}
+
+.page-btn:hover:not(:disabled) {
+  background-color: #4caf50;
+  color: white;
+}
+
+.page-btn:disabled {
+  border-color: #a5d6a7;
+  color: #a5d6a7;
+  cursor: not-allowed;
+}
+
+.page-btn.active {
+  background-color: #4caf50;
+  color: white;
+  cursor: default;
 }
 </style>
