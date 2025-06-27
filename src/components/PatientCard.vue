@@ -26,28 +26,28 @@
         <div class="form-row"><label>Telefon 2:</label><input v-model="cardBemor.tel2" class="editable" /></div>
         <div class="form-row">
           <label>Jinsi:</label>
-          <!-- <select v-model="cardBemor.jinsi" class="editable">
+          <select v-model="jinsi" class="editable">
             <option value="Erkak">Erkak</option>
             <option value="Ayol">Ayol</option>
             <option value="">Belgilanmagan</option>
-          </select> -->
+          </select>
         </div>
-        <!-- <div class="form-row"><label>Yoshi:</label><input type="number" v-model.number="cardBemor.yosh" min="0" class="editable" /></div>
-      </div> -->
+        <div class="form-row"><label>Yoshi:</label><input type="number" v-model.number="yosh" min="0" class="editable" /></div>
+      </div>
 
       <!-- Yangi qator: 3 ustunli readonly maʼlumotlar -->
       <div class="form-row-3">
         <div class="triple-field">
           <label>Takliflar:</label>
-          <textarea v-model="cardBemor.takliflar" readonly class="readonly" placeholder="Qo‘shimcha ma'lumotlar"></textarea>
+          <textarea v-model="takliflar" readonly class="readonly" placeholder="Qo‘shimcha ma'lumotlar"></textarea>
         </div>
         <div class="triple-field">
           <label>Kasallik tarixi:</label>
-          <textarea v-model="cardBemor.kasallik_tarixi" readonly class="readonly" placeholder="Kasalliklar va tibbiy tarix"></textarea>
+          <textarea v-model="kasallik_tarixi" readonly class="readonly" placeholder="Kasalliklar va tibbiy tarix"></textarea>
         </div>
         <div class="triple-field">
           <label>Sanalar va yotgan joylar:</label>
-          <textarea v-model="cardBemor.sanalar" readonly class="readonly" placeholder="Yotgan sanalar"></textarea>
+          <textarea v-model="sanalar" readonly class="readonly" placeholder="Yotgan sanalar"></textarea>
         </div>
       </div>
 
