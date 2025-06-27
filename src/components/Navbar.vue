@@ -1,125 +1,116 @@
 <template>
-  <div class="layout">
-    <SuperSidebar />
-    <div class="content">
-      <Navbar />
-      <main class="dashboard">
-        <h1>📊 Bosh sahifa statistikasi</h1>
+  <div class="navbar">
+    <div class="profile" @click="toggleModal">
+      <img class="profile-img" :src="profileImg" alt="Profil" />
+      <span class="username">{{ username }}</span>
+    </div>
 
-        <div class="charts">
-          <div class="chart-card">
-            <h3>🧍 Bugungi yotgan bemorlar</h3>
-            <PieChart :data="dailyOccupancy" />
-          </div>
+    <!-- Modal oynasi -->
+    <div v-if="isModalOpen" class="modal-overlay" @click.self="closeModal">
+      <div class="modal-content">
+        <h3>{{ username }}</h3>
+        <p>Email: {{ email }}</p>
+        <p>Roli: <strong>{{ role }}</strong></p>
 
-          <div class="chart-card">
-            <h3>📅 Haftalik xizmatlar</h3>
-            <BarChart :data="weeklyServices" />
-          </div>
-
-          <div class="chart-card">
-            <h3>📈 Yillik foydalanuvchilar</h3>
-            <LineChart :data="yearlyUsers" />
-          </div>
-        </div>
-      </main>
+        <button @click="logout" class="logout-btn">🚪 Chiqish</button>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-import SuperSidebar from '@/components/SuperAdminsidebar.vue';
-import Navbar from '@/components/Navbar.vue';
-import { PieChart, BarChart, LineChart } from 'vue-chart-3';
-
 export default {
-  components: {
-    SuperSidebar,
-    Navbar,
-    PieChart,
-    BarChart,
-    LineChart
-  },
+  name: "Navbar",
   data() {
     return {
-      dailyOccupancy: {
-        labels: ['Bo‘sh', 'Band'],
-        datasets: [{
-          data: [40, 60],
-          backgroundColor: ['#00c49f', '#ff6384'],
-        }]
-      },
-      weeklyServices: {
-        labels: ['Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba', 'Yakshanba'],
-        datasets: [{
-          label: 'Xizmatlar soni',
-          data: [10, 15, 12, 18, 20, 25, 14],
-          backgroundColor: '#4e73df'
-        }]
-      },
-      yearlyUsers: {
-        labels: ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun'],
-        datasets: [{
-          label: 'Yangi foydalanuvchilar',
-          data: [100, 120, 150, 170, 180, 210],
-          borderColor: '#36b9cc',
-          backgroundColor: 'rgba(54, 185, 204, 0.2)',
-          fill: true,
-          tension: 0.4
-        }]
-      }
+      username: localStorage.getItem("username") || "Foydalanuvchi",
+      email: localStorage.getItem("email") || "zufaraliyev@gmail.com",
+      role: localStorage.getItem("role") || "SuperAdmin",
+      isModalOpen: false,
+      profileImg: "https://i.pravatar.cc/40?img=3" // avatar rasmi
     };
+  },
+  methods: {
+    toggleModal() {
+      this.isModalOpen = !this.isModalOpen;
+    },
+    closeModal() {
+      this.isModalOpen = false;
+    },
+    logout() {
+      localStorage.clear();
+      this.closeModal();
+      this.$router.push("/login");
+    }
   }
 };
 </script>
 
 <style scoped>
-.layout {
+.navbar {
+  background-color: #fff;
+  padding: 12px 24px;
   display: flex;
-  min-height: 100vh;
-  background-color: #f4f6f8;
+  justify-content: flex-end;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  z-index: 10;
+  position: sticky;
+  top: 0;
 }
 
-.content {
-  flex: 1;
+.profile {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
 }
 
-.dashboard {
-  padding: 30px;
-  flex-grow: 1;
-  background-color: #f9f9f9;
+.profile-img {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  margin-right: 12px;
 }
 
-.dashboard h1 {
-  font-size: 28px;
-  margin-bottom: 25px;
-  font-weight: 700;
+.username {
+  font-weight: 600;
   color: #333;
 }
 
-.charts {
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
   display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
-  justify-content: space-around;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
 }
 
-.chart-card {
+.modal-content {
   background: white;
-  border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-  flex: 1 1 300px;
-  min-width: 280px;
-  max-width: 400px;
-  transition: transform 0.3s ease;
+  border-radius: 12px;
+  width: 320px;
   text-align: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
-.chart-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+.logout-btn {
+  margin-top: 16px;
+  background: #ff4d4f;
+  border: none;
+  padding: 10px 20px;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.logout-btn:hover {
+  background: #d9363e;
 }
 </style>

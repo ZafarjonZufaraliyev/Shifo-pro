@@ -1,74 +1,42 @@
 <template>
-  <div class="layout">
-    <SuperSidebar />
-
-    <div class="content">
-      <AppNavbar />
-
-      <main class="dashboard">
-        <h1>📊 Bosh sahifa statistikasi</h1>
-
-        <div class="charts">
-          <div class="chart-card">
-            <h3>🧍 Bugungi yotgan bemorlar</h3>
-            <PieChart :data="dailyOccupancy" />
-          </div>
-
-          <div class="chart-card">
-            <h3>📅 Haftalik xizmatlar</h3>
-            <BarChart :data="weeklyServices" />
-          </div>
-
-          <div class="chart-card">
-            <h3>📈 Yillik foydalanuvchilar</h3>
-            <LineChart :data="yearlyUsers" />
-          </div>
-        </div>
-      </main>
-    </div>
-  </div>
+<SuperAdminsidebar></SuperAdminsidebar>
+<Navbar></Navbar>
+<router-view></router-view>
+  
 </template>
 
 <script>
-import SuperSidebar from '@/components/SuperAdminsidebar.vue'
-import AppNavbar from '@/components/Navbar.vue'
-import { PieChart, BarChart, LineChart } from 'vue-chart-3'
+import SuperAdminsidebar from '@/components/SuperAdminsidebar.vue';
+import Navbar from '@/components/Navbar.vue';
+import { BarChart, LineChart } from 'vue-chart-3'
 
 export default {
-  name: 'Dashboard',
   components: {
-    SuperSidebar,
-    AppNavbar,
-    PieChart,
     BarChart,
-    LineChart
+    LineChart,
+    Navbar,
+    SuperAdminsidebar
   },
   data() {
     return {
-      dailyOccupancy: {
-        labels: ['Bo‘sh', 'Band'],
-        datasets: [
-          {
-            data: [40, 60],
-            backgroundColor: ['#00c49f', '#ff6384']
-          }
-        ]
-      },
+      todayPatients: 12,
+      weeklyPatients: 80,
+      monthlyUsers: 310,
       weeklyServices: {
-        labels: ['Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba', 'Yakshanba'],
+        labels: ['Dush', 'Sesh', 'Chor', 'Pay', 'Juma', 'Shan', 'Yak'],
         datasets: [
           {
-            label: 'Xizmatlar soni',
-            data: [10, 15, 12, 18, 20, 25, 14],
+            label: 'Xizmatlar',
+            data: [10, 14, 9, 13, 15, 18, 11],
             backgroundColor: '#4e73df'
           }
         ]
       },
-      yearlyUsers: {
-        labels: ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun'],
+      monthlyUsersChart: {
+        labels: ['Yan', 'Fev', 'Mart', 'Apr', 'May', 'Iyun'],
         datasets: [
           {
-            label: 'Yangi foydalanuvchilar',
+            label: 'Foydalanuvchilar',
             data: [100, 120, 150, 170, 180, 210],
             borderColor: '#36b9cc',
             backgroundColor: 'rgba(54, 185, 204, 0.2)',
@@ -83,52 +51,65 @@ export default {
 </script>
 
 <style scoped>
-.layout {
-  display: flex;
-  min-height: 100vh;
-  background-color: #f4f6f8;
-}
-
-.content {
-  flex: 1;
+.dashboard {
   display: flex;
   flex-direction: column;
-}
-
-.dashboard {
-  padding: 30px;
-  flex-grow: 1;
-  background-color: #f9f9f9;
+  min-height: 100vh;
+  margin-left: 270px;
+  padding: 20px;
 }
 
 .dashboard h1 {
-  font-size: 28px;
-  margin-bottom: 25px;
-  font-weight: 700;
+  font-size: 26px;
+  font-weight: bold;
+  margin-bottom: 24px;
+}
+
+/* Statistik kartalar */
+.stats-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.stat-card {
+  background-color: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  flex: 1;
+  min-width: 220px;
+  text-align: center;
+}
+
+.stat-card h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
+  color: #555;
+}
+
+.stat-card p {
+  font-size: 22px;
+  font-weight: bold;
   color: #333;
 }
 
+/* Grafiklar */
 .charts {
   display: flex;
   flex-wrap: wrap;
   gap: 24px;
-  justify-content: space-around;
 }
 
 .chart-card {
-  background: white;
-  border-radius: 16px;
-  padding: 24px;
+  background-color: white;
+  border-radius: 12px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-  flex: 1 1 300px;
-  min-width: 280px;
-  max-width: 400px;
-  transition: transform 0.3s ease;
+  padding: 20px;
+  flex: 1 1 350px;
+  min-width: 300px;
   text-align: center;
 }
-
-.chart-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
-}
-</style>
+</style> 
+ 
