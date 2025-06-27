@@ -6,10 +6,12 @@
     <form @submit.prevent="updatePatient" class="form-grid-3" v-if="cardBemor">
       <!-- USTUN 1: Shaxsiy maʼlumotlar -->
       <div class="form-column">
-        <div class="form-row"><label>Familiya:</label><input v-model="cardBemor.familiya" required class="editable" /></div>
+        <div class="form-row"><label>Familiya:</label><input v-model="cardBemor.familiya" required class="editable" />
+        </div>
         <div class="form-row"><label>Ism:</label><input v-model="cardBemor.ism" required class="editable" /></div>
         <div class="form-row"><label>Sharif:</label><input v-model="cardBemor.sharif" class="editable" /></div>
-        <div class="form-row"><label>Tug‘ilgan sana:</label><input type="date" v-model="cardBemor.tugulgan_sana" class="editable" /></div>
+        <div class="form-row"><label>Tug‘ilgan sana:</label><input type="date" v-model="cardBemor.tugulgan_sana"
+            class="editable" /></div>
       </div>
 
       <!-- USTUN 2: Hududiy maʼlumotlar -->
@@ -17,7 +19,8 @@
         <div class="form-row"><label>Davlat:</label><input v-model="cardBemor.davlat" class="editable" /></div>
         <div class="form-row"><label>Viloyat:</label><input v-model="cardBemor.viloyat" class="editable" /></div>
         <div class="form-row"><label>Tuman:</label><input v-model="cardBemor.tuman" class="editable" /></div>
-        <div class="form-row"><label>Manzil:</label><textarea v-model="cardBemor.manzil" class="editable"></textarea></div>
+        <div class="form-row"><label>Manzil:</label><textarea v-model="cardBemor.manzil" class="editable"></textarea>
+        </div>
       </div>
 
       <!-- USTUN 3: Bogʻlanish va tibbiy maʼlumotlar -->
@@ -32,7 +35,8 @@
             <option value="">Belgilanmagan</option>
           </select>
         </div>
-        <div class="form-row"><label>Yoshi:</label><input type="number" v-model.number="yosh" min="0" class="editable" /></div>
+        <div class="form-row"><label>Yoshi:</label><input type="number" v-model.number="yosh" min="0"
+            class="editable" /></div>
       </div>
 
       <!-- Yangi qator: 3 ustunli readonly maʼlumotlar -->
@@ -43,7 +47,8 @@
         </div>
         <div class="triple-field">
           <label>Kasallik tarixi:</label>
-          <textarea v-model="kasallik_tarixi" readonly class="readonly" placeholder="Kasalliklar va tibbiy tarix"></textarea>
+          <textarea v-model="kasallik_tarixi" readonly class="readonly"
+            placeholder="Kasalliklar va tibbiy tarix"></textarea>
         </div>
         <div class="triple-field">
           <label>Sanalar va yotgan joylar:</label>
@@ -91,13 +96,38 @@ export default {
     async updatePatient() {
       try {
         const id = this.$route.params.id;
-        await api.put(`/public/api/v1/clients/${id}`, this.cardBemor);
+
+        // Faqat kerakli maydonlarni olish
+        const updatedData = {
+          familiya: this.cardBemor.familiya,
+          ism: this.cardBemor.ism,
+          sharif: this.cardBemor.sharif,
+          tugulgan_sana: this.cardBemor.tugulgan_sana,
+          davlat: this.cardBemor.davlat,
+          viloyat: this.cardBemor.viloyat,
+          tuman: this.cardBemor.tuman,
+          manzil: this.cardBemor.manzil,
+          tel1: this.cardBemor.tel1,
+          tel2: this.cardBemor.tel2,
+          pasport: this.cardBemor.pasport || "",
+          referral: this.cardBemor.referral || "",
+        };
+
+        await api.put(`/public/api/v1/clients/${id}`, updatedData);
         alert("Ma'lumotlar muvaffaqiyatli yangilandi.");
       } catch (err) {
-        console.error("Yangilashda xatolik:", err);
-        alert("Yangilashda xatolik yuz berdi.");
+        if (err.response && err.response.data?.errors) {
+          const msg = Object.entries(err.response.data.errors)
+            .map(([field, errors]) => `${field}: ${errors.join(", ")}`)
+            .join("\n");
+          alert("Xatolik:\n" + msg);
+        } else {
+          console.error("Yangilashda xatolik:", err);
+          alert("Yangilashda xatolik yuz berdi.");
+        }
       }
     },
+
     async deletePatient() {
       if (confirm("Rostdan ham o‘chirmoqchimisiz?")) {
         try {
@@ -124,7 +154,7 @@ export default {
 <style scoped>
 .patient-details {
   max-width: 1280px;
- margin:20px 20px 20px 290px;
+  margin: 20px 20px 20px 290px;
   padding: 20px;
   background: #fff;
   border-radius: 1.5rem;
