@@ -12,7 +12,7 @@
 
 <script>
 import SuperSidebar from '@/components/SuperAdminsidebar.vue'
-import Navbar from '@/components/Sidebar.vue'
+import Navbar from '@/components/Navbar.vue'
 
 export default {
   components: {

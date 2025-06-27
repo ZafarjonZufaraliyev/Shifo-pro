@@ -1,10 +1,8 @@
 <template>
   <div class="layout">
     <SuperSidebar />
-
     <div class="content">
-      <AppNavbar />
-
+      <Navbar />
       <main class="dashboard">
         <h1>📊 Bosh sahifa statistikasi</h1>
 
@@ -30,15 +28,14 @@
 </template>
 
 <script>
-import SuperSidebar from '@/components/SuperAdminsidebar.vue'
-import AppNavbar from '@/components/Navbar.vue'
-import { PieChart, BarChart, LineChart } from 'vue-chart-3'
+import SuperSidebar from '@/components/SuperAdminsidebar.vue';
+import Navbar from '@/components/Navbar.vue';
+import { PieChart, BarChart, LineChart } from 'vue-chart-3';
 
 export default {
-  name: 'Dashboard',
   components: {
     SuperSidebar,
-    AppNavbar,
+    Navbar,
     PieChart,
     BarChart,
     LineChart
@@ -47,39 +44,33 @@ export default {
     return {
       dailyOccupancy: {
         labels: ['Bo‘sh', 'Band'],
-        datasets: [
-          {
-            data: [40, 60],
-            backgroundColor: ['#00c49f', '#ff6384']
-          }
-        ]
+        datasets: [{
+          data: [40, 60],
+          backgroundColor: ['#00c49f', '#ff6384'],
+        }]
       },
       weeklyServices: {
         labels: ['Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba', 'Yakshanba'],
-        datasets: [
-          {
-            label: 'Xizmatlar soni',
-            data: [10, 15, 12, 18, 20, 25, 14],
-            backgroundColor: '#4e73df'
-          }
-        ]
+        datasets: [{
+          label: 'Xizmatlar soni',
+          data: [10, 15, 12, 18, 20, 25, 14],
+          backgroundColor: '#4e73df'
+        }]
       },
       yearlyUsers: {
         labels: ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun'],
-        datasets: [
-          {
-            label: 'Yangi foydalanuvchilar',
-            data: [100, 120, 150, 170, 180, 210],
-            borderColor: '#36b9cc',
-            backgroundColor: 'rgba(54, 185, 204, 0.2)',
-            fill: true,
-            tension: 0.4
-          }
-        ]
+        datasets: [{
+          label: 'Yangi foydalanuvchilar',
+          data: [100, 120, 150, 170, 180, 210],
+          borderColor: '#36b9cc',
+          backgroundColor: 'rgba(54, 185, 204, 0.2)',
+          fill: true,
+          tension: 0.4
+        }]
       }
-    }
+    };
   }
-}
+};
 </script>
 
 <style scoped>

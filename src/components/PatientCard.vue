@@ -3,7 +3,7 @@
     <router-view></router-view>
     <h2>🩺 Bemor haqida maʼlumot</h2>
 
-    <form @submit.prevent="updatePatient" class="form-grid-3">
+    <form @submit.prevent="updatePatient" class="form-grid-3" v-if="cardBemor">
       <!-- USTUN 1: Shaxsiy maʼlumotlar -->
       <div class="form-column">
         <div class="form-row"><label>Familiya:</label><input v-model="cardBemor.familiya" required class="editable" /></div>
@@ -66,6 +66,8 @@
 </template>
 
 <script>
+import api from "@/api"; // API sozlamalar joylashgan fayl
+
 export default {
   data() {
     return {
@@ -75,36 +77,38 @@ export default {
   },
   methods: {
     async getPatient() {
-      this.loading = true;
-      const mockData = {
-        familiya: "Jo‘rayev",
-        ism: "Azimjon",
-        sharif: "Aliyevich",
-        davlat: "O‘zbekiston",
-        pasport: "AA1234567",
-        tugulgan_sana: "1990-05-10",
-        viloyat: "Toshkent viloyati",
-        tuman: "Chirchiq tumani",
-        manzil: "Ko‘cha 15, Uy 7",
-        tel1: "+998901234567",
-        tel2: "+998912345678",
-        jinsi: "Erkak",
-        yosh: 35,
-        takliflar: "Qon bosimini pasaytiruvchi dori",
-        kasallik_tarixi: "Qandli diabet, gipertoniya",
-        sanalar: "2023-01-01 dan 2023-02-15 gacha yotgan",
-      };
-      setTimeout(() => {
-        this.cardBemor = mockData;
+      try {
+        const id = this.$route.params.id; // Routerdan bemor ID sini olamiz
+        const res = await api.get(`/public/api/v1/clients/${id}`); // To‘liq bitta bemor ma'lumotini olish
+        this.cardBemor = res.data; // API javobiga qarab o'zgartiring, odatda res.data bo'ladi
+      } catch (err) {
+        console.error("API xatolik:", err);
+        alert("Bemor ma'lumotlarini olishda xatolik yuz berdi.");
+      } finally {
         this.loading = false;
-      }, 700);
+      }
     },
-    updatePatient() {
-      alert("🔒 Saqlash demo rejimida. API bilan bog‘lanmagan.");
+    async updatePatient() {
+      try {
+        const id = this.$route.params.id;
+        await api.put(`/public/api/v1/clients/${id}`, this.cardBemor);
+        alert("Ma'lumotlar muvaffaqiyatli yangilandi.");
+      } catch (err) {
+        console.error("Yangilashda xatolik:", err);
+        alert("Yangilashda xatolik yuz berdi.");
+      }
     },
-    deletePatient() {
+    async deletePatient() {
       if (confirm("Rostdan ham o‘chirmoqchimisiz?")) {
-        alert("❌ O‘chirish ham demo rejimida.");
+        try {
+          const id = this.$route.params.id;
+          await api.delete(`/public/api/v1/clients/${id}`);
+          alert("Bemor muvaffaqiyatli o‘chirildi.");
+          this.$router.push("/super/bemorlar");
+        } catch (err) {
+          console.error("O'chirishda xatolik:", err);
+          alert("O'chirishda xatolik yuz berdi.");
+        }
       }
     },
   },
@@ -114,11 +118,14 @@ export default {
 };
 </script>
 
+
+
+
 <style scoped>
 .patient-details {
   max-width: 1280px;
-  margin-left:270px;
-  padding: 3rem;
+ margin:20px 20px 20px 290px;
+  padding: 20px;
   background: #fff;
   border-radius: 1.5rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
@@ -227,6 +234,7 @@ textarea.readonly {
 .btn-save {
   background-color: #2563eb;
 }
+
 .btn-save:hover {
   background-color: #1d4ed8;
 }
@@ -234,6 +242,7 @@ textarea.readonly {
 .btn-delete {
   background-color: #dc2626;
 }
+
 .btn-delete:hover {
   background-color: #b91c1c;
 }
@@ -245,6 +254,7 @@ textarea.readonly {
   align-items: center;
   justify-content: center;
 }
+
 .btn-back:hover {
   background-color: #1e293b;
 }
@@ -273,9 +283,17 @@ textarea.readonly {
   .form-grid-3 {
     grid-template-columns: 1fr;
   }
+
   .btn {
     width: 100%;
     text-align: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .patient-details {
+    margin-left: 0;
+    padding: 20px;
   }
 }
 </style>

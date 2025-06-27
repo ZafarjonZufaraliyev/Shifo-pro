@@ -143,7 +143,7 @@ export default {
 <style scoped>
 .rooms-page {
   max-width: 1200px;
-  margin-left: 270px;
+  margin:20px 20px 20px 290px;
   padding: 20px;
   background: #f9fcff;
   border-radius: 12px;

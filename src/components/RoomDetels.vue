@@ -3,14 +3,12 @@
     <h2 class="title">Xona haqida ma'lumot</h2>
 
     <div v-if="room" class="info-wrapper">
-
-      <!-- Qabulxonaga ogohlantirish: navbatdagi mehmon bugun kelishi -->
+      
       <div v-if="showArrivalTodayAlert" class="notification alert-booking">
-        Diqqat! <strong>{{ nextBooking.name }}</strong> ismli mijoz bugun <strong>{{ today }}</strong> kuni kelishi kerak!
+        Diqqat! <strong>{{ nextBooking.name }}</strong> ismli mijoz bugun <strong>{{ today }}</strong> kuni kelishi kerak!  
         Iltimos, unga telefon qiling: <strong>{{ nextBooking.phone }}</strong>
       </div>
 
-      <!-- Hozirgi mehmon -->
       <div v-if="currentBooking" class="info-block current-guest">
         <h3 class="section-title">Hozirgi mehmon</h3>
         <p><strong>Ismi:</strong> {{ currentBooking.name }}</p>
@@ -19,7 +17,6 @@
         <p><strong>Ketadigan sana:</strong> {{ currentBooking.departure }}</p>
       </div>
 
-      <!-- Navbatdagi mehmon -->
       <div v-if="nextBooking" class="info-block next-guest">
         <h3 class="section-title">Navbatdagi mehmon</h3>
         <p><strong>Ismi:</strong> {{ nextBooking.name }}</p>
@@ -28,7 +25,6 @@
         <p><strong>Ketish sanasi:</strong> {{ nextBooking.departure }}</p>
       </div>
 
-      <!-- Xona tafsilotlari -->
       <div class="info-block">
         <h3 class="section-title">Xona tafsilotlari</h3>
         <p><strong>Raqami:</strong> {{ room.number }}</p>
@@ -43,7 +39,6 @@
         </p>
       </div>
 
-      <!-- Band qilish formasi -->
       <div class="form-block">
         <h3 class="section-title">Yangi band qilish</h3>
 
@@ -61,7 +56,7 @@
             v-model.trim="guest.phone"
             type="tel"
             placeholder="Telefon raqam (+998901234567)"
-            pattern="^\+998\d{9}$"
+            pattern="^\\+998\\d{9}$"
             :class="{ invalid: errors.phone }"
             required
           />
@@ -106,12 +101,7 @@ export default {
   data() {
     return {
       room: null,
-      guest: {
-        name: '',
-        phone: '',
-        arrival: '',
-        departure: ''
-      },
+      guest: { name: '', phone: '', arrival: '', departure: '' },
       errors: {},
       formError: '',
       successMessage: ''
@@ -122,19 +112,13 @@ export default {
       return new Date().toISOString().split('T')[0];
     },
     currentBooking() {
-      return this.room?.bookings.find(
-        b => b.arrival <= this.today && b.departure >= this.today
-      ) || null;
+      return this.room?.bookings.find(b => b.arrival <= this.today && b.departure >= this.today) || null;
     },
     nextBooking() {
-      return this.room?.bookings
-        .filter(b => b.arrival > this.today)
-        .sort((a, b) => new Date(a.arrival) - new Date(b.arrival))[0] || null;
+      return this.room?.bookings.filter(b => b.arrival > this.today).sort((a, b) => new Date(a.arrival) - new Date(b.arrival))[0] || null;
     },
     isRoomFreeToday() {
-      return !this.room?.bookings.some(
-        b => b.arrival <= this.today && b.departure >= this.today
-      );
+      return !this.room?.bookings.some(b => b.arrival <= this.today && b.departure >= this.today);
     },
     showArrivalTodayAlert() {
       return this.nextBooking?.arrival === this.today;
@@ -150,61 +134,40 @@ export default {
         floor: '2-qavat',
         capacity: 2,
         bookings: [
-          {
-            name: 'Azimjon Jo‘rayev',
-            phone: '+998901234567',
-            arrival: '2025-06-24',
-            departure: '2025-06-29'
-          },
-          {
-            name: 'Navbatdagi Mehmon',
-            phone: '+998912345678',
-            arrival: '2025-06-30',
-            departure: '2025-07-05'
-          }
+          { name: 'Azimjon Jo‘rayev', phone: '+998901234567', arrival: '2025-06-24', departure: '2025-06-29' },
+          { name: 'Navbatdagi Mehmon', phone: '+998912345678', arrival: '2025-06-30', departure: '2025-07-05' }
         ]
       }
     ];
-
     const roomId = this.$route.params.id;
     this.room = allRooms.find(r => r.id == roomId);
   },
   methods: {
     assignGuest() {
       this.clearMessages();
-
       if (!this.validateForm()) return;
-
-      // Sana oralig‘ida bandlik tekshiruvi
-      const overlap = this.room.bookings.some(b =>
-        this.dateOverlap(this.guest.arrival, this.guest.departure, b.arrival, b.departure)
-      );
+      const overlap = this.room.bookings.some(b => this.dateOverlap(this.guest.arrival, this.guest.departure, b.arrival, b.departure));
       if (overlap) {
         this.formError = 'Ushbu sana oralig‘ida xona allaqachon band qilingan.';
         return;
       }
-
       const phoneRegex = /^\+998\d{9}$/;
       if (!phoneRegex.test(this.guest.phone)) {
         this.errors.phone = 'Telefon raqam +998XXXXXXXXX formatida bo‘lishi kerak.';
         return;
       }
-
       this.room.bookings.push({ ...this.guest });
       this.successMessage = 'Xona muvaffaqiyatli band qilindi!';
       this.resetGuestForm();
     },
     validateForm() {
       this.errors = {};
-
       if (!this.guest.name) this.errors.name = "Ism Familiya kiritilishi shart.";
       if (!this.guest.phone) this.errors.phone = "Telefon raqam kiritilishi shart.";
       if (!this.guest.arrival) this.errors.arrival = "Kelish sanasi kiritilishi shart.";
-      if (!this.guest.departure) this.errors.departure = "Ketish sanasi kiritilishi shart.";
       if (this.guest.arrival && this.guest.departure && this.guest.arrival > this.guest.departure) {
         this.errors.departure = "Ketish sanasi kelish sanasidan oldin bo‘lishi mumkin emas.";
       }
-
       return Object.keys(this.errors).length === 0;
     },
     clearMessages() {
@@ -226,167 +189,278 @@ export default {
 </script>
 
 <style scoped>
+/* Asosiy konteyner */
 .room-details {
   max-width: 1200px;
-  margin-left:270px;
-  padding: 30px;
-  background: #f9fcff;
-  border-radius: 14px;
-  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.06);
+  margin: 20px 20px 20px 290px;
+  padding:20px;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.1);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #222;
 }
 
+/* Sarlavha */
 .title {
   text-align: center;
-  font-size: 28px;
-  font-weight: 700;
-  color: #1a6291;
-  margin-bottom: 30px;
+  font-size: 2.8rem;
+  font-weight: 900;
+  color: #1A6291;
+  margin-bottom: 40px;
+  letter-spacing: 1.3px;
+  user-select: none;
 }
 
+/* Ogohlantirish paneli */
+.notification.alert-booking {
+  background-color: #fff4e5;
+  border: 2px solid #ff9800;
+  color: #bf5700;
+  font-weight: 700;
+  border-radius: 16px;
+  padding: 20px 28px;
+  margin-bottom: 36px;
+  text-align: center;
+  box-shadow: 0 6px 16px rgba(255, 152, 0, 0.3);
+  font-size: 1.15rem;
+  user-select: none;
+}
+
+/* Flex konteyner, ustunli joylashuv */
 .info-wrapper {
   display: flex;
-  gap: 30px;
   flex-wrap: wrap;
-  justify-content: center;
+  gap: 24px;
+  justify-content: space-between;
 }
 
+/* Har bir info blok */
 .info-block {
-  background-color: #fff;
-  border-radius: 12px;
-  padding: 25px 30px;
-  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.07);
-  flex: 1 1 320px;
-  max-width: 400px;
+  background: #f9faff;
+  border-radius: 18px;
+  padding: 24px 28px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  flex: 1 1 280px;
+  min-width: 280px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  user-select: none;
 }
 
+.info-block:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 16px 36px rgba(0, 119, 204, 0.2);
+}
+
+/* Bo‘lim sarlavhalari */
 .section-title {
-  font-size: 20px;
-  margin-bottom: 15px;
-  color: #1a6291;
-  font-weight: 700;
-  border-bottom: 2px solid #1a6291;
-  padding-bottom: 6px;
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin-bottom: 20px;
+  color: #1A6291;
+  border-bottom: 3px solid #1A6291;
+  padding-bottom: 8px;
+  user-select: none;
 }
 
+/* Paragraf matni */
 p {
-  font-size: 16px;
+  font-size: 1.05rem;
   color: #333;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  line-height: 1.6;
+  user-select: text;
+  word-break: break-word;
+   display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
+/* Status belgilari */
 .badge {
   display: inline-block;
-  padding: 6px 14px;
-  border-radius: 25px;
-  font-size: 15px;
+  padding: 10px 26px;
+  border-radius: 30px;
   font-weight: 700;
+  font-size: 1rem;
   color: white;
+  min-width: 90px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  user-select: none;
+  transition: background-color 0.3s ease;
 }
 
 .free {
-  background-color: #28a745;
+  background: linear-gradient(135deg, #28a745, #56d68a);
+  box-shadow: 0 6px 20px #28a745aa;
 }
 
 .busy {
-  background-color: #dc3545;
+  background: linear-gradient(135deg, #dc3545, #f16a6a);
+  box-shadow: 0 6px 20px #dc3545aa;
 }
 
-.notification.alert-booking {
-  background-color: #fff3cd;
-  color: #856404;
-  border: 1.5px solid #856404;
-  padding: 14px 20px;
-  border-radius: 12px;
-  font-weight: 700;
-  margin-bottom: 25px;
-  text-align: center;
+/* --- Yangi band qilish formasi --- */
+.form-block {
+  background: #e9f0fb;
+  border-radius: 20px;
+  padding: 30px 36px;
+  flex: 1 1 100%;
+  max-width: 100%;
+  user-select: none;
+  box-shadow: 0 10px 28px rgba(0, 119, 204, 0.1);
+}
+
+.form-block form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
   max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
-  font-size: 16px;
+  margin: 0 auto;
 }
 
-form input,
-form label {
+.form-block label {
+  font-weight: 600;
+  color: #005a9e;
+  font-size: 1.05rem;
+  margin-bottom: 6px;
+  user-select: none;
+}
+
+.form-block input[type="text"],
+.form-block input[type="tel"],
+.form-block input[type="date"] {
   width: 100%;
-  font-size: 16px;
-  margin-bottom: 8px;
+  padding: 16px 22px;
+  font-size: 1rem;
+  border: 2.5px solid #a7c0f2;
+  border-radius: 16px;
+  background-color: #fff;
+  color: #222;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
   box-sizing: border-box;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-form input {
-  padding: 12px 16px;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  transition: border-color 0.3s ease;
-}
-
-form input:focus {
+.form-block input[type="text"]:focus,
+.form-block input[type="tel"]:focus,
+.form-block input[type="date"]:focus {
+  border-color: #1A6291;
+  box-shadow: 0 0 14px #005a9e88;
   outline: none;
-  border-color: #1a6291;
-  box-shadow: 0 0 8px rgba(26, 98, 145, 0.4);
 }
 
 .invalid {
-  border-color: #dc3545 !important;
+  border-color: #e03e3e !important;
+  box-shadow: 0 0 14px #e03e3eaa !important;
 }
 
 .error-msg {
-  color: #dc3545;
-  font-size: 14px;
+  color: #e03e3e;
+  font-size: 0.9rem;
+  margin-top: -10px;
   margin-bottom: 12px;
-  font-weight: 600;
+  font-weight: 700;
+  user-select: none;
+  font-family: 'Montserrat', sans-serif;
+  letter-spacing: 0.02em;
 }
 
 .success-msg {
   color: #28a745;
-  font-size: 15px;
-  font-weight: 700;
-  margin-top: 10px;
+  font-size: 1.2rem;
+  font-weight: 900;
+  margin-top: 20px;
+  margin-bottom: 12px;
   text-align: center;
+  user-select: none;
+  letter-spacing: 0.04em;
+  font-family: 'Montserrat', sans-serif;
+  text-shadow: 0 0 6px #28a745cc;
 }
 
+/* Submit tugma */
 form button {
-  width: 100%;
-  padding: 14px 0;
-  background-color: #1a6291;
-  color: white;
+  padding: 18px 0;
+  font-weight: 900;
+  font-size: 1.25rem;
+  background: linear-gradient(135deg, #1A6291, #1A6291);
+  color: #fff;
   border: none;
-  font-weight: 700;
-  border-radius: 10px;
+  border-radius: 28px;
   cursor: pointer;
-  transition: background-color 0.25s ease;
-  margin-top: 10px;
+  user-select: none;
+  transition: background 0.4s ease, transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 8px 28px rgba(0, 119, 204, 0.6);
+  font-family: 'Montserrat', sans-serif;
 }
 
 form button:hover {
-  background-color: #144d6d;
+  background: linear-gradient(135deg, #0077cc, #005a9e);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 36px rgba(0, 119, 204, 0.9);
 }
 
+form button:active {
+  transform: translateY(0);
+  box-shadow: 0 8px 28px rgba(0, 119, 204, 0.6);
+}
+
+/* Orqaga tugma */
 .back-link {
   display: inline-block;
-  margin-top: 40px;
-  color: #1a6291;
+  margin-top: 50px;
+  color: #1A6291;
   text-decoration: none;
   font-weight: 700;
-  font-size: 16px;
+  font-size: 1.1rem;
   text-align: center;
   width: 100%;
+  user-select: none;
+  transition: color 0.3s ease;
+  font-family: 'Montserrat', sans-serif;
+  letter-spacing: 0.04em;
 }
 
 .back-link:hover {
+  color: #1A6291;
   text-decoration: underline;
 }
 
-@media (max-width: 950px) {
+/* RESPONSIVE */
+@media (max-width: 860px) {
   .info-wrapper {
     flex-direction: column;
-    align-items: center;
+    gap: 30px;
   }
 
   .info-block {
     max-width: 100%;
   }
+
+  .form-block form {
+    max-width: 100%;
+    padding: 0 10px;
+  }
 }
+
+@media (max-width: 480px) {
+  .room-details {
+    padding: 24px 20px;
+    margin: 20px 12px;
+  }
+
+  .title {
+    font-size: 2.2rem;
+    margin-bottom: 32px;
+  }
+
+  form button {
+    font-size: 1.1rem;
+    padding: 14px 0;
+  }
+}
+
+
 </style>

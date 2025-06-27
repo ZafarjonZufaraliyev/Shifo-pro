@@ -10,26 +10,14 @@
     <div class="top-controls">
       <div class="search-box">
         <img src="@/assets/image/sorch.svg" alt="Qidiruv" />
-        <input
-          type="search"
-          placeholder="Ism yoki familiya bo‘yicha qidirish..."
-          v-model="search"
-        />
+        <input type="search" placeholder="Ism yoki familiya bo‘yicha qidirish..." v-model="search" />
       </div>
 
       <div class="view-toggle">
-        <button
-          :class="{ active: isCardView }"
-          @click="isCardView = true"
-          title="Card Ko‘rinish"
-        >
+        <button :class="{ active: isCardView }" @click="isCardView = true" title="Card Ko‘rinish">
           📇
         </button>
-        <button
-          :class="{ active: !isCardView }"
-          @click="isCardView = false"
-          title="Jadval Ko‘rinish"
-        >
+        <button :class="{ active: !isCardView }" @click="isCardView = false" title="Jadval Ko‘rinish">
           📋
         </button>
       </div>
@@ -41,49 +29,33 @@
 
     <div v-else-if="isCardView" class="cards">
       <div class="card-page">
-        <div
-          v-for="patient in paginatedPatients[activePage]"
-          :key="patient.id"
-          class="patient-card"
-        >
+        <div v-for="patient in paginatedPatients[activePage]" :key="patient.id" class="patient-card">
           <router-link :to="`/BemorCard/${patient.id}`">
             <div class="card__header">
-              <h3>{{ patient.firstName }} {{ patient.lastName }}</h3>
+              <h3>{{ patient.familiya }} {{ patient.ism }}</h3>
               <span>{{ patient.age }} yosh | {{ patient.gender }}</span>
             </div>
           </router-link>
           <div class="card__body">
-            <p><strong>📞 Telefon:</strong> {{ patient.phone || '—' }}</p>
-            <p><strong>🗕 Keldi:</strong> {{ patient.weight || '—' }}</p>
-            <p><strong>📤 Ketdi:</strong> {{ patient.weight || '—' }}</p>
+            <p><strong>📞 Telefon:</strong> {{ patient.tel1 || '—' }}</p>
+            <p><strong>Keldi:</strong> {{ patient.weight || '—' }}</p>
+            <p><strong>Ketdi:</strong> {{ patient.weight || '—' }}</p>
           </div>
         </div>
       </div>
 
       <!-- Sahifa raqamlari -->
       <div class="pagination" v-if="paginatedPatients.length > 1">
-        <button
-          :disabled="activePage === 0"
-          @click="activePage--"
-          class="page-btn"
-        >
+        <button :disabled="activePage === 0" @click="activePage--" class="page-btn">
           &lt;
         </button>
 
-        <button
-          v-for="(page, index) in pageNumbersToShow"
-          :key="index"
-          :class="['page-btn', { active: activePage === page }]"
-          @click="activePage = page"
-        >
+        <button v-for="(page, index) in pageNumbersToShow" :key="index"
+          :class="['page-btn', { active: activePage === page }]" @click="activePage = page">
           {{ page + 1 }}
         </button>
 
-        <button
-          :disabled="activePage === paginatedPatients.length - 1"
-          @click="activePage++"
-          class="page-btn"
-        >
+        <button :disabled="activePage === paginatedPatients.length - 1" @click="activePage++" class="page-btn">
           &gt;
         </button>
       </div>
@@ -97,7 +69,7 @@
 
 <script>
 import PatientTable from "@/components/PatientTable.vue";
-
+import api from "@/api"
 export default {
   components: {
     PatientTable,
@@ -115,7 +87,7 @@ export default {
   computed: {
     filteredPatients() {
       return this.patients.filter((p) => {
-        const fullName = `${p.firstName} ${p.lastName}`.toLowerCase();
+        const fullName = `${p.familiya} ${p.ism}`.toLowerCase(); // TO‘G‘RI: familiya va ism
         return fullName.includes(this.search.trim().toLowerCase());
       });
     },
@@ -125,7 +97,7 @@ export default {
       for (let i = 0; i < this.filteredPatients.length; i += perPage) {
         chunks.push(this.filteredPatients.slice(i, i + perPage));
       }
-      // activePage limitdan chiqmasligi uchun:
+      // activePage chegaradan chiqmasin:
       if (this.activePage > chunks.length - 1) this.activePage = chunks.length - 1;
       if (this.activePage < 0) this.activePage = 0;
       return chunks;
@@ -150,17 +122,18 @@ export default {
       return pages;
     },
   },
+
   async mounted() {
     try {
-      const res = await fetch("https://dummyjson.com/users");
-      const data = await res.json();
-      this.patients = data.users;
+      const res = await api.get("/public/api/v1/clients"); // faqat endpoint, baseURL api.js da berilgan
+      this.patients = res.data.users || res.data; // backendga qarab o'zgartiring
     } catch (err) {
       console.error("API xatolik:", err);
     } finally {
       this.loading = false;
     }
-  },
+  }
+
 };
 </script>
 
@@ -176,6 +149,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  
 }
 
 .page-title {
@@ -257,8 +231,13 @@ export default {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .card-page {
@@ -272,20 +251,20 @@ export default {
   border: 1px solid #ddd;
   border-radius: 10px;
   padding: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   transition: transform 0.2s ease;
 }
 
 .patient-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .card__header h3 {
   margin: 0;
   font-size: 18px;
   color: #2c3e50;
-  text-decoration:none;
+  text-decoration: none;
 }
 
 .card__header span {
@@ -337,5 +316,12 @@ export default {
   background-color: #4caf50;
   color: white;
   cursor: default;
+}
+
+@media (max-width: 768px) {
+  .patients-container {
+    margin-left: 0;
+    padding: 20px;
+  }
 }
 </style>

@@ -14,19 +14,22 @@ import RoyxatgaOlish from "@/views/RegisterPage.vue";
 import Takliflar from "@/views/Takliflar.vue";
 import Bemor_card from "@/components/PatientCard.vue";
 import RoomDetels from "@/components/RoomDetels.vue";
-import PatientCard from "@/components/PatientCard.vue";
+import TaklifDetelis from "@/components/TaklifDetelis.vue";
 const routes = [
   {
     path: "/",
     redirect: "/login",
   },
   {
+    path:"/TaklifDetelis",
+    name:"TaklifDetelis",
+    component:TaklifDetelis
+  },
+  {
     path: "/login",
     component: Login,
   },
- 
-  
-  
+
   // Super admin marshrutlari
   {
     path: "/super",
@@ -38,15 +41,15 @@ const routes = [
         name: "SuperDashboard",
         component: SuperDashboard,
       },
-       {
-    path: "/BemorCard/:id",
-    name: "Bemor_card",
-    component: Bemor_card,
-  },
+      {
+        path: "/BemorCard/:id",
+        name: "Bemor_card",
+        component: Bemor_card,
+      },
       {
         path: "/room/:id",
         name: "RoomDetails",
-       component: RoomDetels,
+        component: RoomDetels,
       },
       {
         path: "bemorlar",
