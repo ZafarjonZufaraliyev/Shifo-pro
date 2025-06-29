@@ -19,7 +19,7 @@
         <h3>Bron qilish</h3>
         <p><strong>Xona:</strong> {{ selectedRoom?.name }}</p>
 
-        <label>👤 Mehmon ismi:</label>
+        <label> Mehmon ismi:</label>
         <input v-model="guestName" placeholder="Mehmon ismini kiriting" />
 
         <label>📅 Kelish sanasi:</label>
