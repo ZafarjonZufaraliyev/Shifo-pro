@@ -4,7 +4,7 @@ import App from './App.vue'
 import router from './router'
 import './assets/css/main.css'
 
-// Chart.js - vue-chart-3 uchun kerakli modullarni to‘liq ro‘yxatdan o‘tkazamiz
+// vue-chart-3 uchun Chart.js modullarini to‘liq ro‘yxatdan o‘tkazamiz
 import {
   Chart as ChartJS,
   Title,
@@ -16,12 +16,15 @@ import {
   CategoryScale,
   LinearScale,
   PointElement,
-  BarController,    // ✅ kerak
-  LineController,   // ✅ kerak
-  PieController     // ✅ kerak (agar PieChart ishlatilsa)
+  BarController,
+  LineController,
+  PieController
 } from 'chart.js'
 
-// BARCHA kerakli qismlarni ro'yxatdan o'tkazish
+// Motion plugin (animatsiya uchun)
+import { MotionPlugin } from '@vueuse/motion'
+
+// BARCHA chart komponentlarini ro'yxatdan o'tkazamiz
 ChartJS.register(
   Title,
   Tooltip,
@@ -37,8 +40,12 @@ ChartJS.register(
   PieController
 )
 
+// Vue ilovasini yaratish
 const app = createApp(App)
 
+// Router va Motion pluginni ulash
 app.use(router)
+app.use(MotionPlugin)
 
+// Ilovani DOM ga biriktirish
 app.mount('#app')

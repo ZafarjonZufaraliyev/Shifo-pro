@@ -2,7 +2,7 @@
   <div class="patients-container">
     <div class="header-section">
       <h2 class="page-title">🩺 Bemorlar Ro'yxati</h2>
-      <router-link to="/RoyxatgaOlish">
+      <router-link :to="{ name: 'RegisterPage' }">
         <button class="add-button">+ Qo'shish</button>
       </router-link>
     </div>
@@ -46,7 +46,7 @@
           :key="patient.id"
           class="patient-card"
         >
-          <router-link :to="`/BemorCard/${patient.id}`">
+          <router-link :to="`/super/BemorCard/${patient.id}`">
             <div class="card__header">
               <h3>{{ patient.familiya }} {{ patient.ism }}</h3>
               <span>{{ patient.age }} yosh | {{ patient.gender }}</span>

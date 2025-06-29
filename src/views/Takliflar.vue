@@ -51,31 +51,6 @@
       </div>
     </div>
 
-    <!-- Tarix -->
-    <div class="section-box">
-      <h3 @click="showHistory = !showHistory" class="section-header">
-        Tarix <span>{{ showHistory ? "−" : "+" }}</span>
-      </h3>
-      <div v-if="showHistory" class="section-body">
-        <p>🔹 2024-04-15 – Sanatoriyaga kelgan</p>
-        <p>🔹 2024-04-20 – Fizioterapiya boshlandi</p>
-        <p>🔹 2024-04-29 – Ketdi</p>
-      </div>
-    </div>
-
-    <!-- Natijalar -->
-    <div class="section-box">
-      <h3 @click="showResults = !showResults" class="section-header">
-        Natijalar <span>{{ showResults ? "−" : "+" }}</span>
-      </h3>
-      <div v-if="showResults" class="section-body">
-        <ul>
-          <li>✅ Umumiy sog‘lig‘i yaxshilandi</li>
-          <li>✅ Stress darajasi kamaydi</li>
-          <li>✅ Terapiyadan ijobiy natija</li>
-        </ul>
-      </div>
-    </div>
 
     <button class="submit-btn" @click="submitBooking">Bron qilish</button>
   </div>

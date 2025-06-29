@@ -155,7 +155,7 @@ export default {
         const response = await api.post('public/api/v1/clients', this.form);
         console.log('Server javobi:', response.data);
         // Keyingi sahifaga o'tish
-        this.$router.push("/RoyxatgaOlish/taklif");
+        this.$router.push("/RegisterPage/taklif");
       } catch (error) {
         if (error.response?.status === 422) {
           const errors = error.response.data.errors;

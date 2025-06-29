@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@vueuse/motion": "^3.0.3",
     "axios": "^1.10.0",
     "chart.js": "^3.9.1",
     "pinia": "^3.0.3",

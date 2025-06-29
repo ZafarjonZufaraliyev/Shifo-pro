@@ -9,12 +9,13 @@ import SuperDashboard from "@/views/SuperDashboard.vue";
 import MiniDashboard from "@/views/MiniDashboard.vue";
 import Bemorlar from "@/components/Bemorlar.vue";
 import Rooms from "@/components/Rooms.vue";
-import Stats from "@/components/Stats.vue";
-import RoyxatgaOlish from "@/views/RegisterPage.vue";
+import Stats from "@/components/Kassa.vue";
+import RegisterPage from "@/views/RegisterPage.vue";
 import Takliflar from "@/views/Takliflar.vue";
 import Bemor_card from "@/components/PatientCard.vue";
 import RoomDetels from "@/components/RoomDetels.vue";
 import TaklifDetelis from "@/components/TaklifDetelis.vue";
+
 const routes = [
   {
     path: "/",
@@ -42,12 +43,12 @@ const routes = [
         component: SuperDashboard,
       },
       {
-        path: "/BemorCard/:id",
+        path: "BemorCard/:id",
         name: "Bemor_card",
         component: Bemor_card,
       },
       {
-        path: "/room/:id",
+        path: "room/:id",
         name: "RoomDetails",
         component: RoomDetels,
       },
@@ -67,8 +68,9 @@ const routes = [
         component: Stats,
       },
       {
-        path: "/RoyxatgaOlish",
-        component: RoyxatgaOlish,
+        path: "RegisterPage",
+        name: "RegisterPage",
+        component: RegisterPage,
         children: [
           {
             path: "taklif",
@@ -106,8 +108,6 @@ const routes = [
         name: "MiniStats",
         component: Stats,
       },
-
-      // agar mini uchun bemorlar bo‘lsa, shu yerga qo‘shish mumkin
     ],
   },
 ];
@@ -118,13 +118,13 @@ const router = createRouter({
 });
 
 // Global guard - role asosida sahifaga kirishni cheklash
-// router.beforeEach((to, from, next) => {
-//   const role = localStorage.getItem("role");
-//   if (to.meta.role && to.meta.role !== role) {
-//     next("/login");
-//   } else {
-//     next();
-//   }
-// });
+router.beforeEach((to, from, next) => {
+  const role = localStorage.getItem("role");
+  if (to.meta.role && to.meta.role !== role) {
+    next("/login");
+  } else {
+    next();
+  }
+});
 
 export default router;
