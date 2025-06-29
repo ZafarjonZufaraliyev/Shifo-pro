@@ -252,7 +252,8 @@ export default {
   padding: 20px;
   margin:20px 20px 20px 290px;
   /* font-family: 'Segoe UI', sans-serif; */
-  /* background: #f9f9fb; */
+  /* background: #f9f9fb;
+    ` */
   color: #333;
 }
 

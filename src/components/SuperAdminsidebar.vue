@@ -23,7 +23,7 @@
         <li><router-link to="/super" @click.native="closeSidebar">🏠 Bosh sahifa</router-link></li>
         <li><router-link to="/super/bemorlar" @click.native="closeSidebar">Bemorlar</router-link></li>
         <li><router-link to="/super/rooms" @click.native="closeSidebar">Xonalar</router-link></li>
-        <li><router-link to="/super/stats" @click.native="closeSidebar">Statistika</router-link></li>
+        <li><router-link to="/super/stats" @click.native="closeSidebar">Kassa</router-link></li>
       </ul>
 
       <!-- Select - telefon uchun responsive -->

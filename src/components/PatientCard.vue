@@ -298,6 +298,11 @@ export default {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   color: #333;
 }
+@media (max-width: 768px) {
+ .patient-card {
+  max-width: 1200px;
+  margin: 20px;
+  }}
 
 /* Ma'lumotlar grid */
 .info-grid {
