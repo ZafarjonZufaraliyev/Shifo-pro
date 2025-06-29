@@ -46,7 +46,7 @@
           :key="patient.id"
           class="patient-card"
         >
-          <router-link :to="`/super/BemorCard/${patient.id}`">
+          <router-link :to="`/super/BemorCard/${patient.id}`">  
             <div class="card__header">
               <h3>{{ patient.familiya }} {{ patient.ism }}</h3>
               <span>{{ patient.age }} yosh | {{ patient.gender }}</span>

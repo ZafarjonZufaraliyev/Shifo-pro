@@ -1,6 +1,6 @@
 <template>
   <div class="register-container">
-    <router-view></router-view>
+    <!-- <router-view></router-view> -->
 
     <div v-if="!isChildVisible">
       <h2 class="title">Ro'yxatdan O'tkazish</h2>
@@ -155,7 +155,7 @@ export default {
         const response = await api.post('public/api/v1/clients', this.form);
         console.log('Server javobi:', response.data);
         // Keyingi sahifaga o'tish
-        this.$router.push("/RegisterPage/taklif");
+        this.$router.push({ name: 'Takliflar' });
       } catch (error) {
         if (error.response?.status === 422) {
           const errors = error.response.data.errors;

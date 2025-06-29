@@ -209,6 +209,199 @@ const submitPayment = () => {
 
 <!-- CSS MOSH STYLE -->
 <style scoped>
+/* === Modal overlay === */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(44, 62, 80, 0.85);
+  backdrop-filter: blur(7px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 12000;
+  opacity: 0;
+  animation: fadeInOverlay 0.35s forwards;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+@keyframes fadeInOverlay {
+  to {
+    opacity: 1;
+  }
+}
+
+/* === Modal oynasi === */
+.modal.payment-modal {
+  background: linear-gradient(135deg, #f5f8ff, #dce6ff);
+  border-radius: 18px;
+  padding: 2.5rem 2.8rem;
+  max-width: 460px;
+  width: 100%;
+  box-shadow:
+    0 10px 40px rgba(0, 0, 0, 0.15),
+    0 0 0 3px #a9baff;
+  border: 3px solid transparent;
+  transform-origin: center center;
+  animation: scaleInModal 0.35s ease forwards;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #2c3e50;
+  position: relative;
+}
+
+@keyframes scaleInModal {
+  0% {
+    opacity: 0;
+    transform: scale(0.75);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modal.payment-modal:hover {
+  border-color: #5879ff;
+}
+
+/* Modal sarlavhasi */
+.modal-title {
+  font-weight: 800;
+  font-size: 1.8rem;
+  color: #324f9a;
+  margin-bottom: 1.3rem;
+  text-align: center;
+  text-shadow: 1px 1px 3px #c0d0ff;
+}
+
+/* Yopish tugmasi */
+.close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #66788a;
+  transition: color 0.25s;
+  user-select: none;
+}
+.close-btn:hover {
+  color: #324f9a;
+}
+
+/* Info box */
+.info-box {
+  margin-top: 16px;
+  background: #e5ecff;
+  padding: 14px 18px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  user-select: none;
+}
+.info-box:hover {
+  background: #c7d7ff;
+}
+
+/* List inside info box */
+.info-box ul {
+  margin-top: 8px;
+  padding-left: 18px;
+  color: #1f2a4d;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+/* Form box */
+.form-box.payment-box {
+  margin-top: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pay-input {
+  padding: 14px 16px;
+  border: 2px solid #a3b0ff;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2a3a6d;
+  background: #f6f9ff;
+  box-shadow: inset 1px 1px 8px #d0dbff;
+  transition: border-color 0.3s ease;
+}
+.pay-input:focus {
+  outline: none;
+  border-color: #5879ff;
+  box-shadow: 0 0 12px #5879ffaa;
+}
+
+/* To‘lov usuli toggle */
+.method-group {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.method-group label {
+  flex: 1;
+  text-align: center;
+  background: #e2e9ff;
+  padding: 12px 0;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 700;
+  color: #324f9a;
+  transition: background 0.25s ease, transform 0.25s ease;
+  user-select: none;
+  box-shadow: 0 4px 8px #bbccffaa inset;
+}
+.method-group label.active {
+  background: #2c3e50;
+  color: #ffffff;
+  box-shadow: 0 0 14px #5879ffcc;
+  transform: scale(1.1);
+}
+
+/* To‘lov tasdiqlash tugmasi */
+.confirm-btn {
+  padding: 14px 0;
+  background: linear-gradient(45deg, #536dfe, #89a7ff);
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 900;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  box-shadow: 0 9px 20px #5b77f6cc;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+  user-select: none;
+}
+.confirm-btn:hover {
+  background: linear-gradient(45deg, #4059e7, #4a6ee8);
+  box-shadow: 0 12px 28px #4570e3cc;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .modal.payment-modal {
+    padding: 1.8rem 2rem;
+    max-width: 100%;
+  }
+  .pay-input {
+    font-size: 0.95rem;
+  }
+  .method-group label {
+    font-size: 0.9rem;
+  }
+  .confirm-btn {
+    font-size: 1rem;
+  }
+}
+
 .kassa-page {
   max-width: 1200px;
   margin: 20px 20px 20px 290px;

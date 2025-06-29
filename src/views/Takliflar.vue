@@ -2,14 +2,14 @@
   <div class="taklif-container">
     <h2 class="title">Takliflar sahifasi</h2>
 
-    <!-- F.I.Sh, Yoshi, Jinsi -->
+    <!-- User info -->
     <div class="user-info">
       <p><strong>F.I.Sh:</strong> {{ fullName }}</p>
       <p><strong>Yoshi:</strong> {{ age }}</p>
       <p><strong>Jinsi:</strong> {{ gender || "Ko'rsatilmagan" }}</p>
     </div>
 
-    <!-- Kelgan va ketgan sana -->
+    <!-- Arrival & Leave dates -->
     <div class="date-row">
       <div class="form-group">
         <label>Kelgan sana</label>
@@ -21,14 +21,18 @@
       </div>
     </div>
 
-    <!-- Xona tanlash -->
+    <!-- Room booking -->
     <div class="room-booking-row">
       <div class="form-group room-booking">
-        <label>Xona bron qilish</label>
+        <label>Xona tanlang</label>
         <select v-model="selectedRoom">
-          <option disabled value="">Xona tanlang</option>
-          <option v-for="room in rooms" :key="room.id" :value="room">
-            {{ room.name }} — {{ room.price }} so'm
+          <option disabled value="">Tanlang</option>
+          <option
+            v-for="r in rooms"
+            :key="r.id"
+            :value="r"
+          >
+            {{ r.display }} — {{ r.price }} so'm
           </option>
         </select>
       </div>
@@ -37,27 +41,33 @@
       </div>
     </div>
 
-    <!-- Xizmatlar -->
+    <!-- Services -->
     <div class="services-section">
       <h3>
         Xizmatlar
-        <button @click="toggleServices">{{ showServices ? "Yashirish" : "Ko'rsatish" }}</button>
+        <button @click="toggleServices">
+          {{ showServices ? "Yashirish" : "Ko'rsatish" }}
+        </button>
       </h3>
       <div v-if="showServices">
-        <div v-for="(service, i) in services" :key="i">
-          <input type="checkbox" v-model="service.selected" />
-          {{ service.name }} — {{ service.price }} so'm
+        <div v-for="(s, i) in services" :key="i">
+          <input type="checkbox" v-model="s.selected" />
+          {{ s.name }} — {{ s.price }} so'm
         </div>
       </div>
     </div>
 
-
-    <button class="submit-btn" @click="submitBooking">Bron qilish</button>
+    <button class="submit-btn" @click="submitBooking">
+      Bron qilish
+    </button>
   </div>
 </template>
 
 <script>
+import axios from "axios";
+
 export default {
+  name: "Takliflar",
   data() {
     return {
       fullName: "",
@@ -68,13 +78,7 @@ export default {
       leaveDate: "",
       selectedRoom: null,
       showServices: false,
-      showHistory: false,
-      showResults: false,
-      rooms: [
-        { id: 1, name: "1-xona", price: 100000 },
-        { id: 2, name: "2-xona", price: 150000 },
-        { id: 3, name: "VIP xona", price: 250000 }
-      ],
+      rooms: [],
       services: [
         { name: "Massaj", price: 50000, selected: false },
         { name: "Fizioterapiya", price: 60000, selected: false },
@@ -86,18 +90,33 @@ export default {
   },
   computed: {
     totalSum() {
-      let roomPrice = this.selectedRoom ? this.selectedRoom.price : 0;
-      let serviceTotal = this.services.filter(s => s.selected).reduce((a, b) => a + b.price, 0);
-      return roomPrice + serviceTotal;
+      const rp = this.selectedRoom ? this.selectedRoom.price : 0;
+      const sp = this.services
+        .filter(s => s.selected)
+        .reduce((a, s) => a + s.price, 0);
+      return rp + sp;
     }
   },
-  mounted() {
-    const form = JSON.parse(localStorage.getItem("ro_yxat_form"));
-    if (form) {
-      this.fullName = `${form.familya} ${form.ism} ${form.otasi}`;
-      this.birthYear = form.tugilganYil;
-      this.gender = form.jins;
+  async mounted() {
+    // 1) form ma'lumotlarini localStorage'dan oling
+    const f = JSON.parse(localStorage.getItem("ro_yxat_form"));
+    if (f) {
+      this.fullName = `${f.familya} ${f.ism} ${f.sharif}`;
+      this.birthYear = f.tugulgan_sana.slice(0,4);
+      this.gender = f.jins || "";
       this.age = new Date().getFullYear() - this.birthYear;
+    }
+
+    // 2) Xonalarni APIdan yuklang
+    try {
+      const { data } = await axios.get("https://shifo-pro.uz/api/v1/room");
+      this.rooms = data.map(item => ({
+        id: item.id,
+        display: `${item.room_type.name} (xona №${item.xona}, qavat ${item.qavat})`,
+        price: parseFloat(item.room_type.Narxi)
+      }));
+    } catch (err) {
+      console.error("Xonalar yuklash xatosi:", err);
     }
   },
   methods: {
@@ -119,6 +138,7 @@ export default {
         services: this.services.filter(s => s.selected),
         totalSum: this.totalSum
       };
+      // TaklifDetelis sahifasiga query orqali booking jo'natamiz
       this.$router.push({
         name: "TaklifDetelis",
         query: { data: encodeURIComponent(JSON.stringify(booking)) }
@@ -127,6 +147,12 @@ export default {
   }
 };
 </script>
+
+<style scoped>
+/* ... avvalgi Takliflar.vue style qismi shu yerda bo‘ladi ... */
+</style>
+
+
 
 <style scoped>
 .taklif-container {

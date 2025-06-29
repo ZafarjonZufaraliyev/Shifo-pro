@@ -71,14 +71,12 @@ const routes = [
         path: "RegisterPage",
         name: "RegisterPage",
         component: RegisterPage,
-        children: [
-          {
+      },
+      {
             path: "taklif",
             name: "Takliflar",
             component: Takliflar,
           },
-        ],
-      },
     ],
   },
 
