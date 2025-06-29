@@ -1,76 +1,68 @@
 <template>
-  <div class="rooms-page">
-    <h2 class="title">🏨 Xonalar ro'yxati</h2>
+  <div class="calendar-container">
+    <!-- Filtrlar -->
+    <div class="filters">
+      <label>📅 Sana oralig'i:</label>
+      <input type="date" v-model="startInput" />
+      <span>–</span>
+      <input type="date" v-model="endInput" />
 
-    <!-- Filterlar -->
-    <div class="filter-container">
-      <div class="filter-group">
-        <label for="roomType" class="filter-label">Xona turi:</label>
-        <select id="roomType" v-model="selectedType" class="custom-select">
-          <option value="">Barchasi</option>
-          <option value="LUX">LUX</option>
-          <option value="Standart">Standart</option>
-        </select>
-      </div>
+      <label>🏨 Xona raqami:</label>
+      <input type="text" v-model="roomFilter" placeholder="Masalan: 1-xona" />
 
-      <div class="filter-group">
-        <label for="search" class="filter-label">Qidiruv:</label>
-        <input
-          type="text"
-          id="search"
-          v-model="searchQuery"
-          placeholder="Masalan: 107 yoki LUX"
-          class="custom-select"
-        />
-      </div>
+      <button @click="applyFilters">Filterlash</button>
+    </div>
 
-      <div class="filter-group capacity-filter">
-        <label for="capacity" class="filter-label">Odam soni:</label>
-        <select id="capacity" v-model.number="selectedCapacity" class="custom-select">
-          <option value="">Barchasi</option>
-          <option v-for="n in maxCapacity" :key="n" :value="n">{{ n }} kishi</option>
-        </select>
-      </div>
+    <!-- Modal -->
+    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+      <div class="modal">
+        <h3>Bron qilish</h3>
+        <p><strong>Xona:</strong> {{ selectedRoom?.name }}</p>
 
-      <div class="filter-group btn-group">
-        <button class="filter-btn" @click="applyFilterAndGo">
-          Filter va Ko'rish
-        </button>
+        <label>👤 Mehmon ismi:</label>
+        <input v-model="guestName" placeholder="Mehmon ismini kiriting" />
+
+        <label>📅 Kelish sanasi:</label>
+        <input type="date" v-model="arrivalDate" />
+
+        <label>📅 Ketish sanasi:</label>
+        <input type="date" v-model="departureDate" />
+
+        <div class="modal-buttons">
+          <button @click="confirmBooking">Bron qilish</button>
+          <button @click="closeModal" class="cancel-btn">Bekor qilish</button>
+        </div>
       </div>
     </div>
 
     <!-- Jadval -->
-    <div class="table-wrapper">
-      <table class="rooms-table">
+    <div class="calendar-wrapper">
+      <table class="calendar" v-if="filteredRooms.length">
         <thead>
           <tr>
-            <th>Raqam</th>
-            <th>Turi</th>
-            <th>Narxi</th>
-            <th>Qavat</th>
-            <th>Kapasitet</th>
-            <th>Holati</th>
+            <th class="room-header">Xona</th>
+            <th v-for="day in dateRange" :key="day.toISOString()">
+              {{ formatFullDate(day) }}
+            </th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="room in filteredRooms" :key="room.id">
-            <td>
-              <router-link :to="`/room/${room.id}`" class="room-link">
-                {{ room.number }}
-              </router-link>
-            </td>
-            <td>{{ room.type }}</td>
-            <td>{{ formatPrice(room.price) }}</td>
-            <td>{{ room.floor }}</td>
-            <td>{{ room.capacity }} kishi</td>
-            <td>
-              <span class="badge" :class="room.status === 'Bo‘sh' ? 'free' : 'busy'">
-                {{ room.status }}
-              </span>
+            <td class="room-label">{{ room.name }}</td>
+            <td
+              v-for="day in dateRange"
+              :key="day.toISOString()"
+              :class="getCellClass(room, day)"
+              :title="getBookingTitle(room, day)"
+              @click="!getBooking(room, day) && openBookingModal(room, day)"
+            >
+              <span v-if="getBooking(room, day)">Bronlangan</span>
+              <span v-else class="clickable-cell"></span>
             </td>
           </tr>
         </tbody>
       </table>
+      <p v-else>Filtrga mos xona topilmadi.</p>
     </div>
   </div>
 </template>
@@ -78,223 +70,377 @@
 <script>
 export default {
   data() {
+    const today = new Date();
     return {
-      selectedType: '',
-      searchQuery: '',
-      selectedCapacity: '',
       rooms: [
-        { id: 1, number: 107, type: 'LUX', price: 250000, floor: '2-qavat', capacity: 2, status: 'Bo‘sh' },
-        { id: 2, number: 2, type: 'LUX', price: 250000, floor: '2-qavat', capacity: 3, status: 'Band' },
-        { id: 3, number: 3, type: 'LUX', price: 250000, floor: '2-qavat', capacity: 2, status: 'Band' },
-        { id: 4, number: 4, type: 'Standart', price: 250000, floor: '2-qavat', capacity: 1, status: 'Band' },
-        { id: 5, number: 5, type: 'LUX', price: 260000, floor: '2-qavat', capacity: 3, status: 'Band' },
-        { id: 6, number: 6, type: 'Standart', price: 250000, floor: '2-qavat', capacity: 2, status: 'Bo‘sh' },
-        { id: 7, number: 7, type: 'Standart', price: 250000, floor: '2-qavat', capacity: 1, status: 'Band' },
-        { id: 8, number: 8, type: 'Standart', price: 250000, floor: '2-qavat', capacity: 2, status: 'Bo‘sh' },
-        { id: 9, number: 9, type: 'Standart', price: 250000, floor: '2-qavat', capacity: 1, status: 'Band' },
-        { id: 10, number: 10, type: 'Standart', price: 250000, floor: '2-qavat', capacity: 2, status: 'Bo‘sh' }
-      ]
+        { id: 1, name: "1-xona" },
+        { id: 2, name: "2-xona" },
+        { id: 3, name: "3-xona" },
+        { id: 4, name: "VIP-xona" },
+        { id: 5, name: "4-xona" },
+        { id: 6, name: "5-xona" },
+        { id: 7, name: "6-xona" },
+        { id: 8, name: "7-xona" },
+        { id: 9, name: "VIP-xona" },
+        { id: 10, name: "8-xona" }
+      ],
+      bookings: [
+        {
+          id: 1,
+          roomId: 1,
+          start: "2025-06-28",
+          end: "2025-07-02",
+          guest: "Ali Valiyev",
+        },
+        {
+          id: 2,
+          roomId: 2,
+          start: "2025-06-30",
+          end: "2025-07-05",
+          guest: "Gulbahor Saidova",
+        },
+        {
+          id: 3,
+          roomId: 3,
+          start: "2025-07-01",
+          end: "2025-07-10",
+          guest: "Oybek Rasulov",
+        },
+        {
+          id: 4,
+          roomId: 4,
+          start: "2025-06-27",
+          end: "2025-06-29",
+          guest: "Sardor Karimov",
+        },
+      ],
+      startInput: today.toISOString().split("T")[0],
+      endInput: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 14)
+        .toISOString()
+        .split("T")[0],
+      startDate: today,
+      endDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 14),
+      roomFilter: "",
+      today: today,
+
+      // Modal uchun
+      showModal: false,
+      selectedRoom: null,
+      selectedDate: null,
+      guestName: '',
+      arrivalDate: '',
+      departureDate: '',
     };
   },
   computed: {
-    maxCapacity() {
-      // Roomlardagi maksimal kapasitetni topamiz (filter uchun)
-      return Math.max(...this.rooms.map(r => r.capacity));
+    dateRange() {
+      const dates = [];
+      let current = new Date(this.startDate);
+      while (current <= this.endDate) {
+        dates.push(new Date(current));
+        current.setDate(current.getDate() + 1);
+      }
+      return dates;
     },
     filteredRooms() {
-      let result = this.rooms;
-
-      if (this.selectedType) {
-        result = result.filter(room => room.type === this.selectedType);
-      }
-
-      if (this.searchQuery) {
-        const query = this.searchQuery.toLowerCase();
-        result = result.filter(room =>
-          room.type.toLowerCase().includes(query) ||
-          room.number.toString().includes(query)
-        );
-      }
-
-      if (this.selectedCapacity) {
-        result = result.filter(room => room.capacity === this.selectedCapacity);
-      }
-
-      return result;
-    }
+      if (!this.roomFilter.trim()) return this.rooms;
+      return this.rooms.filter((room) =>
+        room.name.toLowerCase().includes(this.roomFilter.trim().toLowerCase())
+      );
+    },
   },
   methods: {
-    formatPrice(val) {
-      return val.toLocaleString('uz-UZ') + ' soʻm';
-    },
-    applyFilterAndGo() {
-      // Filter natijasidan birinchi xona id sini olib
-      if (this.filteredRooms.length) {
-        const firstRoomId = this.filteredRooms[0].id;
-        this.$router.push({ path: `/room/${firstRoomId}` });
-      } else {
-        alert("Ushbu mezonlarga mos xona topilmadi!");
+    applyFilters() {
+      if (!this.startInput || !this.endInput) {
+        alert("Iltimos, sanalarni to‘ldiring!");
+        return;
       }
-    }
-  }
+      const s = new Date(this.startInput);
+      const e = new Date(this.endInput);
+      if (e < s) {
+        alert("Oxirgi sana boshlang‘ich sanadan kichik bo‘lishi mumkin emas!");
+        return;
+      }
+      this.startDate = s;
+      this.endDate = e;
+    },
+    formatFullDate(date) {
+      return date.toLocaleDateString("uz-UZ", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+    },
+    getBooking(room, date) {
+      return this.bookings.find((booking) => {
+        if (booking.roomId !== room.id) return false;
+        const start = new Date(booking.start);
+        const end = new Date(booking.end);
+        return date >= start && date < end;
+      });
+    },
+    getBookingTitle(room, date) {
+      const booking = this.getBooking(room, date);
+      if (!booking) return "";
+      return `Bron qilingan: ${booking.guest}\n${booking.start} dan ${booking.end} gacha`;
+    },
+    getCellClass(room, date) {
+      const booking = this.getBooking(room, date);
+      if (!booking) return "";
+      const d = new Date(date.toDateString());
+      const today = new Date(this.today.toDateString());
+      if (d.getTime() === today.getTime()) return "current";
+      else if (d > today) return "booked-future";
+      else return "booked-past";
+    },
+
+    openBookingModal(room, date) {
+      this.selectedRoom = room;
+      this.selectedDate = date;
+      this.guestName = '';
+      this.arrivalDate = date.toISOString().split("T")[0];
+      this.departureDate = '';
+      this.showModal = true;
+    },
+    closeModal() {
+      this.showModal = false;
+    },
+    confirmBooking() {
+      if (!this.guestName.trim() || !this.arrivalDate || !this.departureDate) {
+        alert("Barcha maydonlarni to‘ldiring!");
+        return;
+      }
+
+      const start = new Date(this.arrivalDate);
+      const end = new Date(this.departureDate);
+      end.setDate(end.getDate() + 1); // chiqarilgan kun band emas
+
+      if (end <= start) {
+        alert("Ketish sanasi kelish sanasidan keyin bo‘lishi kerak!");
+        return;
+      }
+
+      const overlapping = this.bookings.some(b => {
+        if (b.roomId !== this.selectedRoom.id) return false;
+        const bStart = new Date(b.start);
+        const bEnd = new Date(b.end);
+        return (start < bEnd) && (end > bStart);
+      });
+      if (overlapping) {
+        alert("Bu sana oralig‘ida xona band!");
+        return;
+      }
+
+      this.bookings.push({
+        id: this.bookings.length + 1,
+        roomId: this.selectedRoom.id,
+        start: start.toISOString().split('T')[0],
+        end: end.toISOString().split('T')[0],
+        guest: this.guestName.trim()
+      });
+
+      alert("Bron muvaffaqiyatli qo‘shildi!");
+      this.closeModal();
+    },
+  },
 };
 </script>
 
 <style scoped>
-.rooms-page {
-  max-width: 1200px;
-  margin:20px 20px 20px 290px;
+/* Umumiy konteyner */
+.calendar-container {
   padding: 20px;
-  background: #f9fcff;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  margin:20px 20px 20px 290px;
+  /* font-family: 'Segoe UI', sans-serif; */
+  /* background: #f9f9fb; */
+  color: #333;
 }
 
-.title {
-  font-size: 28px;
-  margin-bottom: 25px;
-  font-weight: 700;
-  text-align: center;
-  color: #1a6291;
-}
-
-.filter-container {
+/* === Filtrlar === */
+.filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 20px;
-  margin-bottom: 25px;
-  align-items: flex-end;
+  gap: 1rem;
+  align-items: center;
+  background: #fff;
+  padding: 1rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1.5rem;
 }
 
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 200px;
+.filters label {
+  font-weight: 600;
+  margin-right: 0.5rem;
 }
 
-.filter-label {
-  font-size: 15px;
+.filters input[type="date"],
+.filters input[type="text"] {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.filters button {
+  padding: 0.5rem 1rem;
+  background-color: #3a86ff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+}
+
+.filters button:hover {
+  background-color: #265fc1;
+}
+
+/* === Jadval === */
+.calendar-wrapper {
+  overflow-x: auto;
+}
+
+.calendar {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.calendar th,
+.calendar td {
+  border: 1px solid #e0e0e0;
+  padding: 8px;
+  text-align: center;
+  min-width: 100px;
+}
+
+.calendar th {
+  background-color: #f1f5f9;
   font-weight: 600;
   color: #333;
 }
 
-.custom-select {
-  padding: 10px 14px;
+.room-label {
+  font-weight: bold;
+  background-color: #f8fafc;
+  text-align: left;
+  padding-left: 1rem;
+}
+
+/* === Katak ranglari === */
+.booked-past {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+.booked-future {
+  background-color: #cfe2ff;
+  color: #084298;
+}
+.current {
+  background-color: #fff3cd;
+  color: #664d03;
+}
+.clickable-cell {
+  cursor: pointer;
+  color: #28a745;
+  font-size: 20px;
+  transition: transform 0.2s ease;
+}
+.clickable-cell:hover {
+  transform: scale(1.2);
+}
+
+/* === Modal === */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 350px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.modal h3 {
+  margin-top: 0;
+  font-size: 20px;
+  color: #333;
+}
+
+.modal input {
+  padding: 0.5rem 0.7rem;
+  border-radius: 6px;
   border: 1px solid #ccc;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 500;
-  background-color: #fff;
-  transition: border-color 0.3s ease;
 }
 
-.custom-select:focus {
-  border-color: #1a6291;
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(26, 98, 145, 0.15);
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
 }
 
-.btn-group {
-  width: 150px;
-}
-
-.filter-btn {
-  background-color: #4caf50;
-  color: white;
+.modal-buttons button {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
   border: none;
-  padding: 10px 18px;
-  border-radius: 10px;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
 
-.filter-btn:hover {
-  background-color: #43a047;
+.modal-buttons button:first-child {
+  background-color: #3a86ff;
+  color: white;
 }
 
-.table-wrapper {
-  overflow-x: auto;
+.modal-buttons button:first-child:hover {
+  background-color: #265fc1;
 }
 
-.rooms-table {
-  width: 100%;
-  border-collapse: collapse;
-  background-color: #fff;
-  border-radius: 10px;
-  overflow: hidden;
+.cancel-btn {
+  background-color: #e0e0e0;
+  color: #333;
 }
 
-.rooms-table th,
-.rooms-table td {
-  padding: 12px 16px;
-  text-align: left;
-  font-size: 14px;
+.cancel-btn:hover {
+  background-color: #c0c0c0;
 }
 
-.rooms-table th {
-  background-color: #e6f1ff;
-  font-weight: 600;
-  color: #1a1a1a;
-}
-
-.rooms-table td {
-  border-bottom: 1px solid #eee;
-}
-
-.room-link {
-  color: #1a6291;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.room-link:hover {
-  text-decoration: underline;
-  color: #144a6a;
-}
-
-.badge {
-  display: inline-block;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #fff;
-  text-align: center;
-  min-width: 70px;
-}
-
-.free {
-  background-color: #28a745;
-}
-
-.busy {
-  background-color: #dc3545;
-}
-
+/* === Responsivlik === */
 @media (max-width: 768px) {
-  .rooms-page {
-    margin-left: 0;
-    padding: 15px;
+  .filters {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  .title {
-    font-size: 22px;
-  }
-
-  .rooms-table th,
-  .rooms-table td {
+  .calendar th,
+  .calendar td {
+    min-width: 80px;
     font-size: 13px;
-    padding: 10px;
   }
 
-  .filter-group {
-    width: 100%;
-  }
-
-  .btn-group {
-    width: 100%;
+  .modal {
+    width: 90%;
   }
 }
 </style>
+
