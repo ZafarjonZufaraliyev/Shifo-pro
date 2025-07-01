@@ -15,17 +15,18 @@ import Takliflar from "@/views/Takliflar.vue";
 import Bemor_card from "@/components/PatientCard.vue";
 import RoomDetels from "@/components/RoomDetels.vue";
 import TaklifDetelis from "@/components/TaklifDetelis.vue";
-
+import Xodimlar from "@/components/Xodimlar.vue";
 const routes = [
   {
     path: "/",
     redirect: "/login",
   },
   {
-    path:"/TaklifDetelis",
-    name:"TaklifDetelis",
-    component:TaklifDetelis
+    path: "/TaklifDetelis",
+    name: "TaklifDetelis",
+    component: TaklifDetelis,
   },
+
   {
     path: "/login",
     component: Login,
@@ -46,6 +47,11 @@ const routes = [
         path: "BemorCard/:id",
         name: "Bemor_card",
         component: Bemor_card,
+      },
+      {
+        path: "xodimlar",
+        name: "SuperXodimlar",
+        component: Xodimlar,
       },
       {
         path: "room/:id",
@@ -73,10 +79,10 @@ const routes = [
         component: RegisterPage,
       },
       {
-            path: "taklif",
-            name: "Takliflar",
-            component: Takliflar,
-          },
+        path: "taklif",
+        name: "Takliflar",
+        component: Takliflar,
+      },
     ],
   },
 

@@ -119,9 +119,9 @@ export default {
 
 <style scoped>
 .details-page {
-  max-width: 900px;
-  margin: auto;
-  padding: 30px;
+  max-width: 1200px;
+  margin: 20px 20px 20px 290px;
+  padding: 20px;
   background: #fefefe;
   border-radius: 16px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);

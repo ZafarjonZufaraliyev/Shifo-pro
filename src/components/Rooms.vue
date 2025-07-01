@@ -10,8 +10,46 @@
       <label>🏨 Xona:</label>
       <input type="text" v-model="roomFilter" placeholder="Masalan: Pol LUX" />
 
+      <label>🏢 Qavat:</label>
+      <select v-model="floorFilter">
+        <option value="">Barchasi</option>
+        <option v-for="f in uniqueFloors" :key="f" :value="f">{{ f }}-qavat</option>
+      </select>
+
       <button @click="applyFilters">Filterlash</button>
     </div>
+
+    <!-- Jadval -->
+    <div class="calendar-wrapper" v-if="filteredRooms.length">
+      <div class="calendar-scroll">
+        <table class="calendar">
+          <thead>
+            <tr>
+              <th class="room-header">Xona</th>
+              <th v-for="day in dateRange" :key="day.toISOString()" :title="formatFullDate(day)">
+                {{ formatShortDate(day) }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="room in filteredRooms" :key="room.id">
+              <td class="room-label">{{ room.display }}</td>
+              <td
+                v-for="day in dateRange"
+                :key="day.toISOString()"
+                :class="getCellClass(room, day)"
+                @click="handleCellClick(room, day)"
+                :title="getBookingTitle(room, day)"
+              >
+                <span v-if="getBooking(room, day)">Bronlangan</span>
+                <span v-else class="clickable-cell"></span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p v-else>Filtrga mos xona topilmadi.</p>
 
     <!-- Bron qilish modal -->
     <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
@@ -41,7 +79,7 @@
       </div>
     </div>
 
-    <!-- Bron tafsilot modal (tahrirlash va o'chirish imkoniyati bilan) -->
+    <!-- Bron tafsilot modal -->
     <div v-if="showBookingDetail" class="modal-overlay" @click.self="closeBookingDetailModal">
       <div class="modal">
         <h3>Bron tafsilotlari</h3>
@@ -69,44 +107,12 @@
         </div>
       </div>
     </div>
-
-    <!-- Jadval -->
-    <div class="calendar-wrapper">
-      <div class="calendar-scroll" v-if="filteredRooms.length">
-        <table class="calendar">
-          <thead>
-            <tr>
-              <th class="room-header">Xona</th>
-              <th v-for="day in dateRange" :key="day.toISOString()">
-                {{ formatFullDate(day) }}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="room in filteredRooms" :key="room.id">
-              <td class="room-label">{{ room.display }}</td>
-              <td
-                v-for="day in dateRange"
-                :key="day.toISOString()"
-                :class="getCellClass(room, day)"
-                :title="getBookingTitle(room, day)"
-                @click="handleCellClick(room, day)"
-              >
-                <span v-if="getBooking(room, day)">Bronlangan</span>
-                <span v-else class="clickable-cell"></span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <p v-else>Filtrga mos xona topilmadi.</p>
-    </div>
   </div>
 </template>
 
+  
 <script>
-import api from "@/api";
+import api from "@/api"; // API uchun axios yoki o'z api faylingizni import qiling
 
 export default {
   data() {
@@ -122,9 +128,10 @@ export default {
       startDate: today,
       endDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 14),
       roomFilter: "",
+      floorFilter: "",
       today,
 
-      // Bron qilish uchun modal
+      // Modal uchun data
       showModal: false,
       selectedRoom: null,
       selectedDate: null,
@@ -134,15 +141,13 @@ export default {
       arrivalDate: "",
       departureDate: "",
 
-      // Bron tafsilotlari va tahrir uchun modal
       showBookingDetail: false,
       selectedBooking: null,
       selectedBookingRoom: null,
       editArrivalDate: "",
-      editDepartureDate: "",
+      editDepartureDate: ""
     };
   },
-
   computed: {
     dateRange() {
       const dates = [];
@@ -153,15 +158,19 @@ export default {
       }
       return dates;
     },
-    filteredRooms() {
-      const term = this.roomFilter.trim().toLowerCase();
-      if (!term) return this.rooms;
-      return this.rooms.filter(room =>
-        room.display.toLowerCase().includes(term)
-      );
+    uniqueFloors() {
+      const set = new Set(this.rooms.map(r => r.qavat));
+      return Array.from(set).sort((a, b) => a - b);
     },
+    filteredRooms() {
+      const roomTerm = this.roomFilter.trim().toLowerCase();
+      return this.rooms.filter(room => {
+        const matchRoom = room.display.toLowerCase().includes(roomTerm);
+        const matchFloor = this.floorFilter ? String(room.qavat) === String(this.floorFilter) : true;
+        return matchRoom && matchFloor;
+      });
+    }
   },
-
   methods: {
     applyFilters() {
       if (!this.startInput || !this.endInput) {
@@ -181,18 +190,14 @@ export default {
     formatFullDate(date) {
       return date.toLocaleDateString("uz-UZ", {
         day: "2-digit",
-        month: "short",
+        month: "long",
         year: "numeric"
       });
     },
-
-    formatDate(dateStr) {
-      if (!dateStr) return "";
-      const d = new Date(dateStr);
-      return d.toLocaleDateString("uz-UZ", {
+    formatShortDate(date) {
+      return date.toLocaleDateString("uz-UZ", {
         day: "2-digit",
-        month: "short",
-        year: "numeric"
+        month: "short"
       });
     },
 
@@ -208,7 +213,7 @@ export default {
     getBookingTitle(room, date) {
       const b = this.getBooking(room, date);
       return b
-        ? `Bron qilingan: ${b.client_name}\n${this.formatDate(b.start)} dan ${this.formatDate(b.end)} gacha\nTelefon: ${b.tel1}`
+        ? `Bron qilingan: ${b.client_name}\n${this.formatFullDate(new Date(b.start))} dan ${this.formatFullDate(new Date(b.end))} gacha\nTelefon: ${b.tel1}`
         : "";
     },
 
@@ -237,7 +242,12 @@ export default {
     },
 
     async confirmBooking() {
-      if (!this.guestName.trim() || !this.tel1.trim() || !this.arrivalDate || !this.departureDate) {
+      if (
+        !this.guestName.trim() ||
+        !this.tel1.trim() ||
+        !this.arrivalDate ||
+        !this.departureDate
+      ) {
         alert("Barcha majburiy maydonlarni to‘ldiring!");
         return;
       }
@@ -275,7 +285,6 @@ export default {
           create_user_id: 1,
           create_user_name: "admin"
         });
-
         this.bookings.push(response.data);
         alert("Bron muvaffaqiyatli saqlandi!");
         this.closeModal();
@@ -288,7 +297,7 @@ export default {
     handleCellClick(room, date) {
       const b = this.getBooking(room, date);
       if (b) {
-        this.selectedBooking = { ...b }; // Nusxasini olish (o‘zgartirish uchun)
+        this.selectedBooking = { ...b };
         this.selectedBookingRoom = room;
         this.editArrivalDate = b.start.split("T")[0];
         this.editDepartureDate = b.end.split("T")[0];
@@ -324,9 +333,8 @@ export default {
         return;
       }
 
-      // Sanalar kesishishini tekshirish (boshqa bronlarga nisbatan)
       const overlap = this.bookings.some(b => {
-        if (b.id === this.selectedBooking.id) return false; // O'z bronini hisoblamaymiz
+        if (b.id === this.selectedBooking.id) return false;
         if (String(b.xona_id) !== String(this.selectedBookingRoom.id)) return false;
         const bs = new Date(b.start);
         const be = new Date(b.end);
@@ -338,25 +346,21 @@ export default {
       }
 
       try {
-        // Backendga o'zgartirishlarni yuborish
         await api.put(`/api/v1/bron/${this.selectedBooking.id}`, {
           client_name: this.selectedBooking.client_name,
           tel1: this.selectedBooking.tel1,
           tel2: this.selectedBooking.tel2,
           start: this.editArrivalDate,
-          end: this.editDepartureDate,
+          end: this.editDepartureDate
         });
-
-        // Local ma'lumotlarni yangilash
         const idx = this.bookings.findIndex(b => b.id === this.selectedBooking.id);
         if (idx !== -1) {
           this.bookings.splice(idx, 1, {
             ...this.selectedBooking,
             start: this.editArrivalDate,
-            end: this.editDepartureDate,
+            end: this.editDepartureDate
           });
         }
-
         alert("Bron tafsilotlari yangilandi!");
         this.closeBookingDetailModal();
       } catch (error) {
@@ -367,13 +371,9 @@ export default {
 
     async deleteBooking() {
       if (!confirm("Bronni o‘chirishni istaysizmi?")) return;
-
       try {
         await api.delete(`/api/v1/bron/${this.selectedBooking.id}`);
-
-        // Local massivdan o'chirish
         this.bookings = this.bookings.filter(b => b.id !== this.selectedBooking.id);
-
         alert("Bron o‘chirildi!");
         this.closeBookingDetailModal();
       } catch (error) {
@@ -382,21 +382,21 @@ export default {
       }
     }
   },
-
   async mounted() {
     try {
       const { data: roomData } = await api.get("/api/v1/room");
       this.rooms = roomData.map(item => ({
         id: item.id,
         display: `${item.room_type.name} – xona ${item.xona}, qavat ${item.qavat}`,
-        price: parseFloat(item.room_type.Narxi)
+        price: parseFloat(item.room_type.Narxi),
+        qavat: item.qavat
       }));
     } catch (err) {
       console.error("Xonalarni yuklashda xatolik:", err);
     }
 
     try {
-      const { data } = await api.get("/api/v1/bron"); // to'g'ri endpoint bronlar uchun
+      const { data } = await api.get("/api/v1/bron");
       this.bookings = data.data || data;
     } catch (err) {
       console.error("Booking ma’lumotlarini yuklashda xatolik:", err);
@@ -404,261 +404,269 @@ export default {
   }
 };
 </script>
-
-
-
 <style scoped>
+
 /* --- Asosiy konteyner --- */
 .calendar-container {
-  margin: 20px 20px 20px 290px;
+  margin: 20px 20px 20px 270px;
   padding: 20px;
-  max-width: 1200px;
+  max-width: 1100px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: #2c3e50;
-  background: #f9fbfd;
+  background-color: #fff;
+  color: #222;
+  border-radius: 14px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
 }
 
-/* --- Filtrlar (label, input, button) --- */
+/* --- Filtrlar --- */
 .filters {
   display: flex;
-  align-items: center;
-  gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  gap: 15px;
+  margin-bottom: 25px;
+  align-items: center;
 }
 
 .filters label {
   font-weight: 600;
+  color: #555;
   user-select: none;
-  color: #324f9a;
+  white-space: nowrap;
 }
 
 .filters input[type="date"],
-.filters input[type="text"] {
-  padding: 6px 10px;
-  border: 2px solid #a3b0ff;
+.filters input[type="text"],
+.filters select {
+  padding: 8px 12px;
+  border: 1.8px solid #ccc;
   border-radius: 8px;
-  font-size: 0.95rem;
+  font-size: 1rem;
+  min-width: 150px;
+  background-color: #f9f9f9;
   transition: border-color 0.3s ease;
-  width: 160px;
+  color: #222;
 }
 
 .filters input[type="date"]:focus,
-.filters input[type="text"]:focus {
+.filters input[type="text"]:focus,
+.filters select:focus {
+  border-color: #5a4def;
   outline: none;
-  border-color: #5879ff;
-  box-shadow: 0 0 10px #5879ffaa;
+  box-shadow: 0 0 6px #8f8dfd88;
 }
 
 .filters button {
-  padding: 8px 18px;
-  background: linear-gradient(45deg, #536dfe, #89a7ff);
-  border: none;
-  border-radius: 12px;
+  background-color: #5a4def;
   color: white;
   font-weight: 700;
+  padding: 10px 24px;
+  border: none;
+  border-radius: 10px;
   cursor: pointer;
-  transition: background 0.3s ease;
-  user-select: none;
+  transition: background-color 0.25s ease;
+  min-width: 130px;
 }
 
 .filters button:hover {
-  background: linear-gradient(45deg, #4059e7, #4a6ee8);
+  background-color: #4838c8;
 }
 
-/* --- Jadvalni o'rab oluvchi divlar --- */
+/* --- Jadval konteyneri --- */
 .calendar-wrapper {
   overflow-x: auto;
-  width: 100%;
-  background: linear-gradient(to bottom, #f0f4f8, #dfe9f3);
-  border-radius: 16px;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
-}
-
-.calendar-scroll {
-  overflow-x: auto;
-  width: 100%;
-  padding-bottom: 10px;
-}
-
-/* --- Asosiy jadval --- */
-.calendar {
-  border-collapse: collapse;
-  width: 100%;
-  font-size: 0.95rem;
-  background: #ffffffcc;
-  backdrop-filter: blur(6px);
+  background: #fafafa;
   border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  margin-top: 20px;
-  min-width: 900px; /* jadval kengligi kichik ekranda scroll bo'lsin */
+  box-shadow: 0 10px 22px rgba(90, 77, 239, 0.1);
+  padding: 10px 0;
 }
 
-/* --- Jadval boshligi (ustunlar) --- */
+/* --- Jadval --- */
+.calendar {
+  border-collapse: separate;
+  border-spacing: 0 8px;
+  min-width: 900px;
+  width: 100%;
+  font-size: 0.9rem;
+  color: #444;
+}
+
+/* --- Jadval boshligi --- */
 .calendar thead th {
-  background: linear-gradient(45deg, #2c3e50, #34495e);
+  background-color: #5a4def;
   color: #fff;
-  padding: 0.75rem;
+  padding: 12px 14px;
   font-weight: 700;
   text-align: center;
-  border-bottom: 2px solid #ccc;
+  border-radius: 10px 10px 0 0;
+  user-select: none;
   white-space: nowrap;
+  letter-spacing: 0.05em;
 }
 
 /* --- Chapdagi xona nomlari ustuni --- */
 .room-header,
 .room-label {
-  background-color: #2c3e50;
-  color: #fff;
-  font-weight: 600;
-  padding: 0.65rem 1rem;
+  background-color: #d8d9ff;
+  color: #4838c8;
+  font-weight: 700;
+  padding: 14px 18px;
   position: sticky;
   left: 0;
+  border-radius: 12px 0 0 12px;
+  box-shadow: 3px 0 6px -2px rgba(72, 56, 200, 0.3);
+  user-select: none;
   white-space: nowrap;
-  z-index: 2;
-  border-right: 2px solid #ccc;
 }
 
-/* --- Jadval katakchalari (yacheykalar) --- */
+/* --- Jadval katakchalari --- */
 .calendar td {
-  border: 1px solid #ddd;
-  padding: 0.6rem;
   text-align: center;
-  color:#000;
-  transition: background-color 0.2s ease-in-out;
-  background: rgba(0, 0, 0, 0.03);
+  padding: 10px 0;
+  border-radius: 10px;
   cursor: pointer;
   user-select: none;
+  position: relative;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.calendar td:hover {
-  background-color: rgba(52, 73, 94, 0.12);
-}
-
-/* --- Bo‘sh katakcha uchun kichik doira --- */
+/* --- Bo'sh katakcha uchun kichik doira --- */
 .clickable-cell {
   display: inline-block;
-  width: 12px;
-  height: 12px;
-  background-color: #2c3e50aa;
+  width: 14px;
+  height: 14px;
+  background-color: #b0b6ff;
   border-radius: 50%;
   margin: auto;
-  opacity: 0.7;
-  transition: transform 0.2s ease;
+  opacity: 0.8;
+  transition: transform 0.2s ease, background-color 0.3s ease;
 }
 
 .clickable-cell:hover {
-  transform: scale(1.3);
-  background-color: #2c3e50;
+  transform: scale(1.4);
+  background-color: #5a4def;
 }
 
-/* --- Bugungi kunni ko'rsatish uchun sinf --- */
+/* --- Bugungi kun --- */
 .current {
-  background: radial-gradient(circle, #cce0ff, #99ccff);
-  color: #003366;
-  font-weight: bold;
-  border: 2px dashed #3399ff;
-  animation: pulse 1.5s ease-in-out infinite;
+  background-color: #d9dbff;
+  font-weight: 700;
+  color: #4838c8;
+  box-shadow: 0 0 12px 3px #8f8dfd88;
+  border: 2px solid #4838c8;
 }
 
-@keyframes pulse {
-  0%, 100% {
-    box-shadow: 0 0 8px 2px #3399ff88;
-  }
-  50% {
-    box-shadow: 0 0 14px 4px #3399ffcc;
-  }
-}
-
-/* --- Kelajakdagi band (rezervatsiya) --- */
+/* --- Band qilingan kataklar (kelajak va o'tgan) --- */
 .booked-future {
-  background: linear-gradient(45deg, #8decb4, #4caf50);
-  color: #013d20;
-  font-weight: bold;
-  border-left: 4px solid #256d34;
+  background: linear-gradient(135deg, #9be7ff, #38bdf8);
+  color: #0369a1;
+  font-weight: 700;
+  border-left: 6px solid #0284c7;
+  box-shadow: 0 2px 8px #38bdf8aa;
 }
 
-/* --- O‘tgan band (rezervatsiya) --- */
 .booked-past {
-  background: linear-gradient(45deg, #ffc6c6, #f37a7a);
-  color: #831818;
-  font-weight: bold;
-  border-left: 4px solid #b31312;
+  background: linear-gradient(135deg, #ff9b9b, #f87171);
+  color: #9b1c1c;
+  font-weight: 700;
+  border-left: 6px solid #b91c1c;
+  box-shadow: 0 2px 8px #f8717180;
+}
+
+/* --- Tooltip (custom) --- */
+.calendar td[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-110%);
+  background: rgba(72, 56, 200, 0.9);
+  color: #fff;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  white-space: pre-line;
+  pointer-events: none;
+  z-index: 10;
+  max-width: 280px;
+  box-shadow: 0 0 8px rgba(72, 56, 200, 0.8);
+  opacity: 0;
+  animation: fadeInTooltip 0.3s forwards;
+}
+
+.calendar td:hover[title]::after {
+  opacity: 1;
+}
+
+@keyframes fadeInTooltip {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-120%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-110%);
+  }
 }
 
 /* --- Modal overlay --- */
 .modal-overlay {
   position: fixed;
-  inset: 0; /* top:0; right:0; bottom:0; left:0; */
-  background: rgba(44, 62, 80, 0.85);
-  backdrop-filter: blur(7px);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(5px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 12000;
-  opacity: 0;
-  animation: fadeInOverlay 0.35s forwards;
   padding: 20px;
   box-sizing: border-box;
+  animation: fadeInOverlay 0.3s ease forwards;
 }
 
 @keyframes fadeInOverlay {
-  to {
-    opacity: 1;
-  }
+  from {opacity: 0;}
+  to {opacity: 1;}
 }
 
 /* --- Modal oynasi --- */
 .modal {
-  background: linear-gradient(135deg, #f5f8ff, #dce6ff);
-  border-radius: 18px;
-  padding: 2rem 2.5rem;
-  max-width: 460px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  max-width: 450px;
   width: 100%;
-  box-shadow:
-    0 10px 40px rgba(0, 0, 0, 0.15),
-    0 0 0 3px #a9baff;
-  border: 3px solid transparent;
-  transform-origin: center center;
-  animation: scaleInModal 0.35s ease forwards;
+  box-shadow: 0 12px 36px rgba(72, 56, 200, 0.25);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: #2c3e50;
+  color: #222;
   position: relative;
+  animation: scaleInModal 0.3s ease forwards;
 }
 
 @keyframes scaleInModal {
-  0% {
+  from {
     opacity: 0;
-    transform: scale(0.75);
+    transform: scale(0.8);
   }
-  100% {
+  to {
     opacity: 1;
     transform: scale(1);
   }
 }
 
-.modal:hover {
-  border-color: #5879ff;
-}
-
-/* --- Modal sarlavhasi --- */
 .modal h3 {
   font-weight: 800;
   font-size: 1.8rem;
-  color: #324f9a;
-  margin-bottom: 1.3rem;
+  margin-bottom: 1.5rem;
+  color: #5a4def;
   text-align: center;
-  text-shadow: 1px 1px 3px #c0d0ff;
   user-select: none;
 }
 
-/* --- Modal label va inputlar --- */
 .modal label {
   display: block;
-  font-weight: 700;
-  margin-top: 1.2rem;
-  color: #2c3e50;
+  font-weight: 600;
+  margin-top: 1.3rem;
+  color: #444;
   user-select: none;
 }
 
@@ -666,14 +674,14 @@ export default {
 .modal input[type="tel"],
 .modal input[type="date"] {
   width: 100%;
-  padding: 0.55rem 1rem;
+  padding: 0.6rem 1rem;
   margin-top: 0.3rem;
   font-size: 1rem;
-  border-radius: 12px;
-  border: 2px solid #bcc9ff;
-  background: #f8faff;
-  box-shadow: inset 1px 1px 5px #d7e1ff;
-  color: #1a273a;
+  border-radius: 10px;
+  border: 1.8px solid #ccc;
+  background: #f9f9f9;
+  color: #222;
+  box-shadow: inset 1px 1px 5px #ddd;
   transition: border-color 0.3s ease;
 }
 
@@ -681,74 +689,61 @@ export default {
 .modal input[type="tel"]:focus,
 .modal input[type="date"]:focus {
   outline: none;
-  border-color: #5879ff;
-  box-shadow: 0 0 10px #5879ffaa;
+  border-color: #5a4def;
+  box-shadow: 0 0 8px #8f8dfd88;
 }
 
-/* --- Modal tugmalar konteyneri --- */
 .modal-buttons {
-  margin-top: 2rem;
+  margin-top: 2.5rem;
   display: flex;
   gap: 1rem;
 }
 
-/* --- Asosiy modal tugma --- */
 .modal-buttons button {
   flex: 1;
-  padding: 0.9rem 0;
-  font-weight: 900;
+  padding: 1rem 0;
+  font-weight: 700;
   font-size: 1.1rem;
-  border-radius: 14px;
+  border-radius: 12px;
   border: none;
   cursor: pointer;
   color: white;
-  background: linear-gradient(45deg, #536dfe, #89a7ff);
-  box-shadow: 0 7px 14px #7a8affcc;
-  transition: background 0.3s ease, box-shadow 0.3s ease;
+  transition: background-color 0.3s ease;
   user-select: none;
 }
 
 .modal-buttons button:hover {
-  background: linear-gradient(45deg, #3c54d9, #678cff);
-  box-shadow: 0 9px 22px #4a62e7cc;
+  filter: brightness(0.9);
 }
 
-/* --- Bekor qilish tugmasi --- */
-.cancel-btn {
-  background: linear-gradient(45deg, #f95d5d, #ff9e9e);
-  box-shadow: 0 7px 14px #f96464cc;
-  color: #fff;
-  font-weight: 700;
+.modal-buttons .cancel-btn {
+  background-color: #ef4444;
+  box-shadow: 0 6px 14px #f8717180;
 }
 
-.cancel-btn:hover {
-  background: linear-gradient(45deg, #d84242, #ff7575);
-  box-shadow: 0 9px 22px #d8424244;
+.modal-buttons .cancel-btn:hover {
+  background-color: #b91c1c;
 }
 
-/* --- Modal yopish tugmasi (agar kerak bo'lsa) --- */
-.close-btn {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #66788a;
-  transition: color 0.25s ease;
-  user-select: none;
+.modal-buttons .delete-btn {
+  background-color: #dc2626;
+  box-shadow: 0 6px 14px #ef4444cc;
 }
 
-.close-btn:hover {
-  color: #324f9a;
+.modal-buttons .delete-btn:hover {
+  background-color: #991b1b;
 }
 
-/* --- Responsive moslashuv uchun --- */
+.modal-buttons button:not(.cancel-btn):not(.delete-btn) {
+  background-color: #5a4def;
+  box-shadow: 0 6px 16px #7269f1cc;
+}
+
+/* --- Responsive dizayn --- */
 @media (max-width: 992px) {
   .calendar-container {
-    margin: 20px 15px 20px 200px;
-    padding: 15px;
+    margin-left: 150px;
+    padding: 16px;
     max-width: 100%;
   }
   .calendar {
@@ -756,15 +751,17 @@ export default {
     font-size: 0.9rem;
   }
   .filters input[type="date"],
-  .filters input[type="text"] {
-    width: 140px;
+  .filters input[type="text"],
+  .filters select {
+    min-width: 140px;
   }
   .filters button {
-    padding: 7px 16px;
+    min-width: 110px;
+    padding: 8px 18px;
     font-size: 1rem;
   }
   .modal {
-    max-width: 400px;
+    max-width: 420px;
     padding: 1.8rem 2rem;
   }
   .modal h3 {
@@ -774,8 +771,8 @@ export default {
 
 @media (max-width: 768px) {
   .calendar-container {
-    margin: 20px 10px;
-    padding: 10px;
+    margin-left: 100px;
+    padding: 12px;
   }
   .calendar {
     min-width: 600px;
@@ -784,16 +781,17 @@ export default {
   .filters {
     flex-direction: column;
     align-items: stretch;
-    gap: 10px;
+    gap: 12px;
   }
   .filters input[type="date"],
-  .filters input[type="text"] {
+  .filters input[type="text"],
+  .filters select {
+    min-width: auto;
     width: 100%;
   }
   .filters button {
     width: 100%;
-    padding: 8px 0;
-    font-size: 1rem;
+    padding: 10px 0;
   }
   .modal {
     max-width: 100%;
@@ -812,22 +810,23 @@ export default {
 @media (max-width: 480px) {
   .calendar-container {
     margin: 15px 10px;
-    padding: 8px;
+    padding: 10px;
   }
   .calendar {
     min-width: 500px;
     font-size: 0.8rem;
   }
   .filters {
-    gap: 8px;
+    gap: 10px;
   }
   .filters input[type="date"],
-  .filters input[type="text"] {
+  .filters input[type="text"],
+  .filters select {
     font-size: 0.85rem;
   }
   .filters button {
     font-size: 0.9rem;
-    padding: 6px 0;
+    padding: 8px 0;
   }
   .modal h3 {
     font-size: 1.4rem;

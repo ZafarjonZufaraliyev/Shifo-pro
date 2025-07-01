@@ -24,6 +24,7 @@
         <li><router-link to="/super/bemorlar" @click.native="closeSidebar">Bemorlar</router-link></li>
         <li><router-link to="/super/rooms" @click.native="closeSidebar">Xonalar</router-link></li>
         <li><router-link to="/super/stats" @click.native="closeSidebar">Kassa</router-link></li>
+         <li><router-link to="/super/xodimlar" @click.native="closeSidebar">Xodimlar</router-link></li>
       </ul>
 
       <!-- Select - telefon uchun responsive -->
