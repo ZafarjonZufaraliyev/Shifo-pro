@@ -1,613 +1,1050 @@
 <template>
-  <div class="kassa-page">
-    <h2>💳 KASSA SAHIFASI</h2>
+  <div class="section kirim-section">
+    <!-- Yuqori navigatsiya tugmalari -->
 
-    <!-- Qidiruv -->
-    <input
-      type="text"
-      v-model="searchQuery"
-      placeholder="🔍 Ism yoki familiya orqali qidirish"
-      class="search-input"
-    />
+   <div>
+      <div class="top-navigation">
+        <button :class="{ active: currentView === 'stat' }" @click="showStat()">📊 Statistika</button>
+        <button :class="{ active: currentView === 'kirim' }" @click="showKirim()">📥 Kirim</button>
+        <button :class="{ active: currentView === 'chiqim' }" @click="showChiqim()">📤 Chiqim</button>
+        <button :class="{ active: currentView === 'bemorlar' }" @click="showBemorlar()">Bemorlar</button>
+      </div>
 
-    <!-- Bemorlar jadvali -->
-    <div class="table-wrapper">
-      <table class="client-table">
+      <!-- Statistika bo'limi -->
+      <div v-if="currentView === 'stat'" class="stat-box">
+        <!-- Jadval 1: Kirim -->
+        <h4>📥 Bugungi Kirim</h4>
+        <table class="kirim-table">
+          <thead>
+            <tr>
+              <th>Jami</th>
+              <th>Naqd</th>
+              <th>Karta</th>
+              <th>Click</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{{ todayKirim.toLocaleString() }} so'm</td>
+              <td>{{ todayNaqdKirim.toLocaleString() }} so'm</td>
+              <td>{{ todayKartaKirim.toLocaleString() }} so'm</td>
+              <td>{{ todayClickKirim.toLocaleString() }} so'm</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Jadval 2: Chiqim -->
+        <h4>📤 Bugungi Chiqim</h4>
+        <table class="kirim-table">
+          <thead>
+            <tr>
+              <th>Jami</th>
+              <th>Naqd</th>
+              <th>Karta</th>
+              <th>Click</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{{ todayChiqim.toLocaleString() }} so'm</td>
+              <td>{{ todayNaqdChiqim.toLocaleString() }} so'm</td>
+              <td>{{ todayKartaChiqim.toLocaleString() }} so'm</td>
+              <td>{{ todayClickChiqim.toLocaleString() }} so'm</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Jadval 3: Bemorlar -->
+        <h4>👤 Bemorlar</h4>
+        <table class="kirim-table">
+          <thead>
+            <tr>
+              <th>Jami Qarzdorlik</th>
+              <th>Bugun Qo‘shildi</th>
+              <th>Bugun Berildi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{{ totalQarz.toLocaleString() }} so'm</td>
+              <td>{{ qarzQoshildi.toLocaleString() }} so'm</td>
+              <td>{{ tolandiSumma.toLocaleString() }} so'm</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+
+    <!-- 2. Kirim jadvali -->
+    <div v-if="currentView === 'kirim'">
+
+      <div class="header">
+        <h3>📥 Kirimlar</h3>
+        <input type="date" v-model="filterDate" />
+        <button class="add-btn" @click="showModal = true">➕ Kirim qo‘shish</button>
+      </div>
+
+      <table class="kirim-table">
         <thead>
           <tr>
-            <th>Ismi</th>
-            <th>Familiyasi</th>
-            <th>💰 Qarzi</th>
-            <th>✅ To'langan</th>
+            <th>Sana</th>
+            <th>Soat</th>
+            <th>Qayerdan</th>
+            <th>Miqdor</th>
+            <th>To‘lov usuli</th>
+            <th>Kassir</th>
           </tr>
         </thead>
         <tbody>
-          <tr
-            v-for="client in paginatedClients"
-            :key="client.id"
-            @click="selectClient(client)"
-            class="clickable-row"
-          >
-            <td>{{ client.ism }}</td>
-            <td>{{ client.familiya }}</td>
-            <td>{{ getTotalDebt(client.id).toLocaleString() }} so'm</td>
-            <td>{{ getTotalPaid(client.id).toLocaleString() }} so'm</td>
+          <tr v-for="kirim in filteredKirimlar" :key="kirim.id">
+            <td>{{ kirim.sana }}</td>
+            <td>{{ kirim.soat }}</td>
+            <td>{{ kirim.kimdan }}</td>
+            <td>{{ kirim.miqdor.toLocaleString() }} so'm</td>
+            <td>{{ kirim.usul }}</td>
+            <td>{{ kirim.kassir }}</td>
+          </tr>
+          <tr v-if="filteredKirimlar.length === 0">
+            <td colspan="6">Ma'lumot yo'q</td>
           </tr>
         </tbody>
       </table>
+
+      <!-- Modal (faqat kirim qo‘shishda) -->
+     <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
+  <div class="modal1 kirim-modal wide-modal">
+    <h3>➕ Yangi Kirim</h3>
+
+    <!-- Kassir -->
+    <h5>👤 Kassir: {{ form.kassir }}</h5>
+
+    <!-- Sana va vaqt -->
+    <div class="row-group">
+      <div class="form-group">
+        <label>Sana:</label>
+        <input type="date" v-model="form.sana" />
+      </div>
+      <div class="form-group">
+        <label>Soat (hh:mm:ss):</label>
+        <input type="time" step="1" v-model="form.vaqt" />
+      </div>
     </div>
 
-    <!-- Sahifalash -->
-    <div class="pagination">
-      <button :disabled="currentPage === 1" @click="currentPage--">⬅</button>
-      <span>Sahifa {{ currentPage }} / {{ totalPages }}</span>
-      <button :disabled="currentPage === totalPages" @click="currentPage++">➡</button>
-    </div>
+    <!-- Kimdan -->
+    <label>Qayerdan (Kimdan):</label>
+    <div class="select-group-vertical">
+      <div class="select-group">
+        <select v-model="form.kimdan">
+          <option disabled value="">-- Kimdan tanlang --</option>
+          <option v-for="(name, idx) in optionsKimdan" :key="idx" :value="name">{{ name }}</option>
+        </select>
+        <button @click="toggleList = !toggleList">📋</button>
+      </div>
 
-    <!-- Modal -->
-    <div v-if="selectedClient" class="modal-overlay" @click="closeModal">
-      <div class="modal payment-modal" @click.stop>
-        <button class="close-btn" @click="selectedClient = null">✖</button>
+      <div v-if="toggleList" class="kimdan-list">
+        <ul>
+          <li v-for="(name, idx) in optionsKimdan" :key="idx">
+            {{ name }}
+            <button @click="removeSpecificKimdan(idx)" title="O'chirish">➖</button>
+          </li>
+        </ul>
 
-        <h3 class="modal-title">{{ selectedClient.ism }} {{ selectedClient.familiya }}</h3>
-
-        <div class="info-box">
-          <p @click="showDebts = !showDebts"><strong>💰 Qarzi:</strong> {{ totalDebt }} so'm</p>
-          <ul v-if="showDebts">
-            <li v-for="d in debts" :key="d.id">
-              • {{ d.nomi }} – {{ d.summa.toLocaleString() }} so'm
-            </li>
-          </ul>
-        </div>
-
-        <div class="info-box">
-          <p @click="showPayments = !showPayments"><strong>✅ To‘lagan:</strong> {{ totalPaid }} so'm</p>
-          <ul v-if="showPayments">
-            <li v-for="p in payments" :key="p.id">
-              • {{ p.nomi }} – {{ p.summa.toLocaleString() }} so'm
-            </li>
-          </ul>
-        </div>
-
-        <div class="form-box payment-box">
-          <h4>💸 To‘lov summasi va usuli</h4>
-          <input type="number" v-model="payment.amount" placeholder="💵 Summani kiriting" class="pay-input" />
-          <div class="method-group">
-            <label :class="{ active: payment.method === 'naqd' }" @click="payment.method = 'naqd'">Naqd</label>
-            <label :class="{ active: payment.method === 'karta' }" @click="payment.method = 'karta'">Karta</label>
-            <label :class="{ active: payment.method === 'click' }" @click="payment.method = 'click'">Click</label>
-          </div>
-          <button class="confirm-btn" @click="submitPayment">✅ To‘lov qilish</button>
+        <div class="select-group add-new">
+          <input v-model="newKimdan" placeholder="Yangi nom..." />
+          <button @click="addKimdan">➕ Qo‘shish</button>
         </div>
       </div>
     </div>
+
+    <!-- Izoh -->
+    <label>📝 Izoh:</label>
+    <textarea v-model="form.izoh" placeholder="Qo‘shimcha ma’lumot..." rows="2"></textarea>
+
+    <!-- To‘lovlar -->
+    <label>Naqd pul (so'm):</label>
+    <input type="number" v-model.number="form.naqd" min="0" placeholder="Naqd miqdori" />
+
+    <label>Karta (so'm):</label>
+    <input type="number" v-model.number="form.karta" min="0" placeholder="Karta orqali miqdor" />
+
+    <label>Click (so'm):</label>
+    <input type="number" v-model.number="form.click" min="0" placeholder="Click orqali miqdor" />
+
+    <!-- Saqlash -->
+    <button class="save-btn" @click="saveKirim">💾 Saqlash</button>
+  </div>
+</div>
+
+
+    </div>
+
+
+
+    <!-- 3. Chiqim jadvali -->
+    <div v-if="currentView === 'chiqim'">
+      <div class="header">
+        <h3>📤 Chiqimlar</h3>
+        <input type="date" v-model="filterDate" />
+        <button class="add-btn" @click="showModal = true">➕ Chiqim qo‘shish</button>
+      </div>
+
+      <table class="kirim-table">
+        <thead>
+          <tr>
+            <th>Sana va Vaqt</th>
+            <th>Qayerga ketdi</th>
+            <th>Kimdan</th>
+            <th>Naqd</th>
+            <th>Karta</th>
+            <th>Click</th>
+            <th>Kassir</th>
+            <th>Izoh</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="chiqim in filteredChiqimlar" :key="chiqim.id">
+            <td>{{ chiqim.sana }} {{ chiqim.vaqt }}</td>
+            <td>{{ chiqim.qayerga }}</td>
+            <td>{{ chiqim.kimdan }}</td>
+            <td>{{ chiqim.naqd.toLocaleString() }}</td>
+            <td>{{ chiqim.karta.toLocaleString() }}</td>
+            <td>{{ chiqim.click.toLocaleString() }}</td>
+            <td>{{ chiqim.kassir }}</td>
+            <td>{{ chiqim.izoh }}</td>
+          </tr>
+          <tr v-if="filteredChiqimlar.length === 0">
+            <td colspan="8">Ma'lumot yo'q</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Modal -->
+      <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
+  <div class="modal1 chiqim-modal wide-modal">
+    <h3>➖ Yangi Chiqim</h3>
+
+    <!-- Kassir -->
+    <h5>👤 Kassir: {{ form.kassir }}</h5>
+
+    <!-- Sana va vaqt -->
+    <div class="row-group">
+      <div class="form-group">
+        <label>Sana:</label>
+        <input type="date" v-model="form.sana" />
+      </div>
+      <div class="form-group">
+        <label>Soat (hh:mm:ss):</label>
+        <input type="time" step="1" v-model="form.vaqt" />
+      </div>
+    </div>
+
+    <!-- Qayerga ketdi -->
+    <label>Qayerga ketdi:</label>
+    <div class="select-group-vertical">
+      <div class="select-group">
+        <select v-model="form.qayerga">
+          <option disabled value="">-- Tanlang --</option>
+          <option v-for="(item, idx) in optionsQayerga" :key="idx" :value="item">{{ item }}</option>
+        </select>
+        <button @click="toggleQayergaList = !toggleQayergaList">📋</button>
+      </div>
+
+      <div v-if="toggleQayergaList" class="option-list">
+        <ul>
+          <li v-for="(item, idx) in optionsQayerga" :key="idx">
+            {{ item }} <button @click="removeQayerga(idx)">➖</button>
+          </li>
+        </ul>
+        <div class="select-group add-new">
+          <input v-model="newQayerga" placeholder="Yangi joy..." />
+          <button @click="addQayerga">➕</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kimdan -->
+    <label>👤 Kimdan:</label>
+    <div class="select-group-vertical">
+      <div class="select-group">
+        <select v-model="form.kimdan">
+          <option disabled value="">-- Tanlang --</option>
+          <option v-for="(item, idx) in optionsKimdan" :key="idx" :value="item">{{ item }}</option>
+        </select>
+        <button @click="toggleKimdanList = !toggleKimdanList">📋</button>
+      </div>
+
+      <div v-if="toggleKimdanList" class="option-list">
+        <ul>
+          <li v-for="(item, idx) in optionsKimdan" :key="idx">
+            {{ item }} <button @click="removeKimdan(idx)">➖</button>
+          </li>
+        </ul>
+        <div class="select-group add-new">
+          <input v-model="newKimdan" placeholder="Yangi ism..." />
+          <button @click="addKimdan">➕</button>
+        </div>
+      </div>
+    </div>
+<!-- Izoh -->
+    <label> Izoh:</label>
+    <textarea v-model="form.izoh" placeholder="Qo‘shimcha izoh..." rows="2"></textarea>
+    <!-- To‘lov turlari -->
+    <label> Naqd (so'm):</label>
+    <input type="number" min="0" v-model.number="form.naqd" placeholder="Naqd summasi" />
+
+    <label> Karta (so'm):</label>
+    <input type="number" min="0" v-model.number="form.karta" placeholder="Karta summasi" />
+
+    <label>Click (so'm):</label>
+    <input type="number" min="0" v-model.number="form.click" placeholder="Click summasi" />
+
+    
+
+    <!-- Saqlash tugmasi -->
+    <button class="save-btn" @click="saveChiqim">💾 Saqlash</button>
+  </div>
+      </div>
+
+
+    </div>
+
+
+    <div v-if="currentView === 'bemorlar'">
+      <div class="header">
+        <h3>👤 Bemorlar</h3>
+        <button class="add-btn" @click="showModal = true">➕ Bemor qo‘shish</button>
+      </div>
+
+      <!-- Qarzdorlar ro'yxati tepada qizil bilan -->
+      <h4>Qarzdorlar ro'yxati:</h4>
+      <table class="bemor-table">
+        <thead>
+          <tr>
+            <th>Ism Familiya</th>
+            <th>Telefon</th>
+            <th>Qayerdan</th>
+            <th>Qarz (so'm)</th>
+            <th>Naqd</th>
+            <th>Karta</th>
+            <th>Click</th>
+            <th>Kassir</th>
+            <th>Sana va Vaqt</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="bemor in qarzdorlar" :key="bemor.id" class="qarzdor-row">
+            <td>{{ bemor.ismFam }}</td>
+            <td>{{ bemor.tel }}</td>
+            <td>{{ bemor.qayerdan }}</td>
+            <td>{{ bemor.qarz.toLocaleString() }}</td>
+            <td>{{ bemor.naqd.toLocaleString() }}</td>
+            <td>{{ bemor.karta.toLocaleString() }}</td>
+            <td>{{ bemor.click.toLocaleString() }}</td>
+            <td>{{ bemor.kassir }}</td>
+            <td>{{ bemor.sana }} {{ bemor.vaqt }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Bemorlar ro'yxati (qarzsizlar bilan) -->
+      <h4>Bemorlar ro'yxati (qarzsizlar):</h4>
+      <table class="bemor-table">
+        <thead>
+          <tr>
+            <th>Ism Familiya</th>
+            <th>Telefon</th>
+            <th>Qayerdan</th>
+            <th>Qarz (so'm)</th>
+            <th>Naqd</th>
+            <th>Karta</th>
+            <th>Click</th>
+            <th>Kassir</th>
+            <th>Sana va Vaqt</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="bemor in qarzsizlar" :key="bemor.id">
+            <td>{{ bemor.ismFam }}</td>
+            <td>{{ bemor.tel }}</td>
+            <td>{{ bemor.qayerdan }}</td>
+            <td>{{ bemor.qarz.toLocaleString() }}</td>
+            <td>{{ bemor.naqd.toLocaleString() }}</td>
+            <td>{{ bemor.karta.toLocaleString() }}</td>
+            <td>{{ bemor.click.toLocaleString() }}</td>
+            <td>{{ bemor.kassir }}</td>
+            <td>{{ bemor.sana }} {{ bemor.vaqt }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+
+
+    </div>
+
   </div>
 </template>
+<script>
+export default {
+  data() {
+    return {
+      currentView: 'stat',
 
-<script setup>
-import { ref, computed } from 'vue'
+      kirimlar: [
+        { id: 1, sana: '2025-07-02', soat: '09:30:00', kimdan: 'Firma A', miqdor: 500000, usul: 'Naqd', kassir: 'Ali', izoh: '' },
+        { id: 2, sana: '2025-07-02', soat: '11:00:00', kimdan: 'Firma B', miqdor: 300000, usul: 'Karta', kassir: 'Vali', izoh: '' },
+        { id: 3, sana: '2025-07-01', soat: '14:15:00', kimdan: 'Firma C', miqdor: 200000, usul: 'Click', kassir: 'Ali', izoh: '' },
+      ],
 
-// Fake ma'lumotlar
-const clients = ref([
-  { id: 1, ism: 'Ali', familiya: 'Valiyev' },
-  { id: 2, ism: 'Dilshod', familiya: 'Nazarov' },
-  { id: 3, ism: 'Madina', familiya: 'Sobirova' },
-  { id: 4, ism: 'Javohir', familiya: 'Karimov' },
-  { id: 5, ism: 'Lola', familiya: 'Xolmatova' }
-])
+      chiqimlar: [
+        { id: 1, sana: '2025-07-02', vaqt: '10:00:00', qayerga: 'Xarid', kimdan: 'Firma A', naqd: 200000, karta: 100000, click: 50000, kassir: 'Ali', izoh: 'Xarajat' },
+        { id: 2, sana: '2025-07-01', vaqt: '15:00:00', qayerga: 'Xodim', kimdan: 'Firma B', naqd: 100000, karta: 50000, click: 0, kassir: 'Vali', izoh: 'Maosh' },
+      ],
 
-const debtsData = ref({
-  1: [{ id: 1, nomi: 'Muolaja', summa: 300000 }],
-  2: [{ id: 2, nomi: 'UZI', summa: 150000 }],
-  3: [],
-  4: [{ id: 3, nomi: 'Tahlil', summa: 200000 }],
-  5: [{ id: 4, nomi: 'EKO xizmat', summa: 450000 }]
-})
+      bemorlar: [
+        { id: 1, ismFam: 'Ali Valiyev', tel: '+998901234567', qayerdan: 'Toshkent', qarz: 500000, naqd: 200000, karta: 100000, click: 50000, kassir: 'Ali', sana: '2025-07-01', vaqt: '09:00:00' },
+        { id: 2, ismFam: 'Gulbahor Xolmatova', tel: '+998909876543', qayerdan: 'Samarqand', qarz: 0, naqd: 300000, karta: 0, click: 0, kassir: 'Vali', sana: '2025-07-02', vaqt: '10:30:00' },
+      ],
 
-const paymentsData = ref({
-  1: [{ id: 1, nomi: 'Muolaja', summa: 100000 }],
-  2: [],
-  3: [{ id: 2, nomi: 'Xizmat', summa: 250000 }],
-  4: [],
-  5: [{ id: 3, nomi: 'EKO xizmat', summa: 100000 }]
-})
+      filterDate: new Date().toISOString().slice(0, 10),
 
-const searchQuery = ref('')
-const selectedClient = ref(null)
-const currentPage = ref(1)
-const itemsPerPage = 5
-const showDebts = ref(false)
-const showPayments = ref(false)
-const payment = ref({ amount: 0, method: 'naqd' })
+      showModal: false,
 
-const debts = ref([])
-const payments = ref([])
+      form: {
+        sana: '',
+        vaqt: '',
+        kimdan: '',
+        qayerga: '',
+        izoh: '',
+        naqd: 0,
+        karta: 0,
+        click: 0,
+        kassir: 'Admin',
+      },
 
-const filteredClients = computed(() => {
-  const query = searchQuery.value.trim().toLowerCase()
-  return !query
-    ? clients.value
-    : clients.value.filter(c =>
-        (c.ism + ' ' + c.familiya).toLowerCase().includes(query)
-      )
-})
+      optionsKimdan: ['Firma A', 'Firma B', 'Firma C'],
+      optionsQayerga: ['Xarid', 'Xodim', 'Xizmatlar'],
 
-const totalPages = computed(() => Math.ceil(filteredClients.value.length / itemsPerPage))
-const paginatedClients = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage
-  return filteredClients.value.slice(start, start + itemsPerPage)
-})
+      toggleList: false,
+      toggleKimdanList: false,
+      toggleQayergaList: false,
 
-const getTotalDebt = (id) =>
-  debtsData.value[id]?.reduce((sum, d) => sum + d.summa, 0) || 0
-const getTotalPaid = (id) =>
-  paymentsData.value[id]?.reduce((sum, p) => sum + p.summa, 0) || 0
+      newKimdan: '',
+      newQayerga: '',
 
-const totalDebt = computed(() => debts.value.reduce((sum, d) => sum + d.summa, 0))
-const totalPaid = computed(() => payments.value.reduce((sum, p) => sum + p.summa, 0))
-
-const selectClient = (client) => {
-  selectedClient.value = client
-  debts.value = debtsData.value[client.id] ? [...debtsData.value[client.id]] : []
-  payments.value = paymentsData.value[client.id] ? [...paymentsData.value[client.id]] : []
-  showDebts.value = false
-  showPayments.value = false
-}
-
-const closeModal = () => (selectedClient.value = null)
-
-// To'lov amalga oshirilganda qarzdorlikni yangilash funksiyasi
-const submitPayment = () => {
-  const amount = Number(payment.value.amount)
-  if (!amount || amount <= 0) return alert("⚠️ To‘lov summasini kiriting.")
-  if (amount > totalDebt.value) return alert("❌ To‘lov summasi qarzdorlikdan oshmasligi kerak.")
-
-  // Qarzdorlikni kamaytirish uchun qarzlardan pul yechamiz
-  let remaining = amount
-  const clientId = selectedClient.value.id
-
-  // debtsData ni klonlaymiz (reaktivlik uchun)
-  const updatedDebts = debtsData.value[clientId] ? [...debtsData.value[clientId]] : []
-
-  // To'lovni qarzlarga kamaytiramiz ketma-ket
-  for (let i = 0; i < updatedDebts.length; i++) {
-    if (remaining <= 0) break
-
-    if (updatedDebts[i].summa <= remaining) {
-      remaining -= updatedDebts[i].summa
-      updatedDebts[i].summa = 0
-    } else {
-      updatedDebts[i].summa -= remaining
-      remaining = 0
+      qarzQoshildi: 0,
+      tolandiSumma: 0,
     }
+  },
+
+  computed: {
+    filteredKirimlar() {
+      return this.kirimlar.filter(k => k.sana === this.filterDate)
+    },
+
+    filteredChiqimlar() {
+      return this.chiqimlar.filter(c => c.sana === this.filterDate)
+    },
+
+    qarzdorlar() {
+      return this.bemorlar.filter(b => b.qarz > 0)
+    },
+
+    qarzsizlar() {
+      return this.bemorlar.filter(b => b.qarz === 0)
+    },
+
+    todayKirim() {
+      return this.filteredKirimlar.reduce((sum, k) => sum + k.miqdor, 0)
+    },
+
+    todayNaqdKirim() {
+      return this.filteredKirimlar
+        .filter(k => k.usul === 'Naqd')
+        .reduce((sum, k) => sum + k.miqdor, 0)
+    },
+
+    todayKartaKirim() {
+      return this.filteredKirimlar
+        .filter(k => k.usul === 'Karta')
+        .reduce((sum, k) => sum + k.miqdor, 0)
+    },
+
+    todayClickKirim() {
+      return this.filteredKirimlar
+        .filter(k => k.usul === 'Click')
+        .reduce((sum, k) => sum + k.miqdor, 0)
+    },
+
+    todayChiqim() {
+      return this.filteredChiqimlar.reduce((sum, c) => sum + c.naqd + c.karta + c.click, 0)
+    },
+
+    todayNaqdChiqim() {
+      return this.filteredChiqimlar.reduce((sum, c) => sum + c.naqd, 0)
+    },
+
+    todayKartaChiqim() {
+      return this.filteredChiqimlar.reduce((sum, c) => sum + c.karta, 0)
+    },
+
+    todayClickChiqim() {
+      return this.filteredChiqimlar.reduce((sum, c) => sum + c.click, 0)
+    },
+
+    totalQarz() {
+      return this.bemorlar.reduce((sum, b) => sum + b.qarz, 0)
+    }
+  },
+
+  methods: {
+    showStat() {
+      this.currentView = 'stat'
+      this.showModal = false
+    },
+
+    showKirim() {
+      this.currentView = 'kirim'
+      this.showModal = false
+      this.clearForm()
+    },
+
+    showChiqim() {
+      this.currentView = 'chiqim'
+      this.showModal = false
+      this.clearForm()
+    },
+
+    showBemorlar() {
+      this.currentView = 'bemorlar'
+      this.showModal = false
+      this.clearForm()
+    },
+
+    clearForm() {
+      this.form = {
+        sana: this.filterDate,
+        vaqt: '',
+        kimdan: '',
+        qayerga: '',
+        izoh: '',
+        naqd: 0,
+        karta: 0,
+        click: 0,
+        kassir: 'Admin',
+      }
+      this.newKimdan = ''
+      this.newQayerga = ''
+      this.toggleList = false
+      this.toggleKimdanList = false
+      this.toggleQayergaList = false
+    },
+
+    saveKirim() {
+      if (!this.form.sana || !this.form.vaqt || !this.form.kimdan) {
+        alert('Iltimos, barcha majburiy maydonlarni to‘ldiring!')
+        return
+      }
+      const miqdor = Number(this.form.naqd) + Number(this.form.karta) + Number(this.form.click)
+      if (miqdor <= 0) {
+        alert('Iltimos, kamida bir to‘lov turida miqdor kiriting!')
+        return
+      }
+      const usul = this.form.naqd > 0 ? 'Naqd' : this.form.karta > 0 ? 'Karta' : 'Click'
+
+      this.kirimlar.push({
+        id: Date.now(),
+        sana: this.form.sana,
+        soat: this.form.vaqt,
+        kimdan: this.form.kimdan,
+        miqdor: miqdor,
+        usul: usul,
+        kassir: this.form.kassir,
+        izoh: this.form.izoh,
+      })
+
+      alert('Kirim muvaffaqiyatli qo‘shildi!')
+      this.showModal = false
+      this.clearForm()
+    },
+
+    saveChiqim() {
+      if (!this.form.sana || !this.form.vaqt || !this.form.kimdan || !this.form.qayerga) {
+        alert('Iltimos, barcha majburiy maydonlarni to‘ldiring!')
+        return
+      }
+      const naqd = Number(this.form.naqd)
+      const karta = Number(this.form.karta)
+      const click = Number(this.form.click)
+      if (naqd + karta + click <= 0) {
+        alert('Iltimos, kamida bir to‘lov turida miqdor kiriting!')
+        return
+      }
+
+      this.chiqimlar.push({
+        id: Date.now(),
+        sana: this.form.sana,
+        vaqt: this.form.vaqt,
+        qayerga: this.form.qayerga,
+        kimdan: this.form.kimdan,
+        naqd,
+        karta,
+        click,
+        kassir: this.form.kassir,
+        izoh: this.form.izoh,
+      })
+
+      alert('Chiqim muvaffaqiyatli qo‘shildi!')
+      this.showModal = false
+      this.clearForm()
+    },
+
+    addKimdan() {
+      if (this.newKimdan && !this.optionsKimdan.includes(this.newKimdan)) {
+        this.optionsKimdan.push(this.newKimdan)
+        this.newKimdan = ''
+      }
+    },
+
+    removeSpecificKimdan(index) {
+      this.optionsKimdan.splice(index, 1)
+    },
+
+    addQayerga() {
+      if (this.newQayerga && !this.optionsQayerga.includes(this.newQayerga)) {
+        this.optionsQayerga.push(this.newQayerga)
+        this.newQayerga = ''
+      }
+    },
+
+    removeQayerga(index) {
+      this.optionsQayerga.splice(index, 1)
+    },
+
+    removeKimdan(index) {
+      this.optionsKimdan.splice(index, 1)
+    },
+  },
+
+  created() {
+    this.clearForm()
   }
-
-  // Qarzi 0 ga teng bo'lganlarni olib tashlaymiz
-  debtsData.value[clientId] = updatedDebts.filter(d => d.summa > 0)
-
-  // To'lovlarga yangi yozuv qo'shamiz
-  const newPayment = {
-    id: Date.now(),
-    nomi: 'To‘lov',
-    summa: amount,
-    usul: payment.value.method
-  }
-  if (!paymentsData.value[clientId]) paymentsData.value[clientId] = []
-  paymentsData.value[clientId].push(newPayment)
-
-  // Modalda ham yangilaymiz
-  debts.value = debtsData.value[clientId] ? [...debtsData.value[clientId]] : []
-  payments.value = paymentsData.value[clientId] ? [...paymentsData.value[clientId]] : []
-
-  alert("✅ To‘lov amalga oshirildi.")
-  payment.value.amount = 0
-  payment.value.method = 'naqd'
-  selectedClient.value = null
 }
 </script>
 
-
-<!-- CSS MOSH STYLE -->
-<style scoped>
-/* === Modal overlay === */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(44, 62, 80, 0.85);
-  backdrop-filter: blur(7px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 12000;
-  opacity: 0;
-  animation: fadeInOverlay 0.35s forwards;
-  padding: 20px;
-  box-sizing: border-box;
-}
-
-@keyframes fadeInOverlay {
-  to {
-    opacity: 1;
-  }
-}
-
-/* === Modal oynasi === */
-.modal.payment-modal {
-  background: linear-gradient(135deg, #f5f8ff, #dce6ff);
-  border-radius: 18px;
-  padding: 2.5rem 2.8rem;
-  max-width: 460px;
-  width: 100%;
-  box-shadow:
-    0 10px 40px rgba(0, 0, 0, 0.15),
-    0 0 0 3px #a9baff;
-  border: 3px solid transparent;
-  transform-origin: center center;
-  animation: scaleInModal 0.35s ease forwards;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: #2c3e50;
-  position: relative;
-}
-
-@keyframes scaleInModal {
-  0% {
-    opacity: 0;
-    transform: scale(0.75);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.modal.payment-modal:hover {
-  border-color: #5879ff;
-}
-
-/* Modal sarlavhasi */
-.modal-title {
-  font-weight: 800;
-  font-size: 1.8rem;
-  color: #324f9a;
-  margin-bottom: 1.3rem;
-  text-align: center;
-  text-shadow: 1px 1px 3px #c0d0ff;
-}
-
-/* Yopish tugmasi */
-.close-btn {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #66788a;
-  transition: color 0.25s;
-  user-select: none;
-}
-.close-btn:hover {
-  color: #324f9a;
-}
-
-/* Info box */
-.info-box {
-  margin-top: 16px;
-  background: #e5ecff;
-  padding: 14px 18px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: background 0.3s ease;
-  user-select: none;
-}
-.info-box:hover {
-  background: #c7d7ff;
-}
-
-/* List inside info box */
-.info-box ul {
-  margin-top: 8px;
-  padding-left: 18px;
-  color: #1f2a4d;
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-
-/* Form box */
-.form-box.payment-box {
-  margin-top: 26px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.pay-input {
-  padding: 14px 16px;
-  border: 2px solid #a3b0ff;
-  border-radius: 14px;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #2a3a6d;
-  background: #f6f9ff;
-  box-shadow: inset 1px 1px 8px #d0dbff;
-  transition: border-color 0.3s ease;
-}
-.pay-input:focus {
-  outline: none;
-  border-color: #5879ff;
-  box-shadow: 0 0 12px #5879ffaa;
-}
-
-/* To‘lov usuli toggle */
-.method-group {
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-}
-
-.method-group label {
-  flex: 1;
-  text-align: center;
-  background: #e2e9ff;
-  padding: 12px 0;
-  border-radius: 12px;
-  cursor: pointer;
-  font-weight: 700;
-  color: #324f9a;
-  transition: background 0.25s ease, transform 0.25s ease;
-  user-select: none;
-  box-shadow: 0 4px 8px #bbccffaa inset;
-}
-.method-group label.active {
-  background: #2c3e50;
-  color: #ffffff;
-  box-shadow: 0 0 14px #5879ffcc;
-  transform: scale(1.1);
-}
-
-/* To‘lov tasdiqlash tugmasi */
-.confirm-btn {
-  padding: 14px 0;
-  background: linear-gradient(45deg, #536dfe, #89a7ff);
-  color: white;
-  font-size: 1.1rem;
-  font-weight: 900;
-  border: none;
-  border-radius: 14px;
-  cursor: pointer;
-  box-shadow: 0 9px 20px #5b77f6cc;
-  transition: background 0.3s ease, box-shadow 0.3s ease;
-  user-select: none;
-}
-.confirm-btn:hover {
-  background: linear-gradient(45deg, #4059e7, #4a6ee8);
-  box-shadow: 0 12px 28px #4570e3cc;
-}
-
-/* Responsive */
-@media (max-width: 600px) {
-  .modal.payment-modal {
-    padding: 1.8rem 2rem;
-    max-width: 100%;
-  }
-  .pay-input {
-    font-size: 0.95rem;
-  }
-  .method-group label {
-    font-size: 0.9rem;
-  }
-  .confirm-btn {
-    font-size: 1rem;
-  }
-}
-
-.kassa-page {
+<style>
+ /* ======================= */
+/* --- Umumiy konteyner --- */
+/* ======================= */
+.section {
   max-width: 1200px;
   margin: 20px 20px 20px 290px;
   padding: 20px;
-  font-family: 'Segoe UI', sans-serif;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: #333;
 }
 
-h2 {
-  text-align: center;
-  font-size: 2rem;
-  margin-bottom: 1rem;
-  color: #0d6efd;
+/* ======================= */
+/* --- Top Navigation Buttons --- */
+.top-navigation {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 25px;
+  justify-content: center;
 }
 
-.search-input {
-  width: 100%;
-  padding: 12px;
-  margin-bottom: 20px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font-size: 16px;
+.top-navigation button {
+  padding: 10px 22px;
+  border: 2px solid #1A6291;
+  background-color: transparent;
+  color: #1A6291;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  user-select: none;
+  box-shadow: inset 0 0 0 0 #1A6291;
 }
 
-.table-wrapper {
-  overflow-x: auto;
+.top-navigation button:hover,
+.top-navigation button.active {
+  background-color: #1A6291;
+  color: #fff;
+  box-shadow: inset 100px 0 0 0 #1A6291;
 }
 
-.client-table {
+/* ======================= */
+/* --- Jadval Dizayni --- */
+.kirim-table, .bemor-table {
   width: 100%;
   border-collapse: collapse;
-  background: #fff;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  margin-top: 10px;
+  font-size: 14px;
 }
 
-.client-table th, .client-table td {
-  padding: 14px;
-  border-bottom: 1px solid #eee;
-  text-align: left;
+.kirim-table thead tr,
+.bemor-table thead tr {
+  background-color: #1A6291;
+  color: white;
+  font-weight: 700;
 }
 
-.client-table th {
-  background-color: #f1f3f5;
-}
-
-.clickable-row {
-  transition: background 0.3s ease;
-  cursor: pointer;
-}
-
-.clickable-row:hover {
-  background: #e7f1ff;
-}
-
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.pagination button {
-  padding: 6px 12px;
-  background: #fff;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.pagination button:hover:not(:disabled) {
-  background: #dbeafe;
-}
-
-.pagination button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-}
-
-.modal.payment-modal {
-  background: #fff;
-  padding: 30px;
-  border-radius: 16px;
-  width: 100%;
-  max-width: 440px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
-  position: relative;
-}
-
-.modal-title {
-  font-size: 20px;
-  margin-bottom: 12px;
-  color: #0d6efd;
-}
-
-.close-btn {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-  color: #666;
-}
-
-.info-box {
-  margin-top: 16px;
-  background: #f8f9fa;
-  padding: 12px;
-  border-radius: 8px;
-  transition: background 0.3s;
-  cursor: pointer;
-}
-
-.info-box:hover {
-  background: #eef6ff;
-}
-
-.form-box.payment-box {
-  margin-top: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.pay-input {
-  padding: 12px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 15px;
-}
-
-.method-group {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.method-group label {
-  flex: 1;
+.kirim-table th, .kirim-table td,
+.bemor-table th, .bemor-table td {
+  padding: 10px 14px;
+  border: 1px solid #ddd;
   text-align: center;
-  background: #e9ecef;
-  padding: 10px;
-  border-radius: 6px;
+  vertical-align: middle;
+  word-break: break-word;
+}
+
+.kirim-table tbody tr:nth-child(even),
+.bemor-table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.kirim-table tbody tr:hover,
+.bemor-table tbody tr:hover {
+  background-color: #d7e6f8; /* biroz ochroq rang */
+}
+
+/* Qarzdorlar uchun maxsus qizil rang */
+.qarzdor-row {
+  background-color: #ffe5e5 !important;
+  color: #b00020;
+  font-weight: 600;
+}
+
+/* ======================= */
+/* --- Header va Inputlar --- */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.header h3 {
+  font-weight: 700;
+  color: #1A6291;
+}
+
+.header input[type="date"] {
+  padding: 6px 10px;
+  border: 1.5px solid #1A6291;
+  border-radius: 5px;
+  font-size: 14px;
+  max-width: 160px;
+  transition: border-color 0.3s ease;
+}
+
+.header input[type="date"]:focus {
+  outline: none;
+  border-color: #134b6a; /* biroz qoraroq */
+}
+
+/* ======================= */
+/* --- Tugmalar --- */
+.add-btn, .save-btn {
+  background-color: #1A6291;
+  border: none;
+  color: white;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 7px;
   cursor: pointer;
-  transition: background 0.2s, transform 0.2s;
+  transition: background-color 0.25s ease;
+  box-shadow: 0 3px 6px rgba(26, 98, 145, 0.4);
   user-select: none;
 }
 
-.method-group label.active {
-  background: #0d6efd;
-  color: white;
-  font-weight: bold;
-  transform: scale(1.05);
+.add-btn:hover, .save-btn:hover {
+  background-color: #134b6a;
+  box-shadow: 0 5px 10px rgba(19, 75, 106, 0.6);
 }
 
-.confirm-btn {
-  padding: 12px;
-  background: #0d6efd;
-  color: white;
+/* ======================= */
+/* --- Modal Overlay --- */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  justify-content: center;
+  align-items: center; /* markazlash */
+  z-index: 1100;
+  padding: 20px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+/* ======================= */
+/* --- Modal Box --- */
+.modal1 {
+  background: white;
+  padding: 35px 40px; /* kengroq padding */
+  border-radius: 14px;
+  width: 800px; /* kattaroq modal */
+  max-width: 95%;
+  max-height: 90vh; /* maksimal balandlik - ekran 90% */
+  overflow-y: auto; /* uzun forma uchun scroll */
+  box-shadow: 0 14px 35px rgba(0,0,0,0.3);
   font-size: 16px;
-  font-weight: bold;
+  position: relative;
+  margin: 0 auto;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 20px; /* elementlar orasida bo‘shliq */
+  color: #1A6291;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Modal sarlavha */
+.modal1 h3 {
+  margin: 0 0 20px 0;
+  font-weight: 800;
+  font-size: 28px;
+  color: #1A6291;
+  text-align: center;
+}
+
+/* ======================= */
+/* --- Form elementlari --- */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 18px;
+}
+
+.form-group label {
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #1A6291;
+  font-size: 15px;
+}
+
+input[type="date"],
+input[type="time"],
+input[type="number"],
+select,
+textarea {
+  padding: 10px 14px;
+  font-size: 16px;
+  border: 2px solid #1A6291;
+  border-radius: 10px;
+  transition: border-color 0.3s ease;
+  color: #222;
+  font-weight: 600;
+}
+
+input[type="date"]:focus,
+input[type="time"]:focus,
+input[type="number"]:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: #134b6a;
+  box-shadow: 0 0 6px rgba(26, 98, 145, 0.6);
+}
+
+/* Textarea */
+textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+}
+
+/* Row guruhlari (sana + vaqt yonma-yon) */
+.row-group {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+/* Select guruhlari */
+.select-group-vertical {
+  margin-bottom: 20px;
+}
+
+.select-group {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.select-group select {
+  flex-grow: 1;
+  font-weight: 600;
+}
+
+.select-group button {
+  background: #1A6291;
   border: none;
-  border-radius: 6px;
+  color: white;
+  font-weight: 700;
+  font-size: 17px;
+  padding: 8px 16px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: background 0.3s ease;
+  user-select: none;
+  transition: background-color 0.25s ease;
+  box-shadow: 0 3px 8px rgba(26,98,145,0.5);
 }
 
-.confirm-btn:hover {
-  background: #0a58ca;
+.select-group button:hover {
+  background-color: #134b6a;
+  box-shadow: 0 5px 15px rgba(19,75,106,0.7);
 }
 
-@media (max-width: 768px) {
-  .kassa-page {
-    margin: 20px;
-    padding: 10px;
+/* ======================= */
+/* --- Ro'yxatlar uchun (kimdan/qayerga) --- */
+.kimdan-list, .option-list {
+  background: #f0f6fa;
+  border: 2px solid #1A6291;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-top: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.kimdan-list ul,
+.option-list ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0 0 10px 0;
+}
+
+.kimdan-list ul li,
+.option-list ul li {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 6px;
+  border-bottom: 1.5px solid #9bbadf;
+  font-weight: 700;
+  color: #1A6291;
+  user-select: none;
+}
+
+.kimdan-list ul li button,
+.option-list ul li button {
+  background: transparent;
+  border: none;
+  color: #b00020;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.kimdan-list ul li button:hover,
+.option-list ul li button:hover {
+  color: #ff3b3b;
+}
+
+/* ======================= */
+/* --- Yangi qo‘shish input + tugma --- */
+.select-group.add-new {
+  display: flex;
+  gap: 12px;
+}
+
+.select-group.add-new input {
+  flex-grow: 1;
+  border: 2px solid #1A6291;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.select-group.add-new button {
+  background: #1A6291;
+  border: none;
+  padding: 9px 16px;
+  color: white;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: background-color 0.25s ease;
+  box-shadow: 0 3px 8px rgba(26,98,145,0.5);
+}
+
+.select-group.add-new button:hover {
+  background-color: #134b6a;
+  box-shadow: 0 5px 15px rgba(19,75,106,0.7);
+}
+
+/* ======================= */
+/* --- Matnlar uchun maxsus ranglar --- */
+h4 {
+  margin-top: 36px;
+  color: #134b6a;
+  font-weight: 700;
+  font-size: 20px;
+  text-align: left;
+}
+
+/* ======================= */
+/* --- Xatolik uchun umumiy alert o‘rniga CSS --- */
+.alert-message {
+  background: #ffebee;
+  border: 1.5px solid #f44336;
+  color: #b00020;
+  padding: 14px 18px;
+  margin-bottom: 24px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  text-align: center;
+}
+
+/* ======================= */
+/* --- Responsive dizayn --- */
+@media (max-width: 900px) {
+  .modal1 {
+    width: 95%;
+    padding: 30px 25px;
   }
-  .modal {
-    padding: 20px;
+  .row-group {
+    flex-direction: column;
+    gap: 16px;
   }
-  .form-box input,
-  .form-box select,
-  .form-box button,
-  .method-group label {
-    font-size: 14px;
+  .select-group, .select-group.add-new {
+    flex-direction: column;
+    gap: 10px;
   }
-  .pagination span {
+  .select-group button, .select-group.add-new button {
+    width: 100%;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 450px) {
+  .section {
+    margin-left: 20px;
+    margin-right: 20px;
+  }
+  .modal1 {
+    padding: 25px 20px;
+  }
+  .modal1 h3 {
+    font-size: 22px;
+  }
+  input[type="date"],
+  input[type="time"],
+  input[type="number"],
+  select,
+  textarea {
     font-size: 14px;
   }
 }
+
 </style>
