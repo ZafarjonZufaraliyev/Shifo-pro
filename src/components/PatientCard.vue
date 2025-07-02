@@ -61,7 +61,7 @@
       </div>
 
       <!-- Yangi xizmat qo'shish modal -->
-      <div v-if="showServiceModal" class="modal-overlay">
+      <div v-if="showServiceModal" class="modal-overlay" @click.self="showServiceModal = false">
         <div class="modal">
           <h3>Yangi xizmat qo‘shish</h3>
           <input v-model="newService.nomi" placeholder="Xizmat nomi" />
@@ -75,7 +75,7 @@
       </div>
 
       <!-- Yana yotaman (re-register) modal -->
-      <div v-if="showReRegister" class="modal-overlay">
+      <div v-if="showReRegister" class="modal-overlay" @click.self="showReRegister = false">
         <div class="modal">
           <h3>Yangi yotish maʼlumotlarini kiriting</h3>
 
@@ -112,10 +112,10 @@
           </div>
         </div>
       </div>
-
     </div>
 
-    <router-link to="/super/bemorlar" class="btn-back">↩ Orqaga</router-link>
+    <!-- Rolga qarab dinamik orqaga tugma yo'li -->
+    <router-link :to="`/${role}/bemorlar`" class="btn-back">↩ Orqaga</router-link>
   </div>
 
   <div v-else class="loading-container">
@@ -142,7 +142,6 @@ export default {
 
       newService: { nomi: '', narxi: null, tolangan: false, sana: new Date().toISOString().split('T')[0] },
 
-      // Re-register uchun ma'lumotlar
       reRegisterData: {
         kirish_sanasi: '',
         chiqish_sanasi: '',
@@ -150,9 +149,10 @@ export default {
         xizmatlar: []
       },
 
-      // Xonalar va xizmatlar ro'yxati
       availableRooms: [],
-      allServices: []
+      allServices: [],
+
+      role: localStorage.getItem('role') || 'mini', // ROLE ni localStorage dan olamiz, default 'mini'
     };
   },
   computed: {
@@ -189,7 +189,6 @@ export default {
 
         this.availableRooms = await this.fetchRooms();
         this.allServices = await this.fetchAllServices();
-
       } catch (err) {
         console.error("API xatosi:", err);
       } finally {
@@ -221,7 +220,12 @@ export default {
       if (!tugulgan) return '';
       const tugilganSana = new Date(tugulgan);
       const hozir = new Date();
-      return hozir.getFullYear() - tugilganSana.getFullYear();
+      let yosh = hozir.getFullYear() - tugilganSana.getFullYear();
+      // agar tug'ilgan kun hali kelmagan bo'lsa yoshni 1 ga kamaytiramiz
+      const monthDiff = hozir.getMonth() - tugilganSana.getMonth();
+      const dayDiff = hozir.getDate() - tugilganSana.getDate();
+      if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) yosh--;
+      return yosh;
     },
 
     formatDate(dateStr) {
@@ -268,12 +272,11 @@ export default {
         alert('Qayta yotish muvaffaqiyatli saqlandi!');
         this.showReRegister = false;
 
-        // Yangi ma'lumotlarni yangilash uchun fetch qilish mumkin
+        // Yangi ma'lumotlarni yangilash
         await this.fetchPatient();
 
-        // Re-register formani tozalash
+        // Formani tozalash
         this.reRegisterData = { kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [] };
-
       } catch (err) {
         console.error('Qayta yotish xatosi:', err);
         alert('Xatolik yuz berdi. Iltimos, qaytadan urinib ko‘ring.');
@@ -286,57 +289,70 @@ export default {
 };
 </script>
 
-<style scoped>
-/* Umumiy konteynerlar */
-.patient-card {
+<style>
+  .patient-card {
   max-width: 1200px;
   margin: 20px 20px 20px 290px;
-  padding:  20px;
+  padding: 20px;
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   color: #333;
+  transition: box-shadow 0.3s ease;
 }
-@media (max-width: 768px) {
- .patient-card {
-  max-width: 1200px;
-  margin: 20px;
-  }}
 
-/* Ma'lumotlar grid */
+.patient-card:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+@media (max-width: 768px) {
+  .patient-card {
+    margin: 20px 15px;
+    padding: 15px;
+  }
+}
+
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px 20px;
   margin-bottom: 25px;
 }
 
 .info-item {
   background: #f9f9f9;
-  padding: 10px 15px;
+  padding: 12px 16px;
   border-radius: 6px;
   font-weight: 600;
+  box-shadow: inset 0 0 4px rgba(0,0,0,0.05);
+  user-select: none;
+  color: #2c3e50;
 }
 
-/* Tablar */
 .tab-section {
-  margin-top: 10px;
+  margin-top: 20px;
 }
 
 .tab-header {
   display: flex;
   border-bottom: 2px solid #eee;
   margin-bottom: 15px;
+  user-select: none;
 }
 
 .tab-title {
-  padding: 10px 20px;
+  padding: 10px 25px;
   cursor: pointer;
   font-weight: 600;
   color: #777;
   border-bottom: 3px solid transparent;
-  transition: all 0.3s ease;
+  transition: color 0.3s ease, border-color 0.3s ease;
+  white-space: nowrap;
+}
+
+.tab-title:hover {
+  color: #2a9d8f;
 }
 
 .tab-title.active {
@@ -345,36 +361,47 @@ export default {
   font-weight: 700;
 }
 
-/* Jadval */
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: #444;
 }
 
 .data-table th,
 .data-table td {
   border: 1px solid #ddd;
-  padding: 8px 12px;
+  padding: 10px 15px;
   text-align: left;
-  font-size: 14px;
+  vertical-align: middle;
+  transition: background-color 0.2s ease;
 }
 
 .data-table thead {
   background-color: #f0f4f8;
+  font-weight: 700;
+  color: #2a9d8f;
 }
 
 .data-table tbody tr:nth-child(even) {
   background-color: #fafafa;
 }
 
-/* Badge */
+.data-table tbody tr:hover {
+  background-color: #eaf6f5;
+}
+
 .badge {
-  padding: 3px 10px;
-  border-radius: 12px;
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 15px;
   font-size: 12px;
   font-weight: 600;
   user-select: none;
+  text-align: center;
+  min-width: 70px;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .badge.paid {
@@ -387,42 +414,45 @@ export default {
   color: #fff;
 }
 
-/* Financial summary */
 .financial-summary p {
   font-weight: 600;
-  margin: 5px 0;
+  margin: 6px 0;
   font-size: 15px;
+  color: #34495e;
 }
 
-/* Buttons */
 .action-buttons {
   margin-top: 15px;
   display: flex;
   gap: 15px;
+  flex-wrap: wrap;
 }
 
 .btn-action {
   background-color: #2a9d8f;
   color: white;
-  padding: 10px 22px;
+  padding: 12px 26px;
   font-size: 14px;
   font-weight: 700;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  user-select: none;
+  box-shadow: 0 2px 6px rgba(42,157,143,0.5);
 }
 
 .btn-action:disabled {
   background-color: #a0a0a0;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
-.btn-action:hover:not(:disabled) {
+.btn-action:not(:disabled):hover {
   background-color: #21867a;
+  box-shadow: 0 4px 12px rgba(33,134,122,0.6);
 }
 
-/* Modal overlay */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -434,20 +464,20 @@ export default {
   justify-content: center;
   align-items: center;
   z-index: 1100;
-  padding: 10px;
+  padding: 15px;
   overflow-y: auto;
 }
 
-/* Modal box */
 .modal {
-  background: white;
-  border-radius: 10px;
-  max-width: 400px;
+  background: #fff;
+  border-radius: 12px;
+  max-width: 420px;
   width: 100%;
-  padding: 25px 30px;
+  padding: 30px 35px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.15);
   animation: fadeInScale 0.25s ease forwards;
   font-family: inherit;
+  color: #2c3e50;
 }
 
 @keyframes fadeInScale {
@@ -461,22 +491,21 @@ export default {
   }
 }
 
-/* Modal header */
 .modal h3 {
-  margin-bottom: 20px;
+  margin-bottom: 25px;
   color: #264653;
   font-weight: 700;
-  font-size: 1.3rem;
+  font-size: 1.5rem;
   text-align: center;
+  user-select: none;
 }
 
-/* Modal form inputs */
 .modal label {
   display: block;
   font-weight: 600;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   color: #444;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .modal input[type="text"],
@@ -484,12 +513,14 @@ export default {
 .modal input[type="date"],
 .modal select {
   width: 100%;
-  padding: 8px 10px;
-  margin-bottom: 18px;
-  border-radius: 6px;
-  border: 1.5px solid #ccc;
-  font-size: 14px;
-  transition: border-color 0.2s ease;
+  padding: 10px 12px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  border: 1.8px solid #ccc;
+  font-size: 15px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  box-sizing: border-box;
+  font-family: inherit;
 }
 
 .modal input[type="text"]:focus,
@@ -498,33 +529,28 @@ export default {
 .modal select:focus {
   outline: none;
   border-color: #2a9d8f;
-  box-shadow: 0 0 6px #2a9d8faa;
+  box-shadow: 0 0 8px rgba(42,157,143,0.4);
 }
 
-/* Checkbox label */
-.modal label > input[type="checkbox"] {
-  margin-right: 6px;
-  transform: scale(1.1);
-  vertical-align: middle;
-}
-
-/* Modal buttons */
 .modal-actions {
   display: flex;
-  justify-content: center;
-  gap: 20px;
-  margin-top: 10px;
+  justify-content: space-between;
+  gap: 15px;
+  margin-top: 15px;
+  flex-wrap: wrap;
 }
 
 .btn-primary {
+  flex: 1;
   background-color: #2a9d8f;
-  color: white;
-  padding: 10px 22px;
+  color: #fff;
+  padding: 12px 20px;
   font-weight: 700;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  user-select: none;
 }
 
 .btn-primary:hover {
@@ -532,42 +558,57 @@ export default {
 }
 
 .btn-secondary {
+  flex: 1;
   background-color: #e76f51;
-  color: white;
-  padding: 10px 22px;
+  color: #fff;
+  padding: 12px 20px;
   font-weight: 700;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  user-select: none;
 }
 
 .btn-secondary:hover {
-  background-color: #c85a3f;
+  background-color: #ce5739;
 }
 
-/* Orqaga tugma */
-.btn-back {
-  display: inline-block;
-  margin-top: 25px;
-  color: #2a9d8f;
-  font-weight: 600;
-  text-decoration: none;
-  font-size: 15px;
-  transition: color 0.3s ease;
-}
-
-.btn-back:hover {
-  color: #1e6a62;
-}
-
-/* Yuklanmoqda */
 .loading-container {
-  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
   font-size: 18px;
-  color: #666;
-  padding: 30px 0;
+  color: #555;
   font-weight: 600;
+}
+
+/* Responsive for smaller devices */
+@media (max-width: 480px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+  .tab-header {
+    flex-wrap: wrap;
+  }
+  .tab-title {
+    padding: 8px 15px;
+    font-size: 14px;
+  }
+  .btn-action {
+    flex: 1 1 100%;
+    text-align: center;
+  }
+  .modal {
+    padding: 20px 20px;
+  }
+  .modal-actions {
+    flex-direction: column;
+  }
+  .btn-primary, .btn-secondary {
+    width: 100%;
+  }
 }
 
 </style>

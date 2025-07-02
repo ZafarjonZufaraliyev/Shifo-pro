@@ -49,9 +49,7 @@
       </motion-div>
 
       <motion-div
-        v-motion
-        :initial="{ opacity: 0, y: 40 }"
-        :enter="{ opacity: 1, y: 0 }"
+       
         class="chart-card"
       >
         <h3>Foydalanuvchilar (oylik)</h3>

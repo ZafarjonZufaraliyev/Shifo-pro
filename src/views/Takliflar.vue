@@ -101,7 +101,7 @@ export default {
     // 1) form ma'lumotlarini localStorage'dan oling
     const f = JSON.parse(localStorage.getItem("ro_yxat_form"));
     if (f) {
-      this.fullName = `${f.familya} ${f.ism} ${f.sharif}`;
+      this.fullName = `${f.familiya} ${f.ism} ${f.sharif}`;
       this.birthYear = f.tugulgan_sana.slice(0,4);
       this.gender = f.jins || "";
       this.age = new Date().getFullYear() - this.birthYear;

@@ -408,9 +408,9 @@ export default {
 
 /* --- Asosiy konteyner --- */
 .calendar-container {
-  margin: 20px 20px 20px 270px;
+  margin: 20px 20px 20px 290px;
   padding: 20px;
-  max-width: 1100px;
+  max-width: 1200px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: #fff;
   color: #222;
