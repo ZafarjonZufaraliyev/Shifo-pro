@@ -17,6 +17,7 @@
       </select>
 
       <button @click="applyFilters">Filterlash</button>
+      <button @click="showAddRoomModal = true">➕ Xona qo‘shish</button>
     </div>
 
     <!-- Jadval -->
@@ -51,68 +52,31 @@
     </div>
     <p v-else>Filtrga mos xona topilmadi.</p>
 
-    <!-- Bron qilish modal -->
-    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+    <!-- Yangi xona turi va xona qo‘shish modal -->
+    <div v-if="showAddRoomModal" class="modal-overlay" @click.self="showAddRoomModal = false">
       <div class="modal">
-        <h3>Bron qilish</h3>
-        <p><strong>Xona:</strong> {{ selectedRoom?.display }}</p>
+        <h3>Yangi xona va turi qo‘shish</h3>
+        <label>Xona turi nomi:</label>
+        <input v-model="newRoomType.name" type="text" placeholder="Masalan: LUX" />
 
-        <label>Mehmon ismi:</label>
-        <input v-model="guestName" placeholder="Mehmon ismini kiriting" />
+        <label>Narxi:</label>
+        <input v-model="newRoomType.Narxi" type="number" placeholder="Masalan: 350000" />
 
-        <label>📞 Telefon 1 (majburiy):</label>
-        <input v-model="tel1" type="tel" placeholder="+998901234567" />
+        <label>Xona soni:</label>
+        <input v-model="newRoomType.count" type="number" placeholder="Nechta xona qurildi?" />
 
-        <label>📞 Telefon 2 (ixtiyoriy):</label>
-        <input v-model="tel2" type="tel" placeholder="+998901234568" />
+        <label>Qavati:</label>
+        <input v-model="newRoomType.qavat" type="number" placeholder="Masalan: 2" />
 
-        <label>🗓 Kelish sanasi:</label>
-        <input type="date" v-model="arrivalDate" />
-
-        <label>🗓 Ketish sanasi:</label>
-        <input type="date" v-model="departureDate" />
-
-        <div class="modal-buttons">
-          <button @click="confirmBooking">Bron qilish</button>
-          <button @click="closeModal" class="cancel-btn">Bekor qilish</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Bron tafsilot modal -->
-    <div v-if="showBookingDetail" class="modal-overlay" @click.self="closeBookingDetailModal">
-      <div class="modal">
-        <h3>Bron tafsilotlari</h3>
-        <p><strong>Xona:</strong> {{ selectedBookingRoom?.display }}</p>
-
-        <label>Mehmon ismi:</label>
-        <input v-model="selectedBooking.client_name" placeholder="Mehmon ismini kiriting" />
-
-        <label>📞 Telefon 1 (majburiy):</label>
-        <input v-model="selectedBooking.tel1" type="tel" placeholder="+998901234567" />
-
-        <label>📞 Telefon 2 (ixtiyoriy):</label>
-        <input v-model="selectedBooking.tel2" type="tel" placeholder="+998901234568" />
-
-        <label>🗓 Kelish sanasi:</label>
-        <input type="date" v-model="editArrivalDate" />
-
-        <label>🗓 Ketish sanasi:</label>
-        <input type="date" v-model="editDepartureDate" />
-
-        <div class="modal-buttons">
-          <button @click="saveBookingChanges">Saqlash</button>
-          <button @click="deleteBooking" class="delete-btn">O‘chirish</button>
-          <button @click="closeBookingDetailModal" class="cancel-btn">Bekor qilish</button>
-        </div>
+        <button @click="addRoomTypeAndRooms">✅ Qo‘shish</button>
+        <button @click="showAddRoomModal = false">Bekor qilish</button>
       </div>
     </div>
   </div>
 </template>
 
-  
 <script>
-import api from "@/api"; // API uchun axios yoki o'z api faylingizni import qiling
+import api from "@/api";
 
 export default {
   data() {
@@ -120,32 +84,21 @@ export default {
     return {
       rooms: [],
       bookings: [],
-
+      roomTypes: [],
       startInput: today.toISOString().split("T")[0],
-      endInput: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 14)
-        .toISOString()
-        .split("T")[0],
+      endInput: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 14).toISOString().split("T")[0],
       startDate: today,
       endDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 14),
       roomFilter: "",
       floorFilter: "",
       today,
-
-      // Modal uchun data
-      showModal: false,
-      selectedRoom: null,
-      selectedDate: null,
-      guestName: "",
-      tel1: "",
-      tel2: "",
-      arrivalDate: "",
-      departureDate: "",
-
-      showBookingDetail: false,
-      selectedBooking: null,
-      selectedBookingRoom: null,
-      editArrivalDate: "",
-      editDepartureDate: ""
+      showAddRoomModal: false,
+      newRoomType: {
+        name: "",
+        Narxi: "",
+        count: 1,
+        qavat: ""
+      }
     };
   },
   computed: {
@@ -163,9 +116,9 @@ export default {
       return Array.from(set).sort((a, b) => a - b);
     },
     filteredRooms() {
-      const roomTerm = this.roomFilter.trim().toLowerCase();
+      const term = this.roomFilter.trim().toLowerCase();
       return this.rooms.filter(room => {
-        const matchRoom = room.display.toLowerCase().includes(roomTerm);
+        const matchRoom = room.display.toLowerCase().includes(term);
         const matchFloor = this.floorFilter ? String(room.qavat) === String(this.floorFilter) : true;
         return matchRoom && matchFloor;
       });
@@ -173,34 +126,19 @@ export default {
   },
   methods: {
     applyFilters() {
-      if (!this.startInput || !this.endInput) {
-        alert("Iltimos, sanalarni to‘ldiring!");
-        return;
-      }
+      if (!this.startInput || !this.endInput) return;
       const s = new Date(this.startInput);
       const e = new Date(this.endInput);
-      if (e < s) {
-        alert("Oxirgi sana boshlang‘ich sanadan kichik bo‘lishi mumkin emas!");
-        return;
-      }
+      if (e < s) return;
       this.startDate = s;
       this.endDate = e;
     },
-
     formatFullDate(date) {
-      return date.toLocaleDateString("uz-UZ", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric"
-      });
+      return date.toLocaleDateString("uz-UZ", { day: "2-digit", month: "long", year: "numeric" });
     },
     formatShortDate(date) {
-      return date.toLocaleDateString("uz-UZ", {
-        day: "2-digit",
-        month: "short"
-      });
+      return date.toLocaleDateString("uz-UZ", { day: "2-digit", month: "short" });
     },
-
     getBooking(room, date) {
       return this.bookings.find(b => {
         if (String(b.xona_id) !== String(room.id)) return false;
@@ -209,176 +147,73 @@ export default {
         return date >= start && date < end;
       });
     },
-
     getBookingTitle(room, date) {
       const b = this.getBooking(room, date);
-      return b
-        ? `Bron qilingan: ${b.client_name}\n${this.formatFullDate(new Date(b.start))} dan ${this.formatFullDate(new Date(b.end))} gacha\nTelefon: ${b.tel1}`
-        : "";
+      return b ? `Bron: ${b.client_name}\n${this.formatFullDate(new Date(b.start))} – ${this.formatFullDate(new Date(b.end))}` : "";
     },
-
     getCellClass(room, date) {
       const b = this.getBooking(room, date);
       if (!b) return "";
-      const d = new Date(date.toDateString());
-      const td = new Date(this.today.toDateString());
-      if (d.getTime() === td.getTime()) return "current";
-      return d > td ? "booked-future" : "booked-past";
-    },
 
-    openBookingModal(room, date) {
-      this.selectedRoom = room;
-      this.selectedDate = date;
-      this.guestName = "";
-      this.tel1 = "";
-      this.tel2 = "";
-      this.arrivalDate = date.toISOString().split("T")[0];
-      this.departureDate = "";
-      this.showModal = true;
-    },
+      const today = new Date(this.today.toDateString());
+      const currentDate = new Date(date.toDateString());
+      const start = new Date(b.start);
+      const end = new Date(b.end);
 
-    closeModal() {
-      this.showModal = false;
-    },
-
-    async confirmBooking() {
-      if (
-        !this.guestName.trim() ||
-        !this.tel1.trim() ||
-        !this.arrivalDate ||
-        !this.departureDate
-      ) {
-        alert("Barcha majburiy maydonlarni to‘ldiring!");
-        return;
-      }
-
-      const start = new Date(this.arrivalDate);
-      const end = new Date(this.departureDate);
-
-      if (end <= start) {
-        alert("Ketish sanasi kelish sanasidan keyin bo‘lishi kerak!");
-        return;
-      }
-
-      // Sanalar kesishishini tekshirish
-      const overlap = this.bookings.some(b => {
-        if (String(b.xona_id) !== String(this.selectedRoom.id)) return false;
-        const bs = new Date(b.start);
-        const be = new Date(b.end);
-        return start < be && end > bs;
-      });
-
-      if (overlap) {
-        alert("Bu sana oralig‘ida xona band!");
-        return;
-      }
-
-      try {
-        const response = await api.post("/api/v1/bron", {
-          xona_id: this.selectedRoom.id,
-          client_name: this.guestName,
-          tel1: this.tel1,
-          tel2: this.tel2,
-          start: this.arrivalDate,
-          end: this.departureDate,
-          status: "faol",
-          create_user_id: 1,
-          create_user_name: "admin"
-        });
-        this.bookings.push(response.data);
-        alert("Bron muvaffaqiyatli saqlandi!");
-        this.closeModal();
-      } catch (error) {
-        console.error("Bronni saqlashda xato:", error);
-        alert("Serverda xatolik yuz berdi. Qaytadan urinib ko‘ring.");
+      if (currentDate.getTime() === today.getTime()) {
+        return "current";
+      } else if (currentDate > today && start > today) {
+        return "booked-future";
+      } else if (end < today) {
+        return "booked-past";
+      } else {
+        return "current";
       }
     },
-
     handleCellClick(room, date) {
       const b = this.getBooking(room, date);
       if (b) {
-        this.selectedBooking = { ...b };
-        this.selectedBookingRoom = room;
-        this.editArrivalDate = b.start.split("T")[0];
-        this.editDepartureDate = b.end.split("T")[0];
-        this.showBookingDetail = true;
+        alert(`Bu xona bron qilingan: ${b.client_name}`);
       } else {
-        this.openBookingModal(room, date);
+        alert(`${room.display} uchun ${this.formatFullDate(date)} sanasini bosdingiz.`);
       }
     },
-
-    closeBookingDetailModal() {
-      this.showBookingDetail = false;
-      this.selectedBooking = null;
-      this.selectedBookingRoom = null;
-      this.editArrivalDate = "";
-      this.editDepartureDate = "";
-    },
-
-    async saveBookingChanges() {
-      if (
-        !this.selectedBooking.client_name.trim() ||
-        !this.selectedBooking.tel1.trim() ||
-        !this.editArrivalDate ||
-        !this.editDepartureDate
-      ) {
-        alert("Barcha majburiy maydonlarni to‘ldiring!");
-        return;
-      }
-
-      const start = new Date(this.editArrivalDate);
-      const end = new Date(this.editDepartureDate);
-      if (end <= start) {
-        alert("Ketish sanasi kelish sanasidan keyin bo‘lishi kerak!");
-        return;
-      }
-
-      const overlap = this.bookings.some(b => {
-        if (b.id === this.selectedBooking.id) return false;
-        if (String(b.xona_id) !== String(this.selectedBookingRoom.id)) return false;
-        const bs = new Date(b.start);
-        const be = new Date(b.end);
-        return start < be && end > bs;
-      });
-      if (overlap) {
-        alert("Bu sana oralig‘ida xona band!");
+    async addRoomTypeAndRooms() {
+      const { name, Narxi, count, qavat } = this.newRoomType;
+      if (!name || !Narxi || !count || !qavat) {
+        alert("Iltimos, barcha maydonlarni to‘ldiring!");
         return;
       }
 
       try {
-        await api.put(`/api/v1/bron/${this.selectedBooking.id}`, {
-          client_name: this.selectedBooking.client_name,
-          tel1: this.selectedBooking.tel1,
-          tel2: this.selectedBooking.tel2,
-          start: this.editArrivalDate,
-          end: this.editDepartureDate
-        });
-        const idx = this.bookings.findIndex(b => b.id === this.selectedBooking.id);
-        if (idx !== -1) {
-          this.bookings.splice(idx, 1, {
-            ...this.selectedBooking,
-            start: this.editArrivalDate,
-            end: this.editDepartureDate
+        const { data: roomType } = await api.post("/api/v1/room_type", { name, Narxi });
+        const room_type_id = roomType.id;
+
+        const createdRooms = [];
+        for (let i = 1; i <= count; i++) {
+          const roomNumber = Math.floor(Math.random() * 900 + 100); // Tasodifiy xona raqami
+          const { data: room } = await api.post("/api/v1/room", {
+            xona: roomNumber,
+            qavat,
+            room_type_id
+          });
+          createdRooms.push({
+            id: room.id,
+            display: `${name} – xona ${roomNumber}, qavat ${qavat}`,
+            qavat
           });
         }
-        alert("Bron tafsilotlari yangilandi!");
-        this.closeBookingDetailModal();
-      } catch (error) {
-        console.error("Bronni yangilashda xato:", error);
-        alert("Serverda xatolik yuz berdi. Qaytadan urinib ko‘ring.");
-      }
-    },
 
-    async deleteBooking() {
-      if (!confirm("Bronni o‘chirishni istaysizmi?")) return;
-      try {
-        await api.delete(`/api/v1/bron/${this.selectedBooking.id}`);
-        this.bookings = this.bookings.filter(b => b.id !== this.selectedBooking.id);
-        alert("Bron o‘chirildi!");
-        this.closeBookingDetailModal();
-      } catch (error) {
-        console.error("Bronni o‘chirishda xato:", error);
-        alert("Serverda xatolik yuz berdi. Qaytadan urinib ko‘ring.");
+        this.rooms.push(...createdRooms);
+        alert("Xonalar muvaffaqiyatli qo‘shildi!");
+        this.showAddRoomModal = false;
+        this.newRoomType = { name: "", Narxi: "", count: 1, qavat: "" };
+
+        const { data: roomTypes } = await api.get("/api/v1/room_type");
+        this.roomTypes = roomTypes;
+      } catch (err) {
+        console.error("Xona yoki turi qo‘shishda xatolik:", err);
+        alert("Xatolik yuz berdi");
       }
     }
   },
@@ -388,457 +223,208 @@ export default {
       this.rooms = roomData.map(item => ({
         id: item.id,
         display: `${item.room_type.name} – xona ${item.xona}, qavat ${item.qavat}`,
-        price: parseFloat(item.room_type.Narxi),
         qavat: item.qavat
       }));
-    } catch (err) {
-      console.error("Xonalarni yuklashda xatolik:", err);
-    }
 
-    try {
+      const { data: roomTypeData } = await api.get("/api/v1/room_type");
+      this.roomTypes = roomTypeData;
+
       const { data } = await api.get("/api/v1/bron");
       this.bookings = data.data || data;
     } catch (err) {
-      console.error("Booking ma’lumotlarini yuklashda xatolik:", err);
+      console.error("Ma'lumotlarni yuklashda xatolik:", err);
     }
   }
 };
 </script>
-<style scoped>
 
-/* --- Asosiy konteyner --- */
+
+<style scoped>
+/* === Umumiy konteyner === */
 .calendar-container {
+  font-family: 'Segoe UI', sans-serif;
+  max-width: 1200px;
   margin: 20px 20px 20px 290px;
   padding: 20px;
-  max-width: 1200px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #fff;
-  color: #222;
-  border-radius: 14px;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #f9fafe, #eef2f7);
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 
-/* --- Filtrlar --- */
+/* === Filtrlar === */
 .filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 15px;
-  margin-bottom: 25px;
+  gap: 14px;
   align-items: center;
+  margin-bottom: 25px;
 }
 
 .filters label {
-  font-weight: 600;
-  color: #555;
-  user-select: none;
-  white-space: nowrap;
+  font-weight: bold;
+  color: #333;
 }
 
-.filters input[type="date"],
-.filters input[type="text"],
+.filters input,
 .filters select {
   padding: 8px 12px;
-  border: 1.8px solid #ccc;
-  border-radius: 8px;
-  font-size: 1rem;
-  min-width: 150px;
-  background-color: #f9f9f9;
-  transition: border-color 0.3s ease;
-  color: #222;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  outline: none;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  min-width: 160px;
 }
 
-.filters input[type="date"]:focus,
-.filters input[type="text"]:focus,
+.filters input:focus,
 .filters select:focus {
-  border-color: #5a4def;
-  outline: none;
-  box-shadow: 0 0 6px #8f8dfd88;
+  border-color: #007bff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.4);
 }
 
 .filters button {
-  background-color: #5a4def;
+  background-color: #007bff;
   color: white;
-  font-weight: 700;
-  padding: 10px 24px;
+  padding: 8px 16px;
   border: none;
   border-radius: 10px;
   cursor: pointer;
-  transition: background-color 0.25s ease;
-  min-width: 130px;
+  font-weight: 600;
+  transition: 0.3s;
 }
 
 .filters button:hover {
-  background-color: #4838c8;
+  background-color: #0056b3;
 }
 
-/* --- Jadval konteyneri --- */
+/* === Jadval === */
 .calendar-wrapper {
   overflow-x: auto;
-  background: #fafafa;
-  border-radius: 14px;
-  box-shadow: 0 10px 22px rgba(90, 77, 239, 0.1);
-  padding: 10px 0;
-}
-
-/* --- Jadval --- */
-.calendar {
-  border-collapse: separate;
-  border-spacing: 0 8px;
-  min-width: 900px;
-  width: 100%;
-  font-size: 0.9rem;
-  color: #444;
-}
-
-/* --- Jadval boshligi --- */
-.calendar thead th {
-  background-color: #5a4def;
-  color: #fff;
-  padding: 12px 14px;
-  font-weight: 700;
-  text-align: center;
-  border-radius: 10px 10px 0 0;
-  user-select: none;
-  white-space: nowrap;
-  letter-spacing: 0.05em;
-}
-
-/* --- Chapdagi xona nomlari ustuni --- */
-.room-header,
-.room-label {
-  background-color: #d8d9ff;
-  color: #4838c8;
-  font-weight: 700;
-  padding: 14px 18px;
-  position: sticky;
-  left: 0;
-  border-radius: 12px 0 0 12px;
-  box-shadow: 3px 0 6px -2px rgba(72, 56, 200, 0.3);
-  user-select: none;
-  white-space: nowrap;
-}
-
-/* --- Jadval katakchalari --- */
-.calendar td {
-  text-align: center;
-  padding: 10px 0;
   border-radius: 10px;
-  cursor: pointer;
-  user-select: none;
-  position: relative;
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid #dee2e6;
 }
 
-/* --- Bo'sh katakcha uchun kichik doira --- */
-.clickable-cell {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  background-color: #b0b6ff;
-  border-radius: 50%;
-  margin: auto;
-  opacity: 0.8;
-  transition: transform 0.2s ease, background-color 0.3s ease;
+.calendar {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+  background: white;
 }
 
-.clickable-cell:hover {
-  transform: scale(1.4);
-  background-color: #5a4def;
+.calendar th,
+.calendar td {
+  padding: 12px;
+  border: 1px solid #dee2e6;
+  text-align: center;
+  vertical-align: middle;
 }
 
-/* --- Bugungi kun --- */
-.current {
-  background-color: #d9dbff;
-  font-weight: 700;
-  color: #4838c8;
-  box-shadow: 0 0 12px 3px #8f8dfd88;
-  border: 2px solid #4838c8;
+.room-header {
+  background-color: #f8f9fa;
+  font-weight: bold;
 }
 
-/* --- Band qilingan kataklar (kelajak va o'tgan) --- */
-.booked-future {
-  background: linear-gradient(135deg, #9be7ff, #38bdf8);
-  color: #0369a1;
-  font-weight: 700;
-  border-left: 6px solid #0284c7;
-  box-shadow: 0 2px 8px #38bdf8aa;
+.room-label {
+  font-weight: 500;
+  text-align: left;
+  background: #f0f8ff;
 }
 
 .booked-past {
-  background: linear-gradient(135deg, #ff9b9b, #f87171);
-  color: #9b1c1c;
-  font-weight: 700;
-  border-left: 6px solid #b91c1c;
-  box-shadow: 0 2px 8px #f8717180;
+  background-color: #fff3cd;
+  color: #856404;
 }
 
-/* --- Tooltip (custom) --- */
-.calendar td[title]:hover::after {
-  content: attr(title);
-  position: absolute;
-  top: -8px;
-  left: 50%;
-  transform: translateX(-50%) translateY(-110%);
-  background: rgba(72, 56, 200, 0.9);
-  color: #fff;
-  padding: 6px 10px;
-  font-size: 0.85rem;
-  border-radius: 8px;
-  white-space: pre-line;
-  pointer-events: none;
-  z-index: 10;
-  max-width: 280px;
-  box-shadow: 0 0 8px rgba(72, 56, 200, 0.8);
-  opacity: 0;
-  animation: fadeInTooltip 0.3s forwards;
+.booked-future {
+  background-color: #d1ecf1;
+  color: #0c5460;
 }
 
-.calendar td:hover[title]::after {
-  opacity: 1;
+.current {
+  background-color: #f8d7da;
+  color: #721c24;
 }
 
-@keyframes fadeInTooltip {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-120%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(-110%);
-  }
+.clickable-cell {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #f1f3f5;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+  cursor: pointer;
 }
 
-/* --- Modal overlay --- */
+.clickable-cell:hover {
+  background: #dee2e6;
+}
+
+/* === Modal dizayni === */
 .modal-overlay {
   position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(5px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 12000;
-  padding: 20px;
-  box-sizing: border-box;
-  animation: fadeInOverlay 0.3s ease forwards;
-}
-
-@keyframes fadeInOverlay {
-  from {opacity: 0;}
-  to {opacity: 1;}
-}
-
-/* --- Modal oynasi --- */
-.modal {
-  background: #fff;
-  border-radius: 16px;
-  padding: 20px;
-  max-width: 450px;
+  top: 0;
+  left: 0;
   width: 100%;
-  box-shadow: 0 12px 36px rgba(72, 56, 200, 0.25);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: #222;
-  position: relative;
-  animation: scaleInModal 0.3s ease forwards;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
 }
 
-@keyframes scaleInModal {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+.modal {
+  background: white;
+  padding: 30px;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 460px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .modal h3 {
-  font-weight: 800;
-  font-size: 1.8rem;
-  margin-bottom: 1.5rem;
-  color: #5a4def;
+  margin-bottom: 20px;
+  font-size: 20px;
+  color: #333;
   text-align: center;
-  user-select: none;
 }
 
 .modal label {
   display: block;
+  margin-top: 12px;
   font-weight: 600;
-  margin-top: 1.3rem;
-  color: #444;
-  user-select: none;
+  color: #555;
 }
 
-.modal input[type="text"],
-.modal input[type="tel"],
-.modal input[type="date"] {
+.modal input {
   width: 100%;
-  padding: 0.6rem 1rem;
-  margin-top: 0.3rem;
-  font-size: 1rem;
-  border-radius: 10px;
-  border: 1.8px solid #ccc;
-  background: #f9f9f9;
-  color: #222;
-  box-shadow: inset 1px 1px 5px #ddd;
-  transition: border-color 0.3s ease;
+  padding: 10px 14px;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
 }
 
-.modal input[type="text"]:focus,
-.modal input[type="tel"]:focus,
-.modal input[type="date"]:focus {
-  outline: none;
-  border-color: #5a4def;
-  box-shadow: 0 0 8px #8f8dfd88;
-}
-
-.modal-buttons {
-  margin-top: 2.5rem;
-  display: flex;
-  gap: 1rem;
-}
-
-.modal-buttons button {
-  flex: 1;
-  padding: 1rem 0;
-  font-weight: 700;
-  font-size: 1.1rem;
-  border-radius: 12px;
+.modal button {
+  margin-top: 20px;
+  width: 100%;
+  padding: 10px;
+  font-weight: bold;
   border: none;
-  cursor: pointer;
+  border-radius: 8px;
+  background-color: #28a745;
   color: white;
-  transition: background-color 0.3s ease;
-  user-select: none;
+  transition: background-color 0.3s;
+  cursor: pointer;
 }
 
-.modal-buttons button:hover {
-  filter: brightness(0.9);
+.modal button:hover {
+  background-color: #218838;
 }
-
-.modal-buttons .cancel-btn {
-  background-color: #ef4444;
-  box-shadow: 0 6px 14px #f8717180;
-}
-
-.modal-buttons .cancel-btn:hover {
-  background-color: #b91c1c;
-}
-
-.modal-buttons .delete-btn {
-  background-color: #dc2626;
-  box-shadow: 0 6px 14px #ef4444cc;
-}
-
-.modal-buttons .delete-btn:hover {
-  background-color: #991b1b;
-}
-
-.modal-buttons button:not(.cancel-btn):not(.delete-btn) {
-  background-color: #5a4def;
-  box-shadow: 0 6px 16px #7269f1cc;
-}
-
-/* --- Responsive dizayn --- */
-@media (max-width: 992px) {
-  .calendar-container {
-    margin-left: 150px;
-    padding: 16px;
-    max-width: 100%;
-  }
-  .calendar {
-    min-width: 700px;
-    font-size: 0.9rem;
-  }
-  .filters input[type="date"],
-  .filters input[type="text"],
-  .filters select {
-    min-width: 140px;
-  }
-  .filters button {
-    min-width: 110px;
-    padding: 8px 18px;
-    font-size: 1rem;
-  }
-  .modal {
-    max-width: 420px;
-    padding: 1.8rem 2rem;
-  }
-  .modal h3 {
-    font-size: 1.6rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .calendar-container {
-    margin-left: 100px;
-    padding: 12px;
-  }
-  .calendar {
-    min-width: 600px;
-    font-size: 0.85rem;
-  }
-  .filters {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-  .filters input[type="date"],
-  .filters input[type="text"],
-  .filters select {
-    min-width: auto;
-    width: 100%;
-  }
-  .filters button {
-    width: 100%;
-    padding: 10px 0;
-  }
-  .modal {
-    max-width: 100%;
-    padding: 1.5rem 1.8rem;
-  }
-  .modal input[type="text"],
-  .modal input[type="tel"],
-  .modal input[type="date"] {
-    font-size: 0.9rem;
-  }
-  .modal-buttons button {
-    font-size: 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .calendar-container {
-    margin: 15px 10px;
-    padding: 10px;
-  }
-  .calendar {
-    min-width: 500px;
-    font-size: 0.8rem;
-  }
-  .filters {
-    gap: 10px;
-  }
-  .filters input[type="date"],
-  .filters input[type="text"],
-  .filters select {
-    font-size: 0.85rem;
-  }
-  .filters button {
-    font-size: 0.9rem;
-    padding: 8px 0;
-  }
-  .modal h3 {
-    font-size: 1.4rem;
-  }
-  .modal input[type="text"],
-  .modal input[type="tel"],
-  .modal input[type="date"] {
-    font-size: 0.85rem;
-  }
-  .modal-buttons button {
-    font-size: 0.9rem;
-  }
-}
-
 </style>

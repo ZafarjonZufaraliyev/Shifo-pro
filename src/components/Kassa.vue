@@ -311,76 +311,116 @@
 
 
     <div v-if="currentView === 'bemorlar'">
-      <div class="header">
-        <h3>👤 Bemorlar</h3>
-        <button class="add-btn" @click="showModal = true">➕ Bemor qo‘shish</button>
-      </div>
-
-      <!-- Qarzdorlar ro'yxati tepada qizil bilan -->
-      <h4>Qarzdorlar ro'yxati:</h4>
-      <table class="bemor-table">
-        <thead>
-          <tr>
-            <th>Ism Familiya</th>
-            <th>Telefon</th>
-            <th>Qayerdan</th>
-            <th>Qarz (so'm)</th>
-            <th>Naqd</th>
-            <th>Karta</th>
-            <th>Click</th>
-            <th>Kassir</th>
-            <th>Sana va Vaqt</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="bemor in qarzdorlar" :key="bemor.id" class="qarzdor-row">
-            <td>{{ bemor.ismFam }}</td>
-            <td>{{ bemor.tel }}</td>
-            <td>{{ bemor.qayerdan }}</td>
-            <td>{{ bemor.qarz.toLocaleString() }}</td>
-            <td>{{ bemor.naqd.toLocaleString() }}</td>
-            <td>{{ bemor.karta.toLocaleString() }}</td>
-            <td>{{ bemor.click.toLocaleString() }}</td>
-            <td>{{ bemor.kassir }}</td>
-            <td>{{ bemor.sana }} {{ bemor.vaqt }}</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <!-- Bemorlar ro'yxati (qarzsizlar bilan) -->
-      <h4>Bemorlar ro'yxati (qarzsizlar):</h4>
-      <table class="bemor-table">
-        <thead>
-          <tr>
-            <th>Ism Familiya</th>
-            <th>Telefon</th>
-            <th>Qayerdan</th>
-            <th>Qarz (so'm)</th>
-            <th>Naqd</th>
-            <th>Karta</th>
-            <th>Click</th>
-            <th>Kassir</th>
-            <th>Sana va Vaqt</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="bemor in qarzsizlar" :key="bemor.id">
-            <td>{{ bemor.ismFam }}</td>
-            <td>{{ bemor.tel }}</td>
-            <td>{{ bemor.qayerdan }}</td>
-            <td>{{ bemor.qarz.toLocaleString() }}</td>
-            <td>{{ bemor.naqd.toLocaleString() }}</td>
-            <td>{{ bemor.karta.toLocaleString() }}</td>
-            <td>{{ bemor.click.toLocaleString() }}</td>
-            <td>{{ bemor.kassir }}</td>
-            <td>{{ bemor.sana }} {{ bemor.vaqt }}</td>
-          </tr>
-        </tbody>
-      </table>
-
-
-
+    <div class="header">
+      <h3>👤 Bemorlar</h3>
+      <button class="add-btn" @click="showAddModal = true">➕ Bemor qo‘shish</button>
     </div>
+
+    <!-- Qarzdorlar ro'yxati -->
+    <h4>Qarzdorlar ro'yxati:</h4>
+    <table class="bemor-table">
+      <thead>
+        <tr>
+          <th>Ism Familiya</th>
+          <th>Telefon</th>
+          <th>Qayerdan</th>
+          <th>Qarz (so'm)</th>
+          <th>Naqd</th>
+          <th>Karta</th>
+          <th>Click</th>
+          <th>Kassir</th>
+          <th>Sana va Vaqt</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          v-for="bemor in qarzdorlar"
+          :key="bemor.id"
+          class="qarzdor-row"
+          @click="openDetails(bemor)"
+        >
+          <td>{{ bemor.ismFam }}</td>
+          <td>{{ bemor.tel }}</td>
+          <td>{{ bemor.qayerdan }}</td>
+          <td @click.stop="openTolovModal(bemor)">{{ bemor.qarz.toLocaleString() }}</td>
+          <td>{{ bemor.naqd.toLocaleString() }}</td>
+          <td>{{ bemor.karta.toLocaleString() }}</td>
+          <td>{{ bemor.click.toLocaleString() }}</td>
+          <td>{{ bemor.kassir }}</td>
+          <td>{{ bemor.sana }} {{ bemor.vaqt }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Qarzsizlar -->
+    <h4>Bemorlar ro'yxati (qarzsizlar):</h4>
+    <table class="bemor-table">
+      <thead>
+        <tr>
+          <th>Ism Familiya</th>
+          <th>Telefon</th>
+          <th>Qayerdan</th>
+          <th>Qarz (so'm)</th>
+          <th>Naqd</th>
+          <th>Karta</th>
+          <th>Click</th>
+          <th>Kassir</th>
+          <th>Sana va Vaqt</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="bemor in qarzsizlar" :key="bemor.id">
+          <td>{{ bemor.ismFam }}</td>
+          <td>{{ bemor.tel }}</td>
+          <td>{{ bemor.qayerdan }}</td>
+          <td>{{ bemor.qarz.toLocaleString() }}</td>
+          <td>{{ bemor.naqd.toLocaleString() }}</td>
+          <td>{{ bemor.karta.toLocaleString() }}</td>
+          <td>{{ bemor.click.toLocaleString() }}</td>
+          <td>{{ bemor.kassir }}</td>
+          <td>{{ bemor.sana }} {{ bemor.vaqt }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- 🧾 Bemor tafsilotlari modali -->
+    <div v-if="showDetailsModal" class="modal-overlay" @click.self="showDetailsModal = false">
+      <div class="modal1">
+        <h3>{{ selectedBemor.ismFam }} - Maʼlumotlar</h3>
+        <p><strong>Telefon:</strong> {{ selectedBemor.tel }}</p>
+        <p><strong>Qayerdan:</strong> {{ selectedBemor.qayerdan }}</p>
+        <p><strong>Qarz:</strong> {{ selectedBemor.qarz.toLocaleString() }} so'm</p>
+        <p><strong>Kassir:</strong> {{ selectedBemor.kassir }}</p>
+        <p><strong>Sana:</strong> {{ selectedBemor.sana }} {{ selectedBemor.vaqt }}</p>
+        <button class="save-btn" @click="showDetailsModal = false">Yopish</button>
+      </div>
+    </div>
+
+    <!-- 💰 To‘lov qilish modali -->
+    <div v-if="showTolovModal" class="modal-overlay" @click.self="showTolovModal = false">
+      <div class="modal1">
+        <h3>💳 To‘lov qilish - {{ selectedBemor.ismFam }}</h3>
+
+        <div class="form-group">
+          <label>Naqd:</label>
+          <input type="number" v-model.number="tolov.naqd" />
+        </div>
+        <div class="form-group">
+          <label>Karta:</label>
+          <input type="number" v-model.number="tolov.karta" />
+        </div>
+        <div class="form-group">
+          <label>Click:</label>
+          <input type="number" v-model.number="tolov.click" />
+        </div>
+
+        <div class="row-group" style="justify-content: flex-end">
+          <button class="save-btn" @click="saqlash()">💾 Saqlash</button>
+          <button class="add-btn" @click="showTolovModal = false">Bekor qilish</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   </div>
 </template>
@@ -390,6 +430,17 @@ export default {
     return {
       currentView: 'stat',
 
+      // YANGI QO‘SHILGAN
+      selectedBemor: null,
+      showDetailsModal: false,
+      showTolovModal: false,
+      tolov: {
+        naqd: 0,
+        karta: 0,
+        click: 0,
+      },
+
+      // Mavjud ma'lumotlar
       kirimlar: [
         { id: 1, sana: '2025-07-02', soat: '09:30:00', kimdan: 'Firma A', miqdor: 500000, usul: 'Naqd', kassir: 'Ali', izoh: '' },
         { id: 2, sana: '2025-07-02', soat: '11:00:00', kimdan: 'Firma B', miqdor: 300000, usul: 'Karta', kassir: 'Vali', izoh: '' },
@@ -407,7 +458,6 @@ export default {
       ],
 
       filterDate: new Date().toISOString().slice(0, 10),
-
       showModal: false,
 
       form: {
@@ -424,14 +474,11 @@ export default {
 
       optionsKimdan: ['Firma A', 'Firma B', 'Firma C'],
       optionsQayerga: ['Xarid', 'Xodim', 'Xizmatlar'],
-
       toggleList: false,
       toggleKimdanList: false,
       toggleQayergaList: false,
-
       newKimdan: '',
       newQayerga: '',
-
       qarzQoshildi: 0,
       tolandiSumma: 0,
     }
@@ -441,57 +488,39 @@ export default {
     filteredKirimlar() {
       return this.kirimlar.filter(k => k.sana === this.filterDate)
     },
-
     filteredChiqimlar() {
       return this.chiqimlar.filter(c => c.sana === this.filterDate)
     },
-
     qarzdorlar() {
       return this.bemorlar.filter(b => b.qarz > 0)
     },
-
     qarzsizlar() {
       return this.bemorlar.filter(b => b.qarz === 0)
     },
-
     todayKirim() {
       return this.filteredKirimlar.reduce((sum, k) => sum + k.miqdor, 0)
     },
-
     todayNaqdKirim() {
-      return this.filteredKirimlar
-        .filter(k => k.usul === 'Naqd')
-        .reduce((sum, k) => sum + k.miqdor, 0)
+      return this.filteredKirimlar.filter(k => k.usul === 'Naqd').reduce((sum, k) => sum + k.miqdor, 0)
     },
-
     todayKartaKirim() {
-      return this.filteredKirimlar
-        .filter(k => k.usul === 'Karta')
-        .reduce((sum, k) => sum + k.miqdor, 0)
+      return this.filteredKirimlar.filter(k => k.usul === 'Karta').reduce((sum, k) => sum + k.miqdor, 0)
     },
-
     todayClickKirim() {
-      return this.filteredKirimlar
-        .filter(k => k.usul === 'Click')
-        .reduce((sum, k) => sum + k.miqdor, 0)
+      return this.filteredKirimlar.filter(k => k.usul === 'Click').reduce((sum, k) => sum + k.miqdor, 0)
     },
-
     todayChiqim() {
       return this.filteredChiqimlar.reduce((sum, c) => sum + c.naqd + c.karta + c.click, 0)
     },
-
     todayNaqdChiqim() {
       return this.filteredChiqimlar.reduce((sum, c) => sum + c.naqd, 0)
     },
-
     todayKartaChiqim() {
       return this.filteredChiqimlar.reduce((sum, c) => sum + c.karta, 0)
     },
-
     todayClickChiqim() {
       return this.filteredChiqimlar.reduce((sum, c) => sum + c.click, 0)
     },
-
     totalQarz() {
       return this.bemorlar.reduce((sum, b) => sum + b.qarz, 0)
     }
@@ -502,25 +531,21 @@ export default {
       this.currentView = 'stat'
       this.showModal = false
     },
-
     showKirim() {
       this.currentView = 'kirim'
       this.showModal = false
       this.clearForm()
     },
-
     showChiqim() {
       this.currentView = 'chiqim'
       this.showModal = false
       this.clearForm()
     },
-
     showBemorlar() {
       this.currentView = 'bemorlar'
       this.showModal = false
       this.clearForm()
     },
-
     clearForm() {
       this.form = {
         sana: this.filterDate,
@@ -539,7 +564,6 @@ export default {
       this.toggleKimdanList = false
       this.toggleQayergaList = false
     },
-
     saveKirim() {
       if (!this.form.sana || !this.form.vaqt || !this.form.kimdan) {
         alert('Iltimos, barcha majburiy maydonlarni to‘ldiring!')
@@ -551,7 +575,6 @@ export default {
         return
       }
       const usul = this.form.naqd > 0 ? 'Naqd' : this.form.karta > 0 ? 'Karta' : 'Click'
-
       this.kirimlar.push({
         id: Date.now(),
         sana: this.form.sana,
@@ -562,12 +585,10 @@ export default {
         kassir: this.form.kassir,
         izoh: this.form.izoh,
       })
-
       alert('Kirim muvaffaqiyatli qo‘shildi!')
       this.showModal = false
       this.clearForm()
     },
-
     saveChiqim() {
       if (!this.form.sana || !this.form.vaqt || !this.form.kimdan || !this.form.qayerga) {
         alert('Iltimos, barcha majburiy maydonlarni to‘ldiring!')
@@ -580,7 +601,6 @@ export default {
         alert('Iltimos, kamida bir to‘lov turida miqdor kiriting!')
         return
       }
-
       this.chiqimlar.push({
         id: Date.now(),
         sana: this.form.sana,
@@ -593,44 +613,64 @@ export default {
         kassir: this.form.kassir,
         izoh: this.form.izoh,
       })
-
       alert('Chiqim muvaffaqiyatli qo‘shildi!')
       this.showModal = false
       this.clearForm()
     },
+    openDetails(bemor) {
+      this.selectedBemor = bemor
+      this.showDetailsModal = true
+    },
+    openTolovModal(bemor) {
+      this.selectedBemor = bemor
+      this.tolov = { naqd: 0, karta: 0, click: 0 }
+      this.showTolovModal = true
+    },
+    saqlash() {
+      const jami = this.tolov.naqd + this.tolov.karta + this.tolov.click
+      if (jami <= 0) {
+        alert("Iltimos, to'lov miqdorini kiriting.")
+        return
+      }
 
+      this.selectedBemor.qarz -= jami
+      if (this.selectedBemor.qarz < 0) this.selectedBemor.qarz = 0
+
+      this.selectedBemor.naqd += this.tolov.naqd
+      this.selectedBemor.karta += this.tolov.karta
+      this.selectedBemor.click += this.tolov.click
+
+      alert("To‘lov saqlandi!")
+      this.showTolovModal = false
+    },
     addKimdan() {
       if (this.newKimdan && !this.optionsKimdan.includes(this.newKimdan)) {
         this.optionsKimdan.push(this.newKimdan)
         this.newKimdan = ''
       }
     },
-
     removeSpecificKimdan(index) {
       this.optionsKimdan.splice(index, 1)
     },
-
     addQayerga() {
       if (this.newQayerga && !this.optionsQayerga.includes(this.newQayerga)) {
         this.optionsQayerga.push(this.newQayerga)
         this.newQayerga = ''
       }
     },
-
     removeQayerga(index) {
       this.optionsQayerga.splice(index, 1)
     },
-
     removeKimdan(index) {
       this.optionsKimdan.splice(index, 1)
-    },
+    }
   },
-
   created() {
     this.clearForm()
   }
 }
 </script>
+
 
 <style>
  /* ======================= */
@@ -1045,6 +1085,80 @@ h4 {
   textarea {
     font-size: 14px;
   }
+}
+/* ======================= */
+/* --- Qarzdor qator interaktiv --- */
+.qarzdor-row.bemor-row-clickable td {
+  cursor: default;
+  transition: background-color 0.2s ease;
+}
+
+/* Bemor ismiga bosish uchun */
+.qarzdor-row.bemor-row-clickable td:first-child {
+  cursor: pointer;
+  color: #1A6291;
+  text-decoration: underline;
+}
+
+/* Qarzni bosish uchun */
+.qarzdor-row.bemor-row-clickable td:nth-child(4),
+.qarz-cell {
+  cursor: pointer;
+  font-weight: 700;
+  color: #d32f2f;
+  transition: background-color 0.2s ease;
+}
+
+.qarz-cell:hover {
+  background-color: #fce4ec;
+  border-radius: 6px;
+}
+
+/* Qator hover */
+.qarzdor-row.bemor-row-clickable:hover {
+  background-color: #ffecec !important;
+}
+
+/* ======================= */
+/* --- Modal pastki qismi (footer) --- */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* Tugmalar */
+.modal-footer button {
+  padding: 10px 18px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-size: 15px;
+}
+
+/* Saqlash tugmasi */
+.modal-footer .save-btn {
+  background-color: #1A6291;
+  border: none;
+  color: white;
+  box-shadow: 0 3px 8px rgba(26,98,145,0.4);
+}
+
+.modal-footer .save-btn:hover {
+  background-color: #134b6a;
+}
+
+/* Bekor qilish tugmasi */
+.modal-footer .cancel-btn {
+  background-color: #f0f0f0;
+  color: #444;
+  border: 1px solid #ccc;
+}
+
+.modal-footer .cancel-btn:hover {
+  background-color: #e0e0e0;
 }
 
 </style>
