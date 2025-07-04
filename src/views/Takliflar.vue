@@ -3,131 +3,373 @@
     <h2 class="title">Takliflar sahifasi</h2>
 
     <!-- User info -->
-    <div class="user-info">
+    <div class="user-info" v-if="isUserRegistered && userName">
       <p><strong>F.I.Sh:</strong> {{ fullName }}</p>
       <p><strong>Yoshi:</strong> {{ age }}</p>
       <p><strong>Jinsi:</strong> {{ gender || "Ko'rsatilmagan" }}</p>
+      <p><strong>Ro'yxatdan o'tgan foydalanuvchi:</strong> {{ userName }}</p>
     </div>
 
-    <!-- Arrival & Leave dates -->
-    <div class="date-row">
-      <div class="form-group">
-        <label>Kelgan sana</label>
-        <input type="date" v-model="arrivalDate" />
-      </div>
-      <div class="form-group">
-        <label>Ketgan sana</label>
-        <input type="date" v-model="leaveDate" />
-      </div>
+    <div v-else class="user-info">
+      <p><strong>F.I.Sh:</strong> {{ fullName || "Ma'lumot yo'q" }}</p>
+      <p><strong>Yoshi:</strong> {{ age || "Ma'lumot yo'q" }}</p>
+      <p><strong>Jinsi:</strong> {{ gender || "Ko'rsatilmagan" }}</p>
+      <p style="color: #d9534f; font-weight: bold;">Foydalanuvchi ro'yxatdan o'tmagan</p>
     </div>
 
-    <!-- Room booking -->
-    <div class="room-booking-row">
-      <div class="form-group room-booking">
-        <label>Xona tanlang</label>
-        <select v-model="selectedRoom">
-          <option disabled value="">Tanlang</option>
-          <option
-            v-for="r in rooms"
-            :key="r.id"
-            :value="r"
+    <!-- Filterlar (Xona qidirish) -->
+    <div class="filter-row">
+      <input type="text" v-model="roomFilterNumber" placeholder="Xona raqami (masalan: 205)" />
+      <input type="text" v-model="roomFilterName" placeholder="Xona turi (masalan: LUX)" />
+      <input type="number" v-model.number="roomFilterSigim" placeholder="Sig'imi (masalan: 2)" />
+      <button @click="clearFilters" class="clear-filter-btn">Filtrlarni tozalash</button>
+    </div>
+
+    <!-- Xonalar ro'yxati (jadval) -->
+    <div v-if="!selectedRoom" class="room-list">
+      <h3>Mavjud xonalar:</h3>
+      <table class="rooms-table">
+        <thead>
+          <tr>
+            <th>Xona turi</th>
+            <th>Xona raqami</th>
+            <th>Sig'imi</th>
+            <th>Narxi (so'm)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="room in filteredRooms"
+            :key="room.id"
+            @click="selectRoom(room)"
+            class="room-row"
           >
-            {{ r.display }} — {{ r.price }} so'm
-          </option>
-        </select>
-      </div>
-      <div class="total-sum">
-        Jami summa: <strong>{{ totalSum }} so'm</strong>
-      </div>
+            <td>{{ room.room_type }}</td>
+            <td>{{ room.xona }}</td>
+            <td>{{ room.sigim }}</td>
+            <td>{{ room.price.toLocaleString('ru-RU') }}</td>
+          </tr>
+          <tr v-if="filteredRooms.length === 0">
+            <td colspan="4" class="no-rooms">Xonalar topilmadi</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
-    <!-- Services -->
-    <div class="services-section">
-      <h3>
-        Xizmatlar
-        <button @click="toggleServices">
-          {{ showServices ? "Yashirish" : "Ko'rsatish" }}
-        </button>
-      </h3>
-      <div v-if="showServices">
-        <div v-for="(s, i) in services" :key="i">
-          <input type="checkbox" v-model="s.selected" />
-          {{ s.name }} — {{ s.price }} so'm
+    <!-- Tanlangan xona -->
+    <div v-if="selectedRoom" class="selected-room">
+      <h3>Tanlangan xona</h3>
+      <p>{{ selectedRoom.display }}</p>
+
+      <p>
+        Narxi:
+        <span
+          v-if="isUserRegistered && priceEditClickCount.room >= 5"
+          class="editable-price"
+        >
+          <input
+            type="number"
+            v-model.number="selectedRoom.price"
+            @input="savePriceChange('room')"
+          />
+          so'm
+        </span>
+        <span
+          v-else-if="isUserRegistered"
+          @click="incrementPriceClick('room')"
+          class="clickable-price"
+          title="Narxni o'zgartirish uchun ustiga 5 marta bosing"
+          >{{ selectedRoom.price.toLocaleString('ru-RU') }} so'm</span
+        >
+        <span v-else>{{ selectedRoom.price.toLocaleString('ru-RU') }} so'm</span>
+      </p>
+
+      <button @click="cancelSelection" class="cancel-btn">❌ Bekor qilish</button>
+
+      <!-- Majburiy xizmatlar -->
+      <div class="services-section" v-if="mandatoryServices.length">
+        <h3>Majburiy xizmatlar</h3>
+        <div
+          v-for="(service, i) in mandatoryServices"
+          :key="'mandatory-'+i"
+          class="service-item"
+        >
+          <input type="checkbox" v-model="service.selected" disabled />
+          {{ service.name }} —
+          <span
+            v-if="isUserRegistered && priceEditClickCount['mandatory-'+i] >= 5"
+            class="editable-price"
+          >
+            <input
+              type="number"
+              v-model.number="service.price"
+              @input="savePriceChange('mandatory-'+i)"
+            />
+            so'm
+          </span>
+          <span
+            v-else-if="isUserRegistered"
+            @click="incrementPriceClick('mandatory-'+i)"
+            class="clickable-price"
+            title="Narxni o'zgartirish uchun ustiga 5 marta bosing"
+          >
+            {{ service.price.toLocaleString('ru-RU') }} so'm
+          </span>
+          <span v-else>{{ service.price.toLocaleString('ru-RU') }} so'm</span>
+        </div>
+      </div>
+
+      <!-- Qo'shimcha xizmatlar -->
+      <div class="services-section">
+        <h3>Qo'shimcha xizmatlar</h3>
+        <div
+          v-for="(service, i) in additionalServices"
+          :key="'additional-'+i"
+          class="service-item"
+        >
+          <input type="checkbox" v-model="service.selected" />
+          {{ service.name }} —
+          <span
+            v-if="isUserRegistered && priceEditClickCount['additional-'+i] >= 5"
+            class="editable-price"
+          >
+            <input
+              type="number"
+              v-model.number="service.price"
+              @input="savePriceChange('additional-'+i)"
+            />
+            so'm
+          </span>
+          <span
+            v-else-if="isUserRegistered"
+            @click="incrementPriceClick('additional-'+i)"
+            class="clickable-price"
+            title="Narxni o'zgartirish uchun ustiga 5 marta bosing"
+          >
+            {{ service.price.toLocaleString('ru-RU') }} so'm
+          </span>
+          <span v-else>{{ service.price.toLocaleString('ru-RU') }} so'm</span>
         </div>
       </div>
     </div>
 
-    <button class="submit-btn" @click="submitBooking">
-      Bron qilish
-    </button>
+    <!-- Kelish va ketish sanalari -->
+    <div class="date-row">
+      <div class="form-group">
+        <label>Kelgan sana</label>
+        <input
+          type="date"
+          :min="today"
+          :readonly="!allowEditArrivalDate"
+          :class="{ readonly: !allowEditArrivalDate }"
+          v-model="arrivalDate"
+          @change="calculateLeaveDate"
+          @click="increaseClickCount"
+        />
+        <small v-if="!allowEditArrivalDate" style="color: #666;">
+          (Bugungi kundan oldingi sanalarni tanlash mumkin emas)
+        </small>
+      </div>
+      <div class="form-group">
+        <label>Necha kun?</label>
+        <input type="number" v-model.number="stayDays" min="1" @input="calculateLeaveDate" />
+      </div>
+      <div class="form-group">
+        <label>Ketgan sana</label>
+        <input type="date" :value="leaveDate || '0000-00-00'" readonly />
+      </div>
+    </div>
+
+    <!-- Jami -->
+    <div class="total-sum">
+      Jami summa: <strong>{{ totalSum.toLocaleString('ru-RU') }} so'm</strong>
+    </div>
+
+    <button class="submit-btn" @click="submitBooking">Bron qilish</button>
   </div>
 </template>
 
 <script>
 import axios from "axios";
 
+const STORAGE_KEY = "ro_yxat_form"; // foydalanuvchi ma'lumotlari
+const PRICES_STORAGE_KEY = "user_custom_prices";
+
 export default {
   name: "Takliflar",
   data() {
+    const todayDate = new Date();
+    const today = todayDate.toISOString().slice(0, 10);
+
     return {
       fullName: "",
       birthYear: null,
       age: null,
       gender: "",
-      arrivalDate: "",
+      userName: "",
+
+      today,
+      arrivalDate: today,
+      stayDays: 7,
       leaveDate: "",
       selectedRoom: null,
-      showServices: false,
       rooms: [],
-      services: [
+      mandatoryServices: [],
+      additionalServices: [
         { name: "Massaj", price: 50000, selected: false },
         { name: "Fizioterapiya", price: 60000, selected: false },
-        { name: "Dori muolajasi", price: 45000, selected: false },
-        { name: "Psixolog", price: 40000, selected: false },
         { name: "Vitamin terapiya", price: 55000, selected: false }
-      ]
+      ],
+      roomFilterName: "",
+      roomFilterNumber: "",
+      roomFilterSigim: null,
+
+      priceEditClickCount: {},
+
+      allowEditPrice: false,
+      allowEditArrivalDate: false
     };
   },
   computed: {
+    filteredRooms() {
+      return this.rooms.filter(r => {
+        const byName = this.roomFilterName
+          ? r.room_type.toLowerCase().includes(this.roomFilterName.toLowerCase())
+          : true;
+        const byNumber = this.roomFilterNumber ? r.xona.includes(this.roomFilterNumber) : true;
+        const bySigim = this.roomFilterSigim
+          ? String(r.sigim) === String(this.roomFilterSigim)
+          : true;
+        return byName && byNumber && bySigim;
+      });
+    },
     totalSum() {
-      const rp = this.selectedRoom ? this.selectedRoom.price : 0;
-      const sp = this.services
-        .filter(s => s.selected)
-        .reduce((a, s) => a + s.price, 0);
-      return rp + sp;
-    }
-  },
-  async mounted() {
-    // 1) form ma'lumotlarini localStorage'dan oling
-    const f = JSON.parse(localStorage.getItem("ro_yxat_form"));
-    if (f) {
-      this.fullName = `${f.familiya} ${f.ism} ${f.sharif}`;
-      this.birthYear = f.tugulgan_sana.slice(0,4);
-      this.gender = f.jins || "";
-      this.age = new Date().getFullYear() - this.birthYear;
-    }
-
-    // 2) Xonalarni APIdan yuklang
-    try {
-      const { data } = await axios.get("https://shifo-pro.uz/api/v1/room");
-      this.rooms = data.map(item => ({
-        id: item.id,
-        display: `${item.room_type.name} (xona №${item.xona}, qavat ${item.qavat})`,
-        price: parseFloat(item.room_type.Narxi)
-      }));
-    } catch (err) {
-      console.error("Xonalar yuklash xatosi:", err);
+      const roomPrice = this.selectedRoom ? this.selectedRoom.price : 0;
+      const mandatory = this.mandatoryServices.reduce(
+        (sum, s) => sum + (s.selected ? s.price : 0),
+        0
+      );
+      const additional = this.additionalServices.reduce(
+        (sum, s) => sum + (s.selected ? s.price : 0),
+        0
+      );
+      return roomPrice + mandatory + additional;
+    },
+    isUserRegistered() {
+      return !!localStorage.getItem(STORAGE_KEY);
     }
   },
   methods: {
-    toggleServices() {
-      this.showServices = !this.showServices;
+    formatDate(date) {
+      return date.toISOString().slice(0, 10);
+    },
+    calculateLeaveDate() {
+      if (!this.arrivalDate || !this.stayDays) return;
+      const start = new Date(this.arrivalDate);
+      start.setDate(start.getDate() + this.stayDays);
+      this.leaveDate = this.formatDate(start);
+    },
+    handleRoomChange() {
+      if (this.selectedRoom) {
+        this.mandatoryServices = [
+          { name: "Dori muolajasi", price: 45000, selected: true },
+          { name: "Psixolog", price: 40000, selected: true }
+        ];
+
+        this.loadCustomPrices();
+      } else {
+        this.mandatoryServices = [];
+      }
+    },
+    selectRoom(room) {
+      this.selectedRoom = { ...room };
+      this.priceEditClickCount = {};
+      this.allowEditPrice = false;
+      this.allowEditArrivalDate = false;
+      this.handleRoomChange();
+    },
+    incrementPriceClick(key) {
+      if (!this.priceEditClickCount[key]) this.$set(this.priceEditClickCount, key, 0);
+      this.priceEditClickCount[key]++;
+    },
+    savePriceChange(key) {
+      if (!this.isUserRegistered) return;
+
+      let storedPrices = JSON.parse(localStorage.getItem(PRICES_STORAGE_KEY) || "{}");
+
+      if (key === "room") {
+        storedPrices.room = this.selectedRoom.price;
+      } else if (key.startsWith("mandatory-")) {
+        const index = parseInt(key.split("-")[1], 10);
+        if (this.mandatoryServices[index]) {
+          storedPrices[key] = this.mandatoryServices[index].price;
+        }
+      } else if (key.startsWith("additional-")) {
+        const index = parseInt(key.split("-")[1], 10);
+        if (this.additionalServices[index]) {
+          storedPrices[key] = this.additionalServices[index].price;
+        }
+      }
+
+      localStorage.setItem(PRICES_STORAGE_KEY, JSON.stringify(storedPrices));
+    },
+    loadCustomPrices() {
+      const storedPrices = JSON.parse(localStorage.getItem(PRICES_STORAGE_KEY) || "{}");
+
+      if (storedPrices.room !== undefined && this.selectedRoom) {
+        this.selectedRoom.price = storedPrices.room;
+      }
+
+      this.mandatoryServices.forEach((service, i) => {
+        const key = "mandatory-" + i;
+        if (storedPrices[key] !== undefined) {
+          service.price = storedPrices[key];
+        }
+      });
+
+      this.additionalServices.forEach((service, i) => {
+        const key = "additional-" + i;
+        if (storedPrices[key] !== undefined) {
+          service.price = storedPrices[key];
+        }
+      });
+    },
+    cancelSelection() {
+      this.selectedRoom = null;
+      this.mandatoryServices = [];
+      this.priceEditClickCount = {};
+      this.allowEditPrice = false;
+      this.allowEditArrivalDate = false;
+    },
+    clearFilters() {
+      this.roomFilterName = "";
+      this.roomFilterNumber = "";
+      this.roomFilterSigim = null;
+    },
+    async loadRooms() {
+      try {
+        const { data } = await axios.get("https://shifo-pro.uz/api/v1/room");
+        this.rooms = data.map(item => ({
+          id: item.id,
+          xona: item.xona,
+          sigim: item.sigim || item.capacity || 1,
+          room_type: item.room_type.name,
+          display: `${item.room_type.name} (xona №${item.xona}, sig'imi ${item.sigim || item.capacity || 1})`,
+          price: parseFloat(item.room_type.Narxi || 0)
+        }));
+      } catch (err) {
+        console.error("Xonalar yuklash xatosi:", err);
+      }
     },
     submitBooking() {
-      if (!this.arrivalDate || !this.leaveDate || !this.selectedRoom) {
+      if (!this.arrivalDate || !this.stayDays || !this.selectedRoom) {
         alert("Iltimos, barcha maydonlarni to‘ldiring!");
         return;
       }
+      // User data from localStorage
+      const userData = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      const username = userData ? userData.username : "Noma'lum";
+
       const booking = {
         fullName: this.fullName,
         age: this.age,
@@ -135,205 +377,166 @@ export default {
         arrivalDate: this.arrivalDate,
         leaveDate: this.leaveDate,
         room: this.selectedRoom,
-        services: this.services.filter(s => s.selected),
-        totalSum: this.totalSum
+        mandatoryServices: this.mandatoryServices,
+        additionalServices: this.additionalServices.filter(s => s.selected),
+        totalSum: this.totalSum,
+        registeredBy: username // bu yerda xodim username qo'shildi
       };
-      // TaklifDetelis sahifasiga query orqali booking jo'natamiz
+
+      // Router bilan keyingi sahifaga booking obyekti jo'natiladi
       this.$router.push({
         name: "TaklifDetelis",
         query: { data: encodeURIComponent(JSON.stringify(booking)) }
       });
+    },
+    increaseClickCount() {
+      this.allowEditArrivalDate = true;
     }
+  },
+  async mounted() {
+    const userData = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (userData) {
+      this.fullName = `${userData.familiya} ${userData.ism} ${userData.sharif}`;
+      this.birthYear = userData.tugulgan_sana.slice(0, 4);
+      this.gender = userData.jins || "";
+      this.age = new Date().getFullYear() - this.birthYear;
+      this.userName = userData.username || "";
+    }
+    this.calculateLeaveDate();
+    await this.loadRooms();
   }
 };
 </script>
 
 <style scoped>
-/* ... avvalgi Takliflar.vue style qismi shu yerda bo‘ladi ... */
-</style>
-
-
-
-<style scoped>
+/* Styling your component */
 .taklif-container {
   max-width: 1200px;
+  margin: 20px 20px 20px 290px;
+  background: #fff;
   padding: 20px;
-  margin: 20px 20px 20px 290px ;
-  background-color: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
-  font-family: 'Segoe UI', sans-serif;
-  color: #1f2937;
+  border-radius: 12px;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+  font-family: "Segoe UI", sans-serif;
 }
-
+.filter-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  align-items: center;
+}
+.clear-filter-btn {
+  background-color: #ccc;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.clear-filter-btn:hover {
+  background-color: #aaa;
+}
+.rooms-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+.rooms-table th,
+.rooms-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+.rooms-table th {
+  background-color: #f0f8ff;
+  font-weight: 600;
+}
+.room-row {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.room-row:hover {
+  background-color: #e6f2ff;
+}
+.no-rooms {
+  text-align: center;
+  color: #666;
+  padding: 10px 0;
+}
+.selected-room {
+  background: #f1fff1;
+  padding: 10px;
+  border: 1px solid #8bc34a;
+  border-radius: 6px;
+  margin-bottom: 15px;
+}
 .title {
   text-align: center;
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 30px;
-  color: #0f172a;
+  margin-bottom: 20px;
 }
-
-.user-info p {
-  font-size: 16px;
-  margin-bottom: 6px;
+.submit-btn {
+  background: #3cb371;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 10px;
 }
-
-.date-row,
-.room-booking-row {
+.submit-btn:hover {
+  background: #32a165;
+}
+input[type="number"] {
+  width: 100px;
+  margin-left: 8px;
+}
+input.readonly {
+  background-color: #eee;
+  cursor: not-allowed;
+}
+.services-section h3 {
+  margin-bottom: 10px;
+}
+.service-item {
+  margin-bottom: 8px;
+  user-select: none;
+}
+.cancel-btn {
+  background: #ff5c5c;
+  border: none;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-bottom: 15px;
+  transition: background-color 0.2s;
+}
+.cancel-btn:hover {
+  background: #d64545;
+}
+.clickable-price {
+  cursor: pointer;
+  user-select: none;
+  color: #007bff;
+}
+.clickable-price:hover {
+  text-decoration: underline;
+}
+.editable-price input {
+  width: 100px;
+}
+.date-row {
   display: flex;
-  justify-content: space-between;
-  gap: 20px;
-  margin-top: 25px;
-  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 15px;
 }
-
 .form-group {
   flex: 1;
   display: flex;
   flex-direction: column;
 }
-
 .form-group label {
-  font-size: 14px;
-  font-weight: 600;
   margin-bottom: 6px;
-  color: #334155;
-}
-
-.form-group input,
-.form-group select {
-  padding: 10px 14px;
-  font-size: 15px;
-  border: 2px solid #cbd5e1;
-  border-radius: 8px;
-  background-color: #f9fafb;
-  transition: border 0.2s ease;
-}
-
-.form-group input:focus,
-.form-group select:focus {
-  border-color: #3b82f6;
-  background-color: #eef6ff;
-  outline: none;
-}
-
-.total-sum {
-  font-size: 17px;
-  font-weight: bold;
-  color: #047857;
-  align-self: center;
-}
-
-.services-section {
-  margin-top: 30px;
-}
-
-.services-section h3 {
-  font-size: 18px;
   font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.services-section button {
-  background-color: transparent;
-  border: none;
-  font-size: 14px;
-  color: #3b82f6;
-  cursor: pointer;
-  font-weight: 500;
-  padding: 4px 8px;
-}
-
-.services-section div {
-  margin-top: 10px;
-}
-
-.services-section input[type="checkbox"] {
-  margin-right: 8px;
-}
-
-.section-box {
-  margin-top: 40px;
-  background: #f9fafb;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  padding: 20px;
-  transition: all 0.3s ease;
-}
-
-.section-header {
-  font-size: 18px;
-  font-weight: 700;
-  color: #0f172a;
-  display: flex;
-  justify-content: space-between;
-  cursor: pointer;
-  margin-bottom: 10px;
-  border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 8px;
-}
-
-.section-header span {
-  font-size: 24px;
-  color: #64748b;
-}
-
-.section-body {
-  padding-top: 10px;
-  color: #334155;
-  font-size: 16px;
-  line-height: 1.6;
-}
-
-.section-body ul {
-  list-style-type: "🔸 ";
-  padding-left: 24px;
-}
-
-.section-body li {
-  margin-bottom: 8px;
-}
-
-.submit-btn {
-  margin-top: 30px;
-  background-color: #10b981;
-  color: white;
-  padding: 12px 24px;
-  font-size: 16px;
-  font-weight: 600;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  display: block;
-  margin-left: auto;
-}
-
-.submit-btn:hover {
-  background-color: #059669;
-}
-
-@media (max-width: 768px) {
-  .date-row,
-  .room-booking-row {
-    flex-direction: column;
-  }
-
-  .form-group {
-    width: 100%;
-  }
-
-  .total-sum {
-    text-align: left;
-    margin-top: 10px;
-  }
-
-  .submit-btn {
-    width: 100%;
-    text-align: center;
-  }
 }
 </style>
