@@ -533,51 +533,52 @@ export default {
   data() {
     return {
       currentView: 'stat',
-      // Filtrlash uchun
-      startDate: '',
-      endDate: '',
+
+      kirimlar: [],
+      chiqimlar: [],
+      bemorlar: [],
+
+      // Modal holatlari
+      showModal: false,
+      showDetailsModal: false,
+      showPaymentModal: false,
+
+      // Filtirlar
       filterKimdan: '',
       filterKimga: '',
+      startDate: '',
+      endDate: '',
 
-      // Kirimlar
-      kirimlar: [
-        { id: 1, sana: '2025-07-04', soat: '09:30:00', kimdan: 'Homiylar jamg‘armasi', naqd: 100000, karta: 50000, click: 0, humo: 0, kassir: 'Ali', izoh: 'Loyiha uchun' },
-        { id: 2, sana: '2025-07-04', soat: '11:00:00', kimdan: 'Mahalla qo‘mitasi', naqd: 200000, karta: 0, click: 0, humo: 0, kassir: 'Ali', izoh: 'Qo‘shimcha mablag‘' },
-        { id: 2, sana: '2025-07-04', soat: '11:00:00', kimdan: 'Mahalla qo‘mitasi', naqd: 200000, karta: 0, click: 0, humo: 0, kassir: 'Ali', izoh: 'Qo‘shimcha mablag‘' },
-        { id: 2, sana: '2025-07-04', soat: '11:00:00', kimdan: 'Mahalla qo‘mitasi', naqd: 200000, karta: 0, click: 0, humo: 0, kassir: 'Ali', izoh: 'Qo‘shimcha mablag‘' },
-        { id: 2, sana: '2025-07-04', soat: '11:00:00', kimdan: 'Mahalla qo‘mitasi', naqd: 200000, karta: 0, click: 0, humo: 0, kassir: 'Ali', izoh: 'Qo‘shimcha mablag‘' },
-        { id: 2, sana: '2025-07-04', soat: '11:00:00', kimdan: 'Mahalla qo‘mitasi', naqd: 200000, karta: 0, click: 0, humo: 0, kassir: 'Ali', izoh: 'Qo‘shimcha mablag‘' }
-      ],
+      // Kimdan ro‘yxati
       optionsKimdan: ['Homiylar jamg‘armasi', 'Mahalla qo‘mitasi', 'Shaxsiy donor'],
-      toggleKimdanList: false,
       newKimdan: '',
+      toggleKimdanList: false,
 
-      // Chiqimlar
-      chiqimlar: [
-        { id: 1, sana: '2025-07-04', vaqt: '10:00:00', qayerga: 'Rustam aka', naqd: 50000, karta: 0, click: 0, humo: 0, kassir: 'Ali', izoh: 'Xarajat' }, { id: 1, sana: '2025-07-04', vaqt: '10:00:00', qayerga: 'Rustam aka', naqd: 50000, karta: 0, click: 0, humo: 0, kassir: 'Ali', izoh: 'Xarajat' }, { id: 1, sana: '2025-07-04', vaqt: '10:00:00', qayerga: 'Rustam aka', naqd: 50000, karta: 0, click: 0, humo: 0, kassir: 'Ali', izoh: 'Xarajat' }, { id: 1, sana: '2025-07-04', vaqt: '10:00:00', qayerga: 'Rustam aka', naqd: 50000, karta: 0, click: 0, humo: 0, kassir: 'Ali', izoh: 'Xarajat' }
-      ],
+      // Formlar
+      form: {
+        sana: '',
+        soat: '',
+        kimdan: '',
+        naqd: 0,
+        karta: 0,
+        click: 0,
+        humo: 0,
+        izoh: ''
+      },
 
-      // Bemorlar
-      bemorlar: [
-        { id: 1, sana: '2025-07-03', vaqt: '14:00:00', ismFam: 'Jamshid Islomov', tel: '+998901234567', qayerdan: 'Toshkent', naqd: 100000, karta: 20000, click: 0, humo: 0, kassir: 'Ali', qarz: 50000 },
-        { id: 2, sana: '2025-07-02', vaqt: '09:30:00', ismFam: 'Nigora Rahimova', tel: '+998901112233', qayerdan: 'Samarqand', naqd: 300000, karta: 0, click: 0, humo: 0, kassir: 'Ali', qarz: 0 },
-        { id: 2, sana: '2025-07-02', vaqt: '09:30:00', ismFam: 'Nigora Rahimova', tel: '+998901112233', qayerdan: 'Samarqand', naqd: 300000, karta: 0, click: 0, humo: 0, kassir: 'Ali', qarz: 0 },
-        { id: 2, sana: '2025-07-02', vaqt: '09:30:00', ismFam: 'Nigora Rahimova', tel: '+998901112233', qayerdan: 'Samarqand', naqd: 300000, karta: 0, click: 0, humo: 0, kassir: 'Ali', qarz: 0 },
-        { id: 2, sana: '2025-07-02', vaqt: '09:30:00', ismFam: 'Nigora Rahimova', tel: '+998901112233', qayerdan: 'Samarqand', naqd: 300000, karta: 0, click: 0, humo: 0, kassir: 'Ali', qarz: 0 }
-      ],
+      paymentForm: {
+        tur: 'kirim',
+        naqd: 0,
+        karta: 0,
+        click: 0,
+        humo: 0
+      },
 
-      // Modal va form boshqaruvi
-      showKirimModal: false,
-      showChiqimModal: false,
-      form: { sana: '', soat: '', kimdan: '', naqd: 0, karta: 0, click: 0, humo: 0, izoh: '' },
-      currentKassir: 'Ali',
-
-      // Bemor to'lov modal
-      showPaymentModal: false,
       selectedBemor: null,
-      paymentForm: { tur: 'kirim', naqd: 0, karta: 0, click: 0, humo: 0 }
+      currentKassir: 'Ali'
     };
   },
+
   computed: {
     todayDate() {
       return new Date().toISOString().slice(0, 10);
@@ -585,7 +586,8 @@ export default {
     todayTime() {
       return new Date().toTimeString().slice(0, 8);
     },
-    // Kirimlarni filterlash
+
+    // Kirimlar
     filteredKirimlar() {
       return this.kirimlar.filter(item => {
         const s = this.startDate ? item.sana >= this.startDate : true;
@@ -597,10 +599,10 @@ export default {
     summary() {
       const arr = this.filteredKirimlar;
       const count = arr.length;
-      const total = arr.reduce((sum, i) => sum + (i.naqd||0) + (i.karta||0) + (i.click||0) + (i.humo||0), 0);
+      const total = arr.reduce((sum, i) => sum + (i.naqd || 0) + (i.karta || 0) + (i.click || 0) + (i.humo || 0), 0);
       return { count, total };
     },
-    // Chiqimlarni filterlash
+
     filteredChiqimlar() {
       return this.chiqimlar.filter(item => {
         const s = this.startDate ? item.sana >= this.startDate : true;
@@ -610,48 +612,82 @@ export default {
       });
     },
     summaryData() {
-      if (!this.filterKimga) return [];
       const map = {};
       this.filteredChiqimlar.forEach(i => {
         if (!map[i.qayerga]) map[i.qayerga] = { kimdan: i.qayerga, count: 0, total: 0 };
         map[i.qayerga].count++;
-        map[i.qayerga].total += (i.naqd||0) + (i.karta||0) + (i.click||0) + (i.humo||0);
+        map[i.qayerga].total += (i.naqd || 0) + (i.karta || 0) + (i.click || 0) + (i.humo || 0);
       });
       return Object.values(map);
     },
-    // Bemorlar
-    qarzdorlar() { return this.bemorlar.filter(b => b.qarz > 0); },
-    qarzsizlar() { return this.bemorlar.filter(b => b.qarz === 0); },
-    // Statistika
-    todayKirim() { return this.kirimlar.filter(k => k.sana === this.todayDate).reduce((s,k)=>s+(k.naqd||0)+(k.karta||0)+(k.click||0),0); },
-    todayNaqdKirim() { return this.kirimlar.filter(k => k.sana === this.todayDate).reduce((s,k)=>s+(k.naqd||0),0); },
-    todayKartaKirim() { return this.kirimlar.filter(k => k.sana === this.todayDate).reduce((s,k)=>s+(k.karta||0),0); },
-    todayClickKirim() { return this.kirimlar.filter(k => k.sana === this.todayDate).reduce((s,k)=>s+(k.click||0),0); },
-    todayChiqim() { return this.chiqimlar.filter(c => c.sana === this.todayDate).reduce((s,c)=>s+(c.naqd||0)+(c.karta||0)+(c.click||0),0); },
-    todayNaqdChiqim() { return this.chiqimlar.filter(c => c.sana === this.todayDate).reduce((s,c)=>s+(c.naqd||0),0); },
-    todayKartaChiqim() { return this.chiqimlar.filter(c => c.sana === this.todayDate).reduce((s,c)=>s+(c.karta||0),0); },
-    todayClickChiqim() { return this.chiqimlar.filter(c => c.sana === this.todayDate).reduce((s,c)=>s+(c.click||0),0); },
-    totalQarz() { return this.bemorlar.reduce((s,b)=>s+(b.qarz||0),0); },
-    qarzQoshildi() { return this.kirimlar.filter(k => k.sana === this.todayDate).reduce((s,k)=>s+(k.naqd||0),0); },
-    tolandiSumma() { return this.chiqimlar.filter(c => c.sana === this.todayDate).reduce((s,c)=>s+(c.naqd||0),0); }
+
+    qarzdorlar() {
+      return this.bemorlar.filter(b => b.qarz > 0);
+    },
+    qarzsizlar() {
+      return this.bemorlar.filter(b => b.qarz === 0);
+    },
+
+    todayKirim() {
+      return this.kirimlar.filter(k => k.sana === this.todayDate).reduce((s, k) => s + (k.naqd || 0) + (k.karta || 0) + (k.click || 0), 0);
+    },
+    todayNaqdKirim() {
+      return this.kirimlar.filter(k => k.sana === this.todayDate).reduce((s, k) => s + (k.naqd || 0), 0);
+    },
+    todayKartaKirim() {
+      return this.kirimlar.filter(k => k.sana === this.todayDate).reduce((s, k) => s + (k.karta || 0), 0);
+    },
+    todayClickKirim() {
+      return this.kirimlar.filter(k => k.sana === this.todayDate).reduce((s, k) => s + (k.click || 0), 0);
+    },
+
+    todayChiqim() {
+      return this.chiqimlar.filter(c => c.sana === this.todayDate).reduce((s, c) => s + (c.naqd || 0) + (c.karta || 0) + (c.click || 0), 0);
+    },
+    todayNaqdChiqim() {
+      return this.chiqimlar.filter(c => c.sana === this.todayDate).reduce((s, c) => s + (c.naqd || 0), 0);
+    },
+    todayKartaChiqim() {
+      return this.chiqimlar.filter(c => c.sana === this.todayDate).reduce((s, c) => s + (c.karta || 0), 0);
+    },
+    todayClickChiqim() {
+      return this.chiqimlar.filter(c => c.sana === this.todayDate).reduce((s, c) => s + (c.click || 0), 0);
+    },
+
+    totalQarz() {
+      return this.bemorlar.reduce((s, b) => s + (b.qarz || 0), 0);
+    },
+    qarzQoshildi() {
+      return this.kirimlar.filter(k => k.sana === this.todayDate).reduce((s, k) => s + (k.naqd || 0), 0);
+    },
+    tolandiSumma() {
+      return this.chiqimlar.filter(c => c.sana === this.todayDate).reduce((s, c) => s + (c.naqd || 0), 0);
+    }
   },
+
   methods: {
     showStat() { this.currentView = 'stat'; },
     showKirim() { this.currentView = 'kirim'; },
     showChiqim() { this.currentView = 'chiqim'; },
     showBemorlar() { this.currentView = 'bemorlar'; },
+
     openAddModal() {
-      if (this.currentView === 'kirim') this.showKirimModal = true;
-      else if (this.currentView === 'chiqim') this.showChiqimModal = true;
-      this.form.sana = this.todayDate;
-      this.form.soat = this.todayTime;
-      this.form.kimdan = '';
-      this.form.naqd = this.form.karta = this.form.click = this.form.humo = 0;
-      this.form.izoh = '';
+      this.form = {
+        sana: this.todayDate,
+        soat: this.todayTime,
+        kimdan: '',
+        naqd: 0,
+        karta: 0,
+        click: 0,
+        humo: 0,
+        izoh: ''
+      };
+      this.showModal = true;
     },
     closeModal() {
-      this.showKirimModal = this.showChiqimModal = false;
+      this.showModal = false;
     },
+
     addKimdan() {
       const v = this.newKimdan.trim();
       if (v && !this.optionsKimdan.includes(v)) {
@@ -659,20 +695,12 @@ export default {
         this.newKimdan = '';
       }
     },
-    removeKimdan(i) { this.optionsKimdan.splice(i,1); },
+    removeKimdan(i) {
+      this.optionsKimdan.splice(i, 1);
+    },
+
     saveKirim() {
-      this.kirimlar.push({
-        id: Date.now(),
-        sana: this.form.sana,
-        soat: this.form.soat,
-        kimdan: this.form.kimdan,
-        naqd: this.form.naqd,
-        karta: this.form.karta,
-        click: this.form.click,
-        humo: this.form.humo,
-        kassir: this.currentKassir,
-        izoh: this.form.izoh
-      });
+      this.kirimlar.push({ id: Date.now(), ...this.form, kassir: this.currentKassir });
       this.closeModal();
     },
     saveChiqim() {
@@ -690,8 +718,22 @@ export default {
       });
       this.closeModal();
     },
-    openPaymentModal(b) { this.selectedBemor = b; this.showPaymentModal = true; },
-    closePaymentModal() { this.showPaymentModal = false; this.paymentForm = { tur: 'kirim', naqd:0, karta:0, click:0, humo:0}; }
+
+    openPaymentModal(bemor) {
+      this.selectedBemor = bemor;
+      this.showPaymentModal = true;
+    },
+    closePaymentModal() {
+      this.showPaymentModal = false;
+      this.paymentForm = { tur: 'kirim', naqd: 0, karta: 0, click: 0, humo: 0 };
+    },
+    openTolovModal(bemor) {
+      this.openPaymentModal(bemor);
+    },
+    savePayment() {
+      // TODO: Add logic to update bemor's qarz, log the payment, etc.
+      this.closePaymentModal();
+    }
   }
 };
 </script>
@@ -699,236 +741,285 @@ export default {
 
 
 
+
 <style scoped>
 /* Asosiy konteyner */
+/* Umumiy konteyner */
 .section {
-  max-width: 1200px;
   margin: 20px 20px 20px 290px;
+  max-width: 1200px;
   padding: 20px;
-  background: #f9f9ff;
-  border-radius: 15px;
-  box-shadow: 0 0 15px rgba(0,0,0,0.05);
-  font-family: "Segoe UI", sans-serif;
+  background: #fefefe;
+  min-height: 100vh;
+  font-family: 'Segoe UI', sans-serif;
+  color: #333;
 }
-
-/* Navigatsiya tugmalari */
 .top-navigation {
   display: flex;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-bottom: 20px;
-}
-.top-navigation button {
-  padding: 10px 16px;
-  background-color: #e0e0f0;
-  border: none;
+  padding: 10px 15px;
+  background-color: #f0f6fc;
   border-radius: 10px;
-  cursor: pointer;
-  transition: 0.3s;
-}
-.top-navigation button.active,
-.top-navigation button:hover {
-  background-color: #3c5eff;
-  color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  justify-content: flex-start;
 }
 
-/* Header */
+.top-navigation button {
+  background-color: #ffffff;
+  color: #1A6291;
+  border: 2px solid #1A6291;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease-in-out;
+  font-size: 0.95rem;
+}
+
+.top-navigation button:hover {
+  background-color: #e6f0fa;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(26, 98, 145, 0.15);
+}
+
+.top-navigation button.active {
+  background-color: #1A6291;
+  color: white;
+  border-color: #1A6291;
+  box-shadow: 0 3px 10px rgba(26, 98, 145, 0.2);
+  transform: scale(1.03);
+}
 .header {
   display: flex;
-  justify-content: space-between;
   flex-wrap: wrap;
   align-items: center;
+  gap: 12px;
   margin-bottom: 20px;
-  gap: 15px;
+  color: #1A6291;
 }
+
 .header h3 {
-  margin: 0;
+  flex: 1 1 100%;
+  font-size: 1.6rem;
+  font-weight: bold;
+  margin-bottom: 10px;
 }
 
 /* Jadval */
-.kirim-table, .bemor-table, .summary-table {
+.bemor-table, .kirim-table, .summary-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 10px;
+  margin-bottom: 30px;
+  font-size: 0.95rem;
 }
-.kirim-table th, .kirim-table td,
+
+.bemor-table thead, .kirim-table thead, .summary-table th {
+  background-color: #1A6291;
+  color: white;
+}
+
 .bemor-table th, .bemor-table td,
-.summary-table th, .summary-table td {
-  border: 1px solid #ddd;
-  padding: 10px;
+.kirim-table th, .kirim-table td,
+.summary-table td {
+  border: 1px solid #ccc;
+  padding: 8px 10px;
   text-align: center;
 }
-.kirim-table th, .bemor-table th {
-  background-color: #f0f4ff;
-}
-.kirim-table tbody tr:hover,
-.bemor-table tbody tr:hover {
-  background-color: #f9fbff;
+
+.bemor-table tbody tr:nth-child(even),
+.kirim-table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
 }
 
-/* Filterlar */
-.date-range, .filter-by-person {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.date-range input,
-.filter-by-person input {
-  padding: 5px 10px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
+.bemor-table tbody tr:hover,
+.kirim-table tbody tr:hover {
+  background-color: #e6f0fa;
 }
 
-/* Qo‘shish tugmasi */
-.add-btn {
-  padding: 8px 14px;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: 0.2s;
-}
-.add-btn:hover {
-  background-color: #45a049;
+.bemor-table td span {
+  font-weight: bold;
+  font-size: 0.9rem;
 }
 
-/* Modal */
+.qarzdor-row {
+  background-color: #fff7f7;
+}
+
+.qarzdor-row:hover {
+  background-color: #ffeaea;
+}
+
+/* Modal overlay */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.4);
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(26, 98, 145, 0.35);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 999;
+  padding: 15px;
+  z-index: 1000;
+  overflow-y: auto;
 }
+
+/* Modal umumiy */
 .modal1 {
   background: white;
   padding: 25px 30px;
-  border-radius: 15px;
-  width: 100%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+  border-radius: 12px;
+  width: 700px;
+  max-width: 100%;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  color: #1A6291;
+  font-family: 'Segoe UI', sans-serif;
 }
+
 .modal1 h3 {
-  margin-top: 0;
-  color: #333;
+  font-size: 1.8rem;
+  margin-bottom: 15px;
+  border-bottom: 2px solid #1A6291;
+  padding-bottom: 8px;
 }
-.modal1 .form-group,
-.modal1 label,
-.modal1 input,
-.modal1 textarea,
-.modal1 select {
-  width: 100%;
-  margin-bottom: 10px;
+
+/* Formlar */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 14px;
+  flex: 1 1 200px;
+  font-weight: 600;
+  color: #1A6291;
 }
-.modal1 input,
-.modal1 textarea,
-.modal1 select {
-  padding: 8px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
+
+.form-group label {
+  margin-bottom: 6px;
 }
+
+.form-group input,
+.form-group select,
 .modal1 textarea {
-  resize: vertical;
-}
-.modal-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 15px;
+  padding: 8px 12px;
+  font-size: 1rem;
+  border: 2px solid #1A6291;
+  border-radius: 8px;
+  background-color: #f9fbff;
+  transition: border-color 0.3s ease;
 }
 
-/* Saqlash va bekor tugmalari */
+.form-group input[readonly],
+.modal1 input[readonly] {
+  background-color: #e6f0fa;
+  cursor: default;
+}
+
+/* Tugmalar */
+.save-btn, .add-btn, .cancel-btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
 .save-btn {
-  background-color: #3c5eff;
+  background-color: #1A6291;
   color: white;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 8px;
-  cursor: pointer;
 }
+
 .save-btn:hover {
-  background-color: #2c3ed9;
+  background-color: #14507a;
+  transform: scale(1.05);
 }
-.cancel-btn {
-  background-color: #f44336;
+
+.add-btn {
+  background-color: #28a745;
   color: white;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 8px;
-  cursor: pointer;
 }
+
+.add-btn:hover {
+  background-color: #218838;
+  transform: scale(1.05);
+}
+
+.cancel-btn {
+  background-color: #d9534f;
+  color: white;
+}
+
 .cancel-btn:hover {
-  background-color: #d9322c;
+  background-color: #b52b27;
+  transform: scale(1.05);
 }
 
-/* Qarzga qizil rang */
-.qarzdor-row td:nth-child(5) {
-  font-weight: bold;
-}
-.qarzdor-row:hover {
-  background-color: #fff0f0;
+.row-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 16px;
 }
 
-/* Select va option list */
-.select-group-vertical {
+/* Payment grid 2 ustun */
+.payment-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px 20px;
   margin-bottom: 10px;
 }
-.select-group {
-  display: flex;
-  gap: 5px;
-}
-.option-list ul {
-  padding: 0;
-  margin: 5px 0;
-  list-style: none;
-}
-.option-list li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #f3f3f3;
-  padding: 6px 10px;
-  border-radius: 5px;
-  margin-bottom: 5px;
-}
-.remove-btn {
-  background: #ff6b6b;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  padding: 4px 6px;
-  cursor: pointer;
+
+/* Summary block */
+.summary-block {
+  margin-top: 20px;
+  background-color: #d8e6f6;
+  border-left: 5px solid #1A6291;
+  padding: 15px 20px;
+  border-radius: 6px;
+  color: #0f3f66;
 }
 
-/* Responsiv dizayn */
+.summary-block h4 {
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+/* Responsiv */
 @media (max-width: 768px) {
-  .header,
-  .date-range,
-  .filter-by-person {
+  .modal1, .form-group, .add-btn {
+    width: 100%;
+  }
+
+  .row-group {
     flex-direction: column;
-    align-items: flex-start;
   }
 
-  .modal1 {
-    padding: 20px;
+  .payment-grid {
+    grid-template-columns: 1fr !important;
   }
 
-  .top-navigation {
-    flex-direction: column;
-    gap: 8px;
+  .kirim-table thead {
+    display: none;
   }
 
-  .kirim-table th,
-  .kirim-table td {
-    font-size: 14px;
-    padding: 8px;
+  .kirim-table, .kirim-table tbody, .kirim-table tr, .kirim-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .kirim-table td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 12px;
+    top: 8px;
+    font-weight: 600;
+    color: #1A6291;
+    font-size: 13px;
+  }
+
+  .kirim-table td:not(:last-child) {
+    border-bottom: 1px solid #eee;
   }
 }
+
 </style>
