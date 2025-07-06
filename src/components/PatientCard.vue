@@ -130,32 +130,49 @@ export default {
   data() {
     return {
       loading: true,
-      patient: null,
-      activeTab: 'xizmatlar',
+      error: null,
 
+      patient: null,
+      stays: [],
       xizmatlar: [],
       kasalliklar: [],
       natijalar: [],
+      allServices: [],
+      availableRooms: [],
+
+      activeTab: 'xizmatlar',
+      role: localStorage.getItem('role') || 'mini',
 
       showServiceModal: false,
+      newService: {
+        nomi: '',
+        narxi: 0,
+        tolangan: false
+      },
+
       showReRegister: false,
-
-      newService: { nomi: '', narxi: null, tolangan: false, sana: new Date().toISOString().split('T')[0] },
-
       reRegisterData: {
         kirish_sanasi: '',
         chiqish_sanasi: '',
         xona_id: '',
         xizmatlar: []
-      },
-
-      availableRooms: [],
-      allServices: [],
-
-      role: localStorage.getItem('role') || 'mini', // ROLE ni localStorage dan olamiz, default 'mini'
+      }
     };
   },
+
   computed: {
+    latestStay() {
+      if (!this.stays.length) return null;
+      return this.stays.reduce((a, b) =>
+        new Date(a.kirish_sanasi) > new Date(b.kirish_sanasi) ? a : b
+      );
+    },
+    kelganVaqti() {
+      return this.latestStay?.kirish_sanasi || this.patient?.kelgan_vaqti || '';
+    },
+    ketganVaqti() {
+      return this.latestStay?.chiqish_sanasi || this.patient?.ketgan_vaqti || '';
+    },
     filteredData() {
       if (this.activeTab === 'xizmatlar') return this.xizmatlar;
       if (this.activeTab === 'kasalliklar') return this.kasalliklar;
@@ -172,117 +189,133 @@ export default {
       return this.total - this.totalPaid;
     },
     canReRegister() {
-      if (!this.patient?.ketgan_vaqti) return false;
-      return new Date(this.patient.ketgan_vaqti) < new Date();
+      return !!this.latestStay?.chiqish_sanasi;
     }
   },
+
   methods: {
     async fetchPatient() {
+      this.loading = true;
+      const id = this.$route.params.id;
+
       try {
-        const id = this.$route.params.id;
         const res = await api.get(`/public/api/v1/clients/${id}`);
         this.patient = res.data;
+        this.kasalliklar = this.patient.kasalliklar || [];
+        this.natijalar = this.patient.natijalar || [];
 
-        this.xizmatlar = res.data.xizmatlar || [];
-        this.kasalliklar = res.data.kasalliklar || [];
-        this.natijalar = res.data.natijalar || [];
+        const resStays = await api.get(`/public/api/v1/davolanish?client_id=${id}`);
+        this.stays = resStays.data || [];
 
-        this.availableRooms = await this.fetchRooms();
-        this.allServices = await this.fetchAllServices();
+        const resRooms = await api.get('/public/api/v1/room');
+        this.availableRooms = resRooms.data || [];
+
+        const resServices = await api.get('/public/api/v1/services');
+        this.allServices = resServices.data || [];
+
+        if (this.latestStay) {
+          const resX = await api.get(`/public/api/v1/client_services?davolanish_id=${this.latestStay.id}`);
+          this.xizmatlar = resX.data.map(x => ({
+            id: x.id,
+            nomi: this.getServiceNameById(x.service_id) || x.nomi,
+            narxi: x.price,
+            sana: x.start_date,
+            tolangan: !!x.tolangan
+          }));
+        }
       } catch (err) {
-        console.error("API xatosi:", err);
+        console.error('Maʼlumotlarni olishda xatolik:', err);
+        this.error = 'Xatolik yuz berdi.';
       } finally {
         this.loading = false;
       }
     },
 
-    async fetchRooms() {
-      try {
-        const res = await api.get('/public/api/v1/rooms');
-        return res.data || [];
-      } catch (err) {
-        console.error("Xonalar ro'yxatini olishda xato:", err);
-        return [];
-      }
+    formatDate(d) {
+      if (!d) return '-';
+      return new Date(d).toLocaleDateString('uz-UZ');
     },
 
-    async fetchAllServices() {
-      try {
-        const res = await api.get('/public/api/v1/services');
-        return res.data || [];
-      } catch (err) {
-        console.error("Xizmatlar ro'yxatini olishda xato:", err);
-        return [];
-      }
+    formatPrice(p) {
+      return p ? `${p.toLocaleString()} soʻm` : '0 soʻm';
     },
 
-    hisoblaYosh(tugulgan) {
-      if (!tugulgan) return '';
-      const tugilganSana = new Date(tugulgan);
-      const hozir = new Date();
-      let yosh = hozir.getFullYear() - tugilganSana.getFullYear();
-      // agar tug'ilgan kun hali kelmagan bo'lsa yoshni 1 ga kamaytiramiz
-      const monthDiff = hozir.getMonth() - tugilganSana.getMonth();
-      const dayDiff = hozir.getDate() - tugilganSana.getDate();
-      if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) yosh--;
+    hisoblaYosh(tugulgan_sana) {
+      if (!tugulgan_sana) return '';
+      const today = new Date();
+      const birthDate = new Date(tugulgan_sana);
+      let yosh = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        yosh--;
+      }
       return yosh;
     },
 
-    formatDate(dateStr) {
-      if (!dateStr) return 'Nomaʼmalum';
-      return new Date(dateStr).toLocaleDateString();
+    getServiceNameById(id) {
+      return this.allServices.find(s => s.id === id)?.nomi || "Nomaʼlum xizmat";
     },
 
-    formatPrice(val) {
-      return val ? `${val.toLocaleString()} so'm` : '-';
-    },
-
-    addService() {
-      if (!this.newService.nomi || this.newService.narxi === null) {
-        alert('Iltimos, xizmat nomi va narxini kiriting.');
-        return;
-      }
-      this.xizmatlar.push({ ...this.newService });
-      this.showServiceModal = false;
-      this.newService = { nomi: '', narxi: null, tolangan: false, sana: new Date().toISOString().split('T')[0] };
-    },
-
-    async submitReRegister() {
-      // Validation
-      if (!this.reRegisterData.kirish_sanasi || !this.reRegisterData.chiqish_sanasi || !this.reRegisterData.xona_id) {
-        alert('Iltimos, barcha maydonlarni toʻldiring.');
-        return;
-      }
-
-      if (new Date(this.reRegisterData.kirish_sanasi) >= new Date(this.reRegisterData.chiqish_sanasi)) {
-        alert('Chiqish sanasi kirish sanasidan keyin bo‘lishi kerak.');
+    async addService() {
+      if (!this.latestStay) {
+        alert('Davolanish topilmadi.');
         return;
       }
 
       try {
-        const payload = {
+        await api.post('/public/api/v1/client_services', {
+          client_id: this.patient.id,
+          davolanish_id: this.latestStay.id,
+          service_id: null,
+          nomi: this.newService.nomi,
+          price: this.newService.narxi,
+          tolangan: this.newService.tolangan ? 1 : 0
+        });
+
+        this.newService = { nomi: '', narxi: 0, tolangan: false };
+        this.showServiceModal = false;
+        await this.fetchPatient();
+      } catch (err) {
+        console.error('Xizmat qo‘shishda xatolik:', err);
+        alert('Xizmat qo‘shishda xatolik yuz berdi.');
+      }
+    },
+
+    async submitReRegister() {
+      try {
+        const res = await api.post('/public/api/v1/davolanish', {
+          client_id: this.patient.id,
           kirish_sanasi: this.reRegisterData.kirish_sanasi,
           chiqish_sanasi: this.reRegisterData.chiqish_sanasi,
-          xona_id: this.reRegisterData.xona_id,
-          xizmatlar: this.reRegisterData.xizmatlar // id lar array
+          xona_id: this.reRegisterData.xona_id
+        });
+
+        const newStayId = res.data.id;
+
+        for (const serviceId of this.reRegisterData.xizmatlar) {
+          await api.post('/public/api/v1/client_services', {
+            client_id: this.patient.id,
+            davolanish_id: newStayId,
+            service_id: serviceId
+          });
+        }
+
+        this.showReRegister = false;
+        this.reRegisterData = {
+          kirish_sanasi: '',
+          chiqish_sanasi: '',
+          xona_id: '',
+          xizmatlar: []
         };
 
-        await api.post(`/public/api/v1/clients/${this.patient.id}/stays`, payload);
-
-        alert('Qayta yotish muvaffaqiyatli saqlandi!');
-        this.showReRegister = false;
-
-        // Yangi ma'lumotlarni yangilash
         await this.fetchPatient();
-
-        // Formani tozalash
-        this.reRegisterData = { kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [] };
       } catch (err) {
-        console.error('Qayta yotish xatosi:', err);
-        alert('Xatolik yuz berdi. Iltimos, qaytadan urinib ko‘ring.');
+        console.error('Yana yotishda xatolik:', err);
+        alert('Yana yotish muvaffaqiyatsiz tugadi.');
       }
     }
   },
+
   mounted() {
     this.fetchPatient();
   }
