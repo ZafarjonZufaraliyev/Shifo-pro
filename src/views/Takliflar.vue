@@ -3,17 +3,8 @@
     <h2 class="title">Takliflar sahifasi</h2>
 
     <!-- Foydalanuvchi haqida ma'lumot -->
-    <div class="user-info" v-if="userName">
-      <p><strong>F.I.Sh:</strong> {{ fullName }}</p>
-      <p><strong>Yoshi:</strong> {{ age }}</p>
-      <p><strong>Jinsi:</strong> {{ gender || "Ko'rsatilmagan" }}</p>
-      <p><strong>Ro'yxatdan o'tgan foydalanuvchi:</strong> {{ userName }}</p>
-    </div>
-    <div class="user-info" v-else>
-      <p><strong>F.I.Sh:</strong> {{ fullName || "Ma'lumot yo'q" }}</p>
-      <p><strong>Yoshi:</strong> {{ age || "Ma'lumot yo'q" }}</p>
-      <p><strong>Jinsi:</strong> {{ gender || "Ko'rsatilmagan" }}</p>
-      <p class="warning">Foydalanuvchi ro'yxatdan o'tmagan</p>
+    <div v-if="client" class="user-info">
+      <p><strong>F.I.Sh:</strong> {{ client.familiya }} {{ client.ism }}</p>
     </div>
 
     <!-- Filtrlar -->
@@ -24,8 +15,8 @@
       <button class="clear-filter-btn" @click="clearFilters">Filtrlarni tozalash</button>
     </div>
 
-    <!-- Xonalar jadvali -->
-    <div v-if="!selectedRoom" class="room-list">
+    <!-- Xonalar ro'yxati -->
+    <div v-if="!selectedRoom">
       <h3>Mavjud xonalar:</h3>
       <table class="rooms-table">
         <thead>
@@ -41,8 +32,8 @@
             v-for="room in filteredRooms"
             :key="room.id"
             :class="['room-row', { busy: room.busy }]"
-            :title="room.busy ? 'Bu xona band' : 'Tanlash uchun bosing'"
             @click="!room.busy && selectRoom(room)"
+            :title="room.busy ? 'Bu xona band' : 'Tanlash uchun bosing'"
           >
             <td>{{ room.room_type }}</td>
             <td>{{ room.xona }}</td>
@@ -56,242 +47,216 @@
       </table>
     </div>
 
-    <!-- Majburiy xizmatlar -->
-    <div v-if="mandatoryServices.length && selectedRoom" class="services-section">
-      <h3>Majburiy xizmatlar</h3>
-      <div v-for="(service, i) in mandatoryServices" :key="'mandatory-' + i" class="service-item">
-        <input type="checkbox" v-model="service.selected" disabled />
-        {{ service.name }} — {{ service.price.toLocaleString('ru-RU') }} so'm
-      </div>
-    </div>
+    <!-- Xizmatlar va tanlangan xona -->
+    <div v-if="selectedRoom">
+      <div class="selected-room">
+        <h3>Tanlangan xona</h3>
+        <p>{{ selectedRoom.display }}</p>
+        <p>
+          Narxi:
+          <input
+            type="number"
+            v-model.number="selectedRoom.price"
+            style="width: 120px; padding: 6px 10px; border-radius: 6px"
+          />
+          so'm
+        </p>
 
-    <!-- Qo‘shimcha xizmatlar -->
-    <div v-if="selectedRoom" class="services-section">
-      <h3>Qo‘shimcha xizmatlar</h3>
-      <div v-for="(service, i) in additionalServices" :key="'additional-' + i" class="service-item">
-        <input type="checkbox" v-model="service.selected" />
-        {{ service.name }} — {{ service.price.toLocaleString('ru-RU') }} so'm
-      </div>
-    </div>
-
-    <!-- Tanlangan xona tafsilotlari -->
-    <div v-if="selectedRoom" class="selected-room">
-      <h3>Tanlangan xona</h3>
-      <p>{{ selectedRoom.display }}</p>
-      <p>Narxi: {{ selectedRoom.price.toLocaleString('ru-RU') }} so'm</p>
-
-      <!-- Kelish sanasi va ketish sanasi -->
-      <div class="date-row">
-        <div class="form-group">
-          <label>Kelgan sana</label>
-          <input type="date" :min="today" v-model="arrivalDate" @change="calculateLeaveDate" />
+        <div class="date-row">
+          <div class="form-group">
+            <label>Kelgan sana</label>
+            <input type="date" :min="today" v-model="arrivalDate" />
+          </div>
+          <div class="form-group">
+            <label>Necha kun?</label>
+            <input type="number" v-model.number="stayDays" min="1" />
+          </div>
+          <div class="form-group">
+            <label>Ketgan sana</label>
+            <input type="date" :value="leaveDate" readonly />
+          </div>
         </div>
-        <div class="form-group">
-          <label>Necha kun?</label>
-          <input type="number" v-model.number="stayDays" min="1" @input="calculateLeaveDate" />
-        </div>
-        <div class="form-group">
-          <label>Ketgan sana</label>
-          <input type="date" :value="leaveDate" readonly />
-        </div>
-      </div>
 
-      <!-- Jami summa -->
-      <div class="total-sum">
-        Jami summa: <strong>{{ totalSum.toLocaleString('ru-RU') }} so'm</strong>
-      </div>
+        <!-- Xizmatlar -->
+        <div class="services-section">
+          <h3>Majburiy xizmatlar</h3>
+          <div v-for="(service, i) in mandatoryServices" :key="'mand-' + i" class="service-item">
+            <input type="checkbox" v-model="service.selected" disabled />
+            {{ service.name }} — <input type="number" v-model.number="service.price" style="width: 100px" /> so'm
+          </div>
 
-      <!-- Tugmalar -->
-      <button class="submit-btn" @click="submitBooking">📥 Bron qilish</button>
-      <button class="cancel-btn" @click="cancelSelection">❌ Bekor qilish</button>
+          <h3>Qo‘shimcha xizmatlar</h3>
+          <div v-for="(service, i) in additionalServices" :key="'add-' + i" class="service-item">
+            <input type="checkbox" v-model="service.selected" />
+            {{ service.name }} — <input type="number" v-model.number="service.price" style="width: 100px" /> so'm
+          </div>
+        </div>
+
+        <!-- Jami va tugma -->
+        <div class="total-sum">
+          Jami summa: <strong>{{ totalSum.toLocaleString('ru-RU') }} so'm</strong>
+        </div>
+
+        <button class="submit-btn" @click="submitDavolanish">📥 Bron qilish</button>
+        <button class="cancel-btn" @click="cancelSelection">❌ Bekor qilish</button>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-import api from "@/api";
-
-const STORAGE_KEY = "ro_yxat_form";
+import api from '@/api';
 
 export default {
-  name: "Takliflar",
+  name: 'TaklifPage',
+
+  props: ['clientId'], // Props orqali clientId olinyapti
+
   data() {
-    const today = new Date().toISOString().slice(0, 10);
     return {
-      today,
-      fullName: "",
-      birthYear: null,
-      age: null,
-      gender: "",
-      userName: "",
+      client: null,
       selectedRoom: null,
-      rooms: [], // ← DIQQAT: bu nom `filteredRooms` bilan mos
-      roomFilterName: "",
-      roomFilterNumber: "",
-      roomFilterSigim: null,
-      arrivalDate: today,
-      stayDays: 7,
-      leaveDate: "",
+      rooms: [],
       mandatoryServices: [],
       additionalServices: [],
+      arrivalDate: new Date().toISOString().slice(0, 10),
+      stayDays: 7,
+      roomFilterNumber: '',
+      roomFilterName: '',
+      roomFilterSigim: null,
     };
   },
+
   computed: {
+    today() {
+      return new Date().toISOString().slice(0, 10);
+    },
+
+    leaveDate() {
+      const date = new Date(this.arrivalDate);
+      date.setDate(date.getDate() + this.stayDays);
+      return date.toISOString().slice(0, 10);
+    },
+
     filteredRooms() {
-      return this.rooms.filter((r) => {
-        const byName = this.roomFilterName
-          ? r.room_type.toLowerCase().includes(this.roomFilterName.toLowerCase())
-          : true;
-        const byNumber = this.roomFilterNumber
-          ? r.xona.toLowerCase().includes(this.roomFilterNumber.toLowerCase())
-          : true;
-        const bySigim = this.roomFilterSigim
-          ? String(r.sigim) === String(this.roomFilterSigim)
-          : true;
-        return byName && byNumber && bySigim;
+      return this.rooms.filter((room) => {
+        const byNumber = this.roomFilterNumber ? room.xona.includes(this.roomFilterNumber) : true;
+        const byName = this.roomFilterName ? room.room_type.toLowerCase().includes(this.roomFilterName.toLowerCase()) : true;
+        const bySigim = this.roomFilterSigim ? room.sigim == this.roomFilterSigim : true;
+        return byNumber && byName && bySigim;
       });
     },
+
     totalSum() {
-      if (!this.selectedRoom) return 0;
-      const roomSum = this.selectedRoom.price * this.stayDays;
-      const mandatorySum = this.mandatoryServices.reduce((sum, s) => sum + s.price, 0);
-      const additionalSum = this.additionalServices.reduce(
-        (sum, s) => (s.selected ? sum + s.price : sum),
-        0
-      );
-      return roomSum + mandatorySum + additionalSum;
+      const roomSum = this.selectedRoom ? this.selectedRoom.price * this.stayDays : 0;
+      const mandatory = this.mandatoryServices.reduce((sum, s) => sum + s.price, 0);
+      const additional = this.additionalServices
+        .filter((s) => s.selected)
+        .reduce((sum, s) => sum + s.price, 0);
+      return roomSum + mandatory + additional;
     },
   },
+
+  async mounted() {
+    // clientId props kelmasa fallback uchun $route.params dan ham olamiz
+    const id = this.clientId || this.$route.params.clientId;
+    if (!id) {
+      alert('Client ID topilmadi!');
+      return;
+    }
+
+    await this.loadClient(id);
+    await this.loadRooms();
+    await this.loadServices();
+  },
+
   methods: {
-    clearFilters() {
-      this.roomFilterName = "";
-      this.roomFilterNumber = "";
-      this.roomFilterSigim = null;
+    async loadClient(id) {
+      try {
+        const res = await api.get(`/api/v1/clients/${id}`);
+        this.client = res.data;
+      } catch (err) {
+        console.error('Client ma\'lumotlarini olishda xatolik:', err);
+      }
     },
+
+    async loadRooms() {
+      try {
+        const res = await api.get('/api/v1/room');
+        this.rooms = res.data.map((room) => ({
+          ...room,
+          sigim: room.sigim || room.capacity || 1,
+          room_type: room.room_type?.name || 'Nomaʼlum',
+          price: parseFloat(room.room_type?.Narxi || 0),
+          display: `${room.room_type?.name} (xona №${room.xona})`,
+          busy: false, // bandlikni boshqa so'rovdan olish mumkin
+        }));
+      } catch (err) {
+        console.error('Xonalarni yuklashda xatolik:', err);
+      }
+    },
+
+    async loadServices() {
+      try {
+        const res = await api.get('/api/v1/services');
+        this.mandatoryServices = res.data
+          .filter((s) => s.required == 1)
+          .map((s) => ({ ...s, selected: true, price: +s.price || 0 }));
+        this.additionalServices = res.data
+          .filter((s) => s.required != 1)
+          .map((s) => ({ ...s, selected: false, price: +s.price || 0 }));
+      } catch (err) {
+        console.error('Xizmatlarni yuklashda xatolik:', err);
+      }
+    },
+
     selectRoom(room) {
       this.selectedRoom = { ...room };
-      this.arrivalDate = this.today;
-      this.stayDays = 7;
-      this.calculateLeaveDate();
-      this.loadServices();
     },
+
+    clearFilters() {
+      this.roomFilterNumber = '';
+      this.roomFilterName = '';
+      this.roomFilterSigim = null;
+    },
+
     cancelSelection() {
       this.selectedRoom = null;
-      this.arrivalDate = this.today;
-      this.stayDays = 7;
-      this.leaveDate = "";
       this.mandatoryServices = [];
       this.additionalServices = [];
     },
-    calculateLeaveDate() {
-      if (!this.arrivalDate || !this.stayDays) {
-        this.leaveDate = "";
-        return;
-      }
-      const start = new Date(this.arrivalDate);
-      start.setDate(start.getDate() + this.stayDays);
-      this.leaveDate = start.toISOString().slice(0, 10);
-    },
-    async loadRooms() {
-      try {
-        const today = new Date().toISOString().slice(0, 10);
 
-        const [roomRes, davolanishRes, bronsRes] = await Promise.all([
-          api.get("/api/v1/room"),
-          api.get("/api/v1/davolanish"),
-          api.get("/api/v1/bron"),
-        ]);
-
-        const busyFromDavolanish = davolanishRes.data.map((item) => Number(item.xona_id));
-        const busyFromBrons = bronsRes.data
-          .filter((item) => item.status === "faol" && item.end >= today)
-          .map((item) => Number(item.xona_id));
-
-        const allBusyRoomIds = [...new Set([...busyFromDavolanish, ...busyFromBrons])];
-
-        this.rooms = roomRes.data.map((item) => {
-          const sigim = item.sigim || item.capacity || 1;
-          const type = item.room_type?.name || "Nomaʼlum";
-          return {
-            id: item.id,
-            xona: item.xona,
-            sigim,
-            room_type: type,
-            display: `${type} (xona №${item.xona}, sig'imi ${sigim})`,
-            price: parseFloat(item.room_type?.Narxi || 0),
-            busy: allBusyRoomIds.includes(Number(item.id)),
-          };
-        });
-      } catch (err) {
-        console.error("Xonalarni yuklashda xatolik:", err.response?.data || err.message);
-      }
-    },
-    async loadServices() {
-      try {
-        const res = await api.get("/api/v1/services");
-        this.mandatoryServices = res.data
-          .filter((s) => s.required)
-          .map((s) => ({ ...s, selected: true, price: parseFloat(s.price) }));
-        this.additionalServices = res.data
-          .filter((s) => !s.required)
-          .map((s) => ({ ...s, selected: false, price: parseFloat(s.price) }));
-      } catch (err) {
-        console.error("Xizmatlarni yuklashda xatolik:", err.response?.data || err.message);
-      }
-    },
-    async submitBooking() {
-      const userData = JSON.parse(localStorage.getItem(STORAGE_KEY));
-      if (!userData) return alert("Foydalanuvchi aniqlanmadi!");
-      if (!this.selectedRoom) return alert("Iltimos, xona tanlang!");
-      if (!this.arrivalDate || !this.leaveDate) return alert("Sanalar to‘liq emas!");
-
-      const serviceIds = [
+    async submitDavolanish() {
+      const xizmatlar = [
         ...this.mandatoryServices.map((s) => s.id),
         ...this.additionalServices.filter((s) => s.selected).map((s) => s.id),
       ];
 
-      const now = new Date().toISOString();
+      if (!this.selectedRoom) {
+        alert('Iltimos, xona tanlang!');
+        return;
+      }
 
-      const booking = {
-        client_id: userData.id,
+      const payload = {
+        client_id: this.client.id,
         xona_id: this.selectedRoom.id,
         start: this.arrivalDate,
         end: this.leaveDate,
-        xizmatlar: serviceIds,
-        create_user_id: userData.id,
-        create_user_name: userData.username,
-        created_at: now,
-        updated_at: now,
+        xizmatlar,
       };
 
       try {
-        await api.post("/api/v1/davolanish", booking);
-        alert("Bron muvaffaqiyatli qilindi!");
+        await api.post('/api/v1/davolanish', payload);
+        alert('✅ Bron muvaffaqiyatli qilindi');
         this.cancelSelection();
-        await this.loadRooms();
       } catch (err) {
-        console.error("Bron qilishda xatolik:", err.response?.data || err.message);
-        alert("Bron qilishda xatolik yuz berdi.");
+        console.error('❌ Bron qilishda xatolik:', err.response?.data || err);
+        alert('Xatolik yuz berdi');
       }
     },
   },
-  async mounted() {
-    const user = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (user) {
-      this.fullName = `${user.familiya} ${user.ism} ${user.sharif || ""}`.trim();
-      this.birthYear = user.tugulgan_sana?.slice(0, 4);
-      this.gender = user.jins;
-      this.age = this.birthYear ? new Date().getFullYear() - +this.birthYear : null;
-      this.userName = user.username;
-    }
-
-    this.calculateLeaveDate();
-    await this.loadRooms();
-  },
 };
 </script>
-
-
 
 <style scoped>
 .taklif-container {
@@ -301,7 +266,7 @@ export default {
   background: #f9fafb;
   border-radius: 18px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
-  font-family: "Segoe UI", sans-serif;
+  font-family: 'Segoe UI', sans-serif;
   color: #1f2937;
 }
 
@@ -320,12 +285,6 @@ export default {
   margin-bottom: 30px;
   border-radius: 12px;
   font-size: 16px;
-}
-
-.warning {
-  color: #dc2626;
-  font-weight: bold;
-  margin-top: 10px;
 }
 
 .filter-row {
@@ -497,9 +456,11 @@ export default {
   .filter-row {
     flex-direction: column;
   }
+
   .date-row {
     flex-direction: column;
   }
+
   .submit-btn {
     width: 100%;
     float: none;

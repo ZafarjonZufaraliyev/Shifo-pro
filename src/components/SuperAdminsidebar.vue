@@ -20,11 +20,11 @@
       </div>
 
       <ul>
-        <li><router-link to="/super" @click.native="closeSidebar">🏠 Bosh sahifa</router-link></li>
-        <li><router-link to="/super/bemorlar" @click.native="closeSidebar">Bemorlar</router-link></li>
-        <li><router-link to="/super/rooms" @click.native="closeSidebar">Xonalar</router-link></li>
-        <li><router-link to="/super/stats" @click.native="closeSidebar">Kassa</router-link></li>
-         <li><router-link to="/super/xodimlar" @click.native="closeSidebar">Xodimlar</router-link></li>
+        <li><router-link to="/admin" @click.native="closeSidebar">🏠 Bosh sahifa</router-link></li>
+        <li><router-link to="/admin/bemorlar" @click.native="closeSidebar">Bemorlar</router-link></li>
+        <li><router-link to="/admin/rooms" @click.native="closeSidebar">Xonalar</router-link></li>
+        <li><router-link to="/admin/stats" @click.native="closeSidebar">Kassa</router-link></li>
+         <li><router-link to="/admin/xodimlar" @click.native="closeSidebar">Xodimlar</router-link></li>
       </ul>
 
       <!-- Select - telefon uchun responsive -->

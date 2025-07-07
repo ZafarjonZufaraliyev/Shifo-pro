@@ -24,19 +24,20 @@ const routes = [
 
   // SUPER
   {
-    path: "/super",
+    path: "/admin",
     component: SuperAdminLayout,
-    meta: { role: "super" },
+    meta: { role: "admin" },
     children: [
-      { path: "", name: "SuperDashboard", component: SuperDashboard },
-      { path: "BemorCard/:id", name: "supperBemor_card", component: Bemor_card },
-      { path: "xodimlar", name: "SuperXodimlar", component: Xodimlar },
-      { path: "room/:id", name: "superRoomDetails", component: RoomDetels },
-      { path: "bemorlar", name: "SuperBemorlar", component: Bemorlar },
-      { path: "rooms", name: "SuperRooms", component: Rooms },
-      { path: "stats", name: "SuperKassa", component: Stats },
-      { path: "RegisterPage", name: "superRegisterPage", component: RegisterPage },
-      { path: "taklif", name: "superTakliflar", component: Takliflar },
+      { path: "", name: "adminDashboard", component: SuperDashboard },
+      { path: "BemorCard/:id", name: "adminBemor_card", component: Bemor_card },
+      { path: "xodimlar", name: "adminXodimlar", component: Xodimlar },
+      { path: "room/:id", name: "adminRoomDetails", component: RoomDetels },
+      { path: "bemorlar", name: "adminBemorlar", component: Bemorlar },
+      { path: "rooms", name: "adminRooms", component: Rooms },
+      { path: "stats", name: "adminKassa", component: Stats },
+      { path: "RegisterPage", name: "adminRegisterPage", component: RegisterPage },
+   { path: "taklif/:clientId", name: "adminTakliflar", component: Takliflar, props: true, },
+
     ],
   },
 
@@ -44,7 +45,7 @@ const routes = [
   {
     path: "/mini",
     component: MiniAdminLayout,
-    meta: { role: "mini" },
+    meta: { role: "kassir" },
     children: [
       { path: "", name: "MiniDashboard", component: MiniDashboard },
       { path: "BemorCard/:id", name: "miniBemor_card", component: Bemor_card },

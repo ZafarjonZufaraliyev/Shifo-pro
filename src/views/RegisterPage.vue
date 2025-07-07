@@ -1,8 +1,8 @@
 <template>
   <div class="register-container">
-    <h2 class="title">Ro'yxatdan O'tkazish</h2>
-    <form @submit.prevent="handleSubmit" class="form">
-      <!-- F.I.Sh -->
+    <h2>Ro'yxatdan O'tkazish</h2>
+    <form @submit.prevent="registerClient" class="form">
+      <!-- Familiya, Ism, Sharif -->
       <div class="form-group">
         <label>Familiya, Ism, Sharif</label>
         <div class="ismfamilya">
@@ -26,7 +26,13 @@
       <div class="form-row">
         <div class="form-group">
           <label>Pasport seriyasi va raqami</label>
-          <input v-model="form.pasport" type="text" placeholder="AA1234567" pattern="[A-Z]{2}[0-9]{7}" required />
+          <input
+            v-model="form.pasport"
+            type="text"
+            placeholder="AA1234567"
+            pattern="[A-Z]{2}[0-9]{7}"
+            required
+          />
         </div>
         <div class="form-group">
           <label>Tug‘ilgan sana</label>
@@ -39,7 +45,9 @@
         <label>Viloyat</label>
         <select v-model="form.viloyat" required>
           <option disabled value="">Tanlang</option>
-          <option v-for="(viloyat, index) in viloyatlar" :key="index" :value="viloyat.name">{{ viloyat.name }}</option>
+          <option v-for="(viloyat, index) in viloyatlar" :key="index" :value="viloyat.name">
+            {{ viloyat.name }}
+          </option>
         </select>
       </div>
       <div v-else-if="form.davlat === 'Xorijiy'" class="form-group">
@@ -56,7 +64,13 @@
       <!-- Telefon raqami -->
       <div class="form-group">
         <label>Telefon raqami (majburiy)</label>
-        <input v-model="form.tel1" type="tel" placeholder="+998901234567" pattern="^\+998[0-9]{9}$" required />
+        <input
+          v-model="form.tel1"
+          type="tel"
+          placeholder="+998901234567"
+          pattern="^\+998[0-9]{9}$"
+          required
+        />
       </div>
 
       <!-- Qo'shimcha telefon -->
@@ -84,96 +98,84 @@
         </select>
       </div>
 
-      <button type="submit" class="submit-btn">Yuborish</button>
+      <button type="submit">Yuborish</button>
     </form>
   </div>
 </template>
 
 <script>
-import api from "@/api"; // api.js to'g'ri sozlangan bo'lishi kerak
-import "@/assets/css/ro'yxat.css";
+import api from '@/api';
 
 export default {
-  name: "RegisterPage",
+  name: 'RegisterPage',
   data() {
     return {
       viloyatlar: [],
       form: {
-        familiya: "",
-        ism: "",
-        sharif: "",
-        davlat: "",
-        pasport: "",
-        tugulgan_sana: "",
-        viloyat: "",
-        tuman: "",
-        manzil: "",
-        tel1: "",
-        tel2: "",
-        referral: "",
+        familiya: '',
+        ism: '',
+        sharif: '',
+        davlat: '',
+        pasport: '',
+        tugulgan_sana: '',
+        viloyat: '',
+        tuman: '',
+        manzil: '',
+        tel1: '',
+        tel2: '',
+        referral: '',
       },
     };
   },
-  async mounted() {
-    // agar boshlang'ich davlat "O‘zbekiston" bo'lsa viloyatlarni yuklash
-    if (this.form.davlat === "O‘zbekiston") {
-      await this.fetchViloyatlar();
-    }
-  },
   watch: {
-    // Davlat o'zgarganda viloyatlar ro'yxatini yangilash yoki tozalash
-    "form.davlat"(val) {
-      if (val === "O‘zbekiston") {
-        this.fetchViloyatlar();
+    'form.davlat'(val) {
+      if (val === 'O‘zbekiston') {
+        this.loadViloyatlar();
       } else {
         this.viloyatlar = [];
-        this.form.viloyat = "";
+        this.form.viloyat = '';
       }
-      this.form.tuman = "";
     },
   },
   methods: {
-    async fetchViloyatlar() {
+    async loadViloyatlar() {
       try {
         const res = await fetch(
-          "https://thingproxy.freeboard.io/fetch/https://uzbekistan-regions.vercel.app/api/regions"
+          'https://thingproxy.freeboard.io/fetch/https://uzbekistan-regions.vercel.app/api/regions'
         );
         this.viloyatlar = await res.json();
       } catch (err) {
-        console.error("Viloyatlar yuklashda xatolik:", err);
+        console.error('Viloyatlarni yuklashda xatolik:', err);
       }
     },
 
-    async handleSubmit() {
+    async registerClient() {
       try {
-        const res = await api.post("/api/v1/clients", this.form);
-        const client = res.data; // serverdan qaytgan yangi client ma'lumotlari
+        const res = await api.post('/api/v1/clients', this.form);
+        console.log("Ro'yxatdan o'tish javobi:", res.data);
 
-        // Formani localStorage ga saqlash (Takliflar sahifasida foydalanish uchun)
-        localStorage.setItem(
-          "ro_yxat_form",
-          JSON.stringify({
-            ...this.form,
-            id: client.id || null,
-          })
-        );
+        const client = res.data.data; // 👈 asosiy to‘g‘rilash shu yerda
 
-        // Role ni olish (super yoki mini)
-        const role = localStorage.getItem("role") || "mini";
+        if (!client || !client.id) {
+          alert('Ro‘yxatdan o‘tishda mijoz identifikatori topilmadi!');
+          return;
+        }
 
-        // Takliflar sahifasiga role ga qarab userId bilan yo'naltirish
-        this.$router.push({ path: `/${role}/taklif`, query: { userId: client.id } });
+        this.$router.push({
+          name: 'adminTakliflar',
+          params: { clientId: client.id },
+        });
       } catch (err) {
         if (err.response?.status === 422) {
           const errors = err.response.data.errors;
-          let msg = "❗ Xatoliklar:\n";
+          let msg = '❗ Xatoliklar:\n';
           for (let key in errors) {
-            msg += `- ${key}: ${errors[key].join(", ")}\n`;
+            msg += `- ${key}: ${errors[key].join(', ')}\n`;
           }
           alert(msg);
         } else {
-          alert("Xatolik yuz berdi. Iltimos, keyinroq qayta urinib ko‘ring.");
           console.error(err);
+          alert('Ro‘yxatdan o‘tishda xatolik yuz berdi.');
         }
       }
     },
@@ -183,5 +185,71 @@ export default {
 
 
 <style scoped>
-/* Style larni o'zgarishsiz olib qo'yishingiz mumkin */
+.register-container {
+  max-width: 1200px;
+  margin: 20px 20px 20px 290px;
+  background: #f9fafb;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #111827;
+}
+
+.form-group {
+  margin-bottom: 18px;
+}
+
+label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.ismfamilya input {
+  width: calc(33% - 10px);
+  margin-right: 15px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 15px;
+}
+
+.ismfamilya input:last-child {
+  margin-right: 0;
+}
+
+input[type="text"],
+input[type="tel"],
+input[type="date"],
+select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 15px;
+}
+
+button[type="submit"] {
+  width: 100%;
+  padding: 14px;
+  background-color: #2563eb;
+  color: white;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+}
+
+button[type="submit"]:hover {
+  background-color: #1e40af;
+}
 </style>
