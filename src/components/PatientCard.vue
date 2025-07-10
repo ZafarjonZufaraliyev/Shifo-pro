@@ -7,17 +7,17 @@
       <div class="info-item"><strong>Familiya:</strong> {{ patient.familiya }}</div>
       <div class="info-item"><strong>Ism:</strong> {{ patient.ism }}</div>
       <div class="info-item"><strong>Yoshi:</strong> {{ patient.yosh || hisoblaYosh(patient.tugulgan_sana) }}</div>
-      <div class="info-item"><strong>Jinsi:</strong> {{ patient.jinsi || 'Nomaʼmalum' }}</div>
-      <div class="info-item"><strong>Kelgan vaqti:</strong> {{ formatDate(patient.kelgan_vaqti) }}</div>
-      <div class="info-item"><strong>Ketadigan vaqti:</strong> {{ formatDate(patient.ketgan_vaqti) }}</div>
+      <div class="info-item"><strong>Jinsi:</strong> {{ patient.jinsi || 'Nomaʼlum' }}</div>
+      <div class="info-item"><strong>Kelgan vaqti:</strong> {{ formatDate(latestStay?.kelish_sanasi) }}</div>
+      <div class="info-item"><strong>Ketadigan vaqti:</strong> {{ formatDate(latestStay?.ketish_sanasi) }}</div>
     </div>
 
     <!-- Tablar -->
     <div class="tab-section">
       <div class="tab-header">
-        <div :class="['tab-title', activeTab === 'xizmatlar' && 'active']" @click="activeTab = 'xizmatlar'">Xizmatlar</div>
-        <div :class="['tab-title', activeTab === 'kasalliklar' && 'active']" @click="activeTab = 'kasalliklar'">Kasalliklar tarixi</div>
-        <div :class="['tab-title', activeTab === 'natijalar' && 'active']" @click="activeTab = 'natijalar'">Natijalar</div>
+        <div :class="['tab-title', activeTab === 'xizmatlar' ? 'active' : '']" @click="activeTab = 'xizmatlar'">Xizmatlar</div>
+        <div :class="['tab-title', activeTab === 'kasalliklar' ? 'active' : '']" @click="activeTab = 'kasalliklar'">Kasalliklar tarixi</div>
+        <div :class="['tab-title', activeTab === 'natijalar' ? 'active' : '']" @click="activeTab = 'natijalar'">Natijalar</div>
       </div>
 
       <table class="data-table">
@@ -36,7 +36,7 @@
           <tr v-for="(item, index) in filteredData" :key="index">
             <td>{{ index + 1 }}</td>
             <td v-if="activeTab === 'xizmatlar'">{{ item.nomi }}</td>
-            <td v-if="activeTab === 'xizmatlar'">{{ formatPrice(item.narxi) }}</td>
+            <td v-if="activeTab === 'xizmatlar'">{{ formatPrice(item.arxi) }}</td>
             <td v-if="activeTab === 'xizmatlar'">
               <span :class="['badge', item.tolangan ? 'paid' : 'unpaid']">
                 {{ item.tolangan ? 'To‘langan' : 'To‘lanmagan' }}
@@ -93,9 +93,7 @@
             Xona tanlash:
             <select v-model="reRegisterData.xona_id">
               <option disabled value="">Xona tanlang</option>
-              <option v-for="x in availableRooms" :key="x.id" :value="x.id">
-                {{ x.nom }}
-              </option>
+              <option v-for="x in availableRooms" :key="x.id" :value="x.id">{{ x.xona }}</option>
             </select>
           </label>
 
@@ -114,7 +112,7 @@
       </div>
     </div>
 
-    <!-- Rolga qarab dinamik orqaga tugma yo'li -->
+    <!-- Orqaga tugma -->
     <router-link :to="`/${role}/bemorlar`" class="btn-back">↩ Orqaga</router-link>
   </div>
 
@@ -123,15 +121,18 @@
   </div>
 </template>
 
+
 <script>
 import api from '@/api';
 
 export default {
   data() {
     return {
+      canReRegister: false,
+      showServiceModal: false,
+      showReRegister: false,
       loading: true,
       error: null,
-
       patient: null,
       stays: [],
       xizmatlar: [],
@@ -139,24 +140,19 @@ export default {
       natijalar: [],
       allServices: [],
       availableRooms: [],
-
       activeTab: 'xizmatlar',
       role: localStorage.getItem('role') || 'mini',
-
-      showServiceModal: false,
       newService: {
         nomi: '',
         narxi: 0,
-        tolangan: false
+        tolangan: false,
       },
-
-      showReRegister: false,
       reRegisterData: {
         kirish_sanasi: '',
         chiqish_sanasi: '',
         xona_id: '',
-        xizmatlar: []
-      }
+        xizmatlar: [],
+      },
     };
   },
 
@@ -166,12 +162,6 @@ export default {
       return this.stays.reduce((a, b) =>
         new Date(a.kirish_sanasi) > new Date(b.kirish_sanasi) ? a : b
       );
-    },
-    kelganVaqti() {
-      return this.latestStay?.kirish_sanasi || this.patient?.kelgan_vaqti || '';
-    },
-    ketganVaqti() {
-      return this.latestStay?.chiqish_sanasi || this.patient?.ketgan_vaqti || '';
     },
     filteredData() {
       if (this.activeTab === 'xizmatlar') return this.xizmatlar;
@@ -187,61 +177,12 @@ export default {
     },
     totalUnpaid() {
       return this.total - this.totalPaid;
-    },
-    canReRegister() {
-      return !!this.latestStay?.chiqish_sanasi;
     }
   },
 
   methods: {
-    async fetchPatient() {
-      this.loading = true;
-      const id = this.$route.params.id;
-
-      try {
-        const res = await api.get(`/public/api/v1/clients/${id}`);
-        this.patient = res.data;
-        this.kasalliklar = this.patient.kasalliklar || [];
-        this.natijalar = this.patient.natijalar || [];
-
-        const resStays = await api.get(`/public/api/v1/davolanish?client_id=${id}`);
-        this.stays = resStays.data || [];
-
-        const resRooms = await api.get('/public/api/v1/room');
-        this.availableRooms = resRooms.data || [];
-
-        const resServices = await api.get('/public/api/v1/services');
-        this.allServices = resServices.data || [];
-
-        if (this.latestStay) {
-          const resX = await api.get(`/public/api/v1/client_services?davolanish_id=${this.latestStay.id}`);
-          this.xizmatlar = resX.data.map(x => ({
-            id: x.id,
-            nomi: this.getServiceNameById(x.service_id) || x.nomi,
-            narxi: x.price,
-            sana: x.start_date,
-            tolangan: !!x.tolangan
-          }));
-        }
-      } catch (err) {
-        console.error('Maʼlumotlarni olishda xatolik:', err);
-        this.error = 'Xatolik yuz berdi.';
-      } finally {
-        this.loading = false;
-      }
-    },
-
-    formatDate(d) {
-      if (!d) return '-';
-      return new Date(d).toLocaleDateString('uz-UZ');
-    },
-
-    formatPrice(p) {
-      return p ? `${p.toLocaleString()} soʻm` : '0 soʻm';
-    },
-
     hisoblaYosh(tugulgan_sana) {
-      if (!tugulgan_sana) return '';
+      if (!tugulgan_sana) return '-';
       const today = new Date();
       const birthDate = new Date(tugulgan_sana);
       let yosh = today.getFullYear() - birthDate.getFullYear();
@@ -251,67 +192,158 @@ export default {
       }
       return yosh;
     },
-
+    formatDate(d) {
+      return d ? new Date(d).toLocaleDateString('uz-UZ') : '-';
+    },
+    formatPrice(p) {
+      return p ? `${p.toLocaleString()} soʻm` : '0 soʻm';
+    },
+    getDaysBetween(start, end) {
+      if (!start || !end) return 0;
+      const d1 = new Date(start);
+      const d2 = new Date(end);
+      const diffTime = d2 - d1;
+      return diffTime > 0 ? Math.ceil(diffTime / (1000 * 60 * 60 * 24)) : 0;
+    },
     getServiceNameById(id) {
       return this.allServices.find(s => s.id === id)?.nomi || "Nomaʼlum xizmat";
     },
 
-    async addService() {
-      if (!this.latestStay) {
-        alert('Davolanish topilmadi.');
+    async fetchPatient() {
+      this.loading = true;
+      const id = this.$route.params.id;
+
+      try {
+        // Bemor asosiy ma'lumotlari
+        const { data: patient } = await api.get(`/public/api/v1/clients/${id}`);
+        this.patient = patient;
+        this.kasalliklar = patient.kasalliklar || [];
+        this.natijalar = patient.natijalar || [];
+
+        // Davolanishlarni olish
+        const { data: stays } = await api.get(`/public/api/v1/davolanish?client_id=${id}`);
+        this.stays = stays;
+
+        // Xonalar va xizmatlarni olish
+        const [roomsRes, servicesRes] = await Promise.all([
+          api.get('/public/api/v1/room'),
+          api.get('/public/api/v1/services'),
+        ]);
+        this.availableRooms = roomsRes.data;
+        this.allServices = servicesRes.data;
+
+        // Eng so‘nggi davolanish
+        if (this.latestStay) {
+          const { id: davolanish_id, xona_id, kirish_sanasi, chiqish_sanasi } = this.latestStay;
+
+          // Ushbu davolanishga tegishli xizmatlarni olish
+          const { data: serviceData } = await api.get(`/public/api/v1/client-services?davolanish_id=${davolanish_id}`);
+
+          this.xizmatlar = serviceData.map(x => ({
+            id: x.id,
+            service_id: x.service_id,
+            nomi: this.getServiceNameById(x.service_id),
+            narxi: x.price,
+            sana: x.start_date,
+            tolangan: !!x.tolangan,
+          }));
+
+          // Xona narxini olish uchun xona turi
+          let xonaNarxi = 0;
+          const xona = this.availableRooms.find(x => x.id === xona_id);
+          if (xona && xona.room_type_id) {
+            const { data: roomType } = await api.get(`/public/api/v1/room_types/${xona.room_type_id}`);
+            xonaNarxi = parseFloat(roomType.Narxi) || 0;
+          }
+
+          // Kunlar soni
+          const days = this.getDaysBetween(kirish_sanasi, chiqish_sanasi);
+
+          // Xona uchun xizmatni ro‘yxat boshiga qo‘shish
+          this.xizmatlar.unshift({
+            id: 'xona-auto',
+            nomi: `Xona: ${xona?.xona || 'nomaʼlum'}`,
+            narxi: xonaNarxi * days,
+            sana: kirish_sanasi,
+            tolangan: false
+          });
+
+          // Can re-register shartlarini tekshirish (chiqish sanasi o‘tmagan bo‘lsa)
+          const today = new Date();
+          this.canReRegister = chiqish_sanasi ? (new Date(chiqish_sanasi) > today) : false;
+        }
+      } catch (err) {
+        console.error("Xatolik:", err);
+        this.error = "Maʼlumotlarni yuklashda xatolik yuz berdi.";
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    addService() {
+      if (!this.newService.nomi || this.newService.narxi <= 0) {
+        alert("Iltimos, xizmat nomi va narxini kiriting!");
+        return;
+      }
+      this.xizmatlar.push({
+        id: `temp-${Date.now()}`,
+        service_id: null,
+        nomi: this.newService.nomi,
+        narxi: this.newService.narxi,
+        sana: new Date().toISOString(),
+        tolangan: this.newService.tolangan,
+      });
+      this.showServiceModal = false;
+      this.newService = { nomi: '', narxi: 0, tolangan: false };
+    },
+
+    async submitReRegister() {
+      if (!this.reRegisterData.kirish_sanasi || !this.reRegisterData.chiqish_sanasi || !this.reRegisterData.xona_id) {
+        alert("Iltimos, barcha maydonlarni to'ldiring!");
         return;
       }
 
       try {
-        await api.post('/public/api/v1/client_services', {
-          client_id: this.patient.id,
-          davolanish_id: this.latestStay.id,
-          service_id: null,
-          nomi: this.newService.nomi,
-          price: this.newService.narxi,
-          tolangan: this.newService.tolangan ? 1 : 0
-        });
+        const clientId = this.$route.params.id;
 
-        this.newService = { nomi: '', narxi: 0, tolangan: false };
-        this.showServiceModal = false;
-        await this.fetchPatient();
-      } catch (err) {
-        console.error('Xizmat qo‘shishda xatolik:', err);
-        alert('Xizmat qo‘shishda xatolik yuz berdi.');
-      }
-    },
-
-    async submitReRegister() {
-      try {
-        const res = await api.post('/public/api/v1/davolanish', {
-          client_id: this.patient.id,
+        // Davolanish yaratish
+        const { data: newDavolanish } = await api.post('/public/api/v1/davolanish', {
+          client_id: clientId,
           kirish_sanasi: this.reRegisterData.kirish_sanasi,
           chiqish_sanasi: this.reRegisterData.chiqish_sanasi,
-          xona_id: this.reRegisterData.xona_id
+          xona_id: this.reRegisterData.xona_id,
+          create_user_id: localStorage.getItem('user_id'),
+          create_user_name: localStorage.getItem('user_name'),
         });
 
-        const newStayId = res.data.id;
+        // Yangi davolanishga xizmatlar qo'shish
+        if (this.reRegisterData.xizmatlar.length) {
+          for (const serviceId of this.reRegisterData.xizmatlar) {
+            const service = this.allServices.find(s => s.id === serviceId);
+            if (!service) continue;
 
-        for (const serviceId of this.reRegisterData.xizmatlar) {
-          await api.post('/public/api/v1/client_services', {
-            client_id: this.patient.id,
-            davolanish_id: newStayId,
-            service_id: serviceId
-          });
+            await api.post('/public/api/v1/client-services', {
+              client_id: clientId,
+              davolanish_id: newDavolanish.id,
+              service_id: service.id,
+              price: service.Narxi || service.narxi || 0,
+              start_date: this.reRegisterData.kirish_sanasi,
+              user_id: localStorage.getItem('user_id'),
+              user_name: localStorage.getItem('user_name'),
+              tolangan: false,
+            });
+          }
         }
 
+        alert("Yangi yotish muvaffaqiyatli qo'shildi!");
         this.showReRegister = false;
-        this.reRegisterData = {
-          kirish_sanasi: '',
-          chiqish_sanasi: '',
-          xona_id: '',
-          xizmatlar: []
-        };
 
+        // Bemor ma'lumotlarini yangilash
         await this.fetchPatient();
-      } catch (err) {
-        console.error('Yana yotishda xatolik:', err);
-        alert('Yana yotish muvaffaqiyatsiz tugadi.');
+
+      } catch (error) {
+        console.error("Re-registerda xatolik:", error);
+        alert("Yangi yotish qo'shishda xatolik yuz berdi!");
       }
     }
   },
@@ -322,326 +354,148 @@ export default {
 };
 </script>
 
-<style>
-  .patient-card {
+<style scoped>
+.patient-card {
   max-width: 1200px;
   margin: 20px 20px 20px 290px;
   padding: 20px;
-  background: #fff;
+  background: #f9f9f9;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  color: #333;
-  transition: box-shadow 0.3s ease;
 }
-
-.patient-card:hover {
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-}
-
-@media (max-width: 768px) {
-  .patient-card {
-    margin: 20px 15px;
-    padding: 15px;
-  }
-}
-
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px 20px;
-  margin-bottom: 25px;
+  grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
+  gap: 10px;
+  margin-bottom: 15px;
 }
-
 .info-item {
-  background: #f9f9f9;
-  padding: 12px 16px;
-  border-radius: 6px;
-  font-weight: 600;
-  box-shadow: inset 0 0 4px rgba(0,0,0,0.05);
-  user-select: none;
-  color: #2c3e50;
+  background: white;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 0 5px #ccc;
 }
-
 .tab-section {
   margin-top: 20px;
 }
-
 .tab-header {
   display: flex;
-  border-bottom: 2px solid #eee;
-  margin-bottom: 15px;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+.tab-title {
+  cursor: pointer;
+  padding: 8px 15px;
+  border-radius: 5px;
+  background: #ddd;
   user-select: none;
 }
-
-.tab-title {
-  padding: 10px 25px;
-  cursor: pointer;
-  font-weight: 600;
-  color: #777;
-  border-bottom: 3px solid transparent;
-  transition: color 0.3s ease, border-color 0.3s ease;
-  white-space: nowrap;
-}
-
-.tab-title:hover {
-  color: #2a9d8f;
-}
-
 .tab-title.active {
-  color: #2a9d8f;
-  border-color: #2a9d8f;
-  font-weight: 700;
+  background: #337ab7;
+  color: white;
+  font-weight: bold;
 }
-
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 20px;
-  font-size: 14px;
-  color: #444;
+  margin-bottom: 10px;
 }
-
-.data-table th,
-.data-table td {
-  border: 1px solid #ddd;
-  padding: 10px 15px;
+.data-table th, .data-table td {
+  border: 1px solid #ccc;
+  padding: 8px 10px;
   text-align: left;
-  vertical-align: middle;
-  transition: background-color 0.2s ease;
 }
-
-.data-table thead {
-  background-color: #f0f4f8;
-  font-weight: 700;
-  color: #2a9d8f;
-}
-
-.data-table tbody tr:nth-child(even) {
-  background-color: #fafafa;
-}
-
-.data-table tbody tr:hover {
-  background-color: #eaf6f5;
-}
-
 .badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 15px;
-  font-size: 12px;
-  font-weight: 600;
-  user-select: none;
-  text-align: center;
-  min-width: 70px;
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-.badge.paid {
-  background-color: #2a9d8f;
-  color: #fff;
-}
-
-.badge.unpaid {
-  background-color: #e76f51;
-  color: #fff;
-}
-
-.financial-summary p {
-  font-weight: 600;
-  margin: 6px 0;
-  font-size: 15px;
-  color: #34495e;
-}
-
-.action-buttons {
-  margin-top: 15px;
-  display: flex;
-  gap: 15px;
-  flex-wrap: wrap;
-}
-
-.btn-action {
-  background-color: #2a9d8f;
+  padding: 3px 7px;
+  border-radius: 12px;
   color: white;
-  padding: 12px 26px;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 0.9em;
+}
+.paid {
+  background-color: #28a745;
+}
+.unpaid {
+  background-color: #dc3545;
+}
+.financial-summary p {
+  margin: 3px 0;
+}
+.action-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.btn-action {
+  padding: 8px 15px;
+  background-color: #337ab7;
   border: none;
-  border-radius: 8px;
+  border-radius: 5px;
+  color: white;
   cursor: pointer;
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
   user-select: none;
-  box-shadow: 0 2px 6px rgba(42,157,143,0.5);
 }
-
 .btn-action:disabled {
-  background-color: #a0a0a0;
+  background-color: #ccc;
   cursor: not-allowed;
-  box-shadow: none;
 }
-
-.btn-action:not(:disabled):hover {
-  background-color: #21867a;
-  box-shadow: 0 4px 12px rgba(33,134,122,0.6);
-}
-
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0,0,0,0.48);
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.4);
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 1100;
-  padding: 15px;
-  overflow-y: auto;
+  justify-content: center;
+  z-index: 9999;
 }
-
 .modal {
-  background: #fff;
-  border-radius: 12px;
-  max-width: 420px;
-  width: 100%;
-  padding: 30px 35px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-  animation: fadeInScale 0.25s ease forwards;
-  font-family: inherit;
-  color: #2c3e50;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  width: 400px;
+  max-width: 90%;
 }
-
-@keyframes fadeInScale {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.modal h3 {
-  margin-bottom: 25px;
-  color: #264653;
-  font-weight: 700;
-  font-size: 1.5rem;
-  text-align: center;
-  user-select: none;
-}
-
-.modal label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: #444;
-  font-size: 15px;
-}
-
-.modal input[type="text"],
-.modal input[type="number"],
-.modal input[type="date"],
+.modal input,
 .modal select {
   width: 100%;
-  padding: 10px 12px;
-  margin-bottom: 20px;
-  border-radius: 8px;
-  border: 1.8px solid #ccc;
-  font-size: 15px;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  padding: 8px 10px;
+  margin: 8px 0 15px 0;
   box-sizing: border-box;
-  font-family: inherit;
+  border-radius: 5px;
+  border: 1px solid #ccc;
 }
-
-.modal input[type="text"]:focus,
-.modal input[type="number"]:focus,
-.modal input[type="date"]:focus,
-.modal select:focus {
-  outline: none;
-  border-color: #2a9d8f;
-  box-shadow: 0 0 8px rgba(42,157,143,0.4);
-}
-
 .modal-actions {
   display: flex;
-  justify-content: space-between;
-  gap: 15px;
-  margin-top: 15px;
-  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
 }
-
 .btn-primary {
-  flex: 1;
-  background-color: #2a9d8f;
-  color: #fff;
-  padding: 12px 20px;
-  font-weight: 700;
+  background-color: #28a745;
   border: none;
-  border-radius: 8px;
+  color: white;
+  padding: 8px 15px;
+  border-radius: 5px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
-  user-select: none;
 }
-
-.btn-primary:hover {
-  background-color: #21867a;
-}
-
 .btn-secondary {
-  flex: 1;
-  background-color: #e76f51;
-  color: #fff;
-  padding: 12px 20px;
-  font-weight: 700;
+  background-color: #dc3545;
   border: none;
-  border-radius: 8px;
+  color: white;
+  padding: 8px 15px;
+  border-radius: 5px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
-  user-select: none;
 }
-
-.btn-secondary:hover {
-  background-color: #ce5739;
-}
-
-.loading-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 200px;
-  font-size: 18px;
-  color: #555;
+.btn-back {
+  display: inline-block;
+  margin-top: 20px;
+  text-decoration: none;
+  color: #337ab7;
   font-weight: 600;
 }
-
-/* Responsive for smaller devices */
-@media (max-width: 480px) {
-  .info-grid {
-    grid-template-columns: 1fr;
-  }
-  .tab-header {
-    flex-wrap: wrap;
-  }
-  .tab-title {
-    padding: 8px 15px;
-    font-size: 14px;
-  }
-  .btn-action {
-    flex: 1 1 100%;
-    text-align: center;
-  }
-  .modal {
-    padding: 20px 20px;
-  }
-  .modal-actions {
-    flex-direction: column;
-  }
-  .btn-primary, .btn-secondary {
-    width: 100%;
-  }
+.loading-container {
+  text-align: center;
+  font-size: 1.2em;
+  padding: 30px;
 }
-
 </style>

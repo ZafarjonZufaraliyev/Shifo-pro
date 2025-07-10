@@ -107,6 +107,7 @@ export default {
 
   data() {
     return {
+      today: new Date().toISOString().slice(0, 10),
       client: null,
       selectedRoom: null,
       rooms: [],
@@ -251,64 +252,65 @@ export default {
       }
     },
 
-    async submitDavolanish() {
-      if (!this.selectedRoom) return alert('Iltimos, xona tanlang!');
+  async submitDavolanish() {
+  if (!this.selectedRoom) return alert('Iltimos, xona tanlang!');
 
-      const selectedServices = [
-        ...this.mandatoryServices.filter((s) => s.selected),
-        ...this.additionalServices.filter((s) => s.selected),
-      ];
+  const selectedServices = [
+    ...this.mandatoryServices.filter((s) => s.selected),
+    ...this.additionalServices.filter((s) => s.selected),
+  ];
 
-      const davolanishPayload = {
-        client_id: this.client.id,
-        xona_id: this.selectedRoom.id,
-        kelish_sanasi: this.arrivalDate,
-        ketish_sanasi: this.leaveDate,
-        create_user_id: this.$store?.state?.user?.id || 1,
-        create_user_name: this.$store?.state?.user?.name || 'Zafarjon',
-      };
+  const davolanishPayload = {
+    client_id: this.client.id,
+    xona_id: this.selectedRoom.id,
+    kelish_sanasi: this.arrivalDate,
+    ketish_sanasi: this.leaveDate,
+    create_user_id: this.$store?.state?.user?.id || 1,
+    create_user_name: this.$store?.state?.user?.name || 'Zafarjon',
+  };
 
-      let davolanish = null;
+  let davolanish = null;
 
-      try {
-        const res = await api.post('/api/v1/davolanish', davolanishPayload);
-        davolanish = res.data.data;
-        console.log('✅ Davolanish yaratildi:', davolanish);
-      } catch (err) {
-        console.error('❌ Davolanishni yaratishda xatolik:', err.response?.data || err);
-        return alert('❌ Davolanishni saqlab bo‘lmadi.');
-      }
+  try {
+    const res = await api.post('/api/v1/davolanish', davolanishPayload);
+    davolanish = res.data.data;
+    console.log('✅ Davolanish yaratildi:', davolanish);
+  } catch (err) {
+    console.error('❌ Davolanishni yaratishda xatolik:', err.response?.data || err);
+    return alert('❌ Davolanishni saqlab bo‘lmadi.');
+  }
 
-      if (!davolanish?.id) {
-        return alert('❌ Davolanish ID topilmadi!');
-      }
+  if (!davolanish?.id) {
+    return alert('❌ Davolanish ID topilmadi!');
+  }
 
-      // Xizmatlarni yagona array ko‘rinishida tayyorlaymiz
-      const servicesPayload = {
-        client_id: this.client.id,
-        davolanish_id: davolanish.id,
-        services: selectedServices.map((s) => ({
-          service_id: s.id,
-          price: s.price * this.stayDays, // Jami narx
-          mahal: 1,
-          total_days: this.stayDays,
-          start_date: this.arrivalDate,
-          kunlik_vaqtlari: null, // hozircha null
-        })),
-      };
+  // Mana shu qismda services ni to'g'ri formatda yaratamiz:
+  const servicesPayload = {
+    client_id: this.client.id,
+    davolanish_id: davolanish.id,
+    services: selectedServices.map((s) => ({
+      service_id: s.id,
+      price: s.price,
+      mahal: s.mahal || 1,
+      total_days: this.stayDays,
+      start_date: this.arrivalDate,
+      kunlik_vaqtlari: s.kunlik_vaqtlari || [], // bo‘sh array yoki kerakli vaqtlar
+    })),
+  };
 
-      try {
-        await api.post('/api/v1/client_services', servicesPayload);
-        alert('✅ Xizmatlar muvaffaqiyatli saqlandi.');
-      } catch (err) {
-        console.error('❌ Xizmatlarni saqlashda xatolik:', err.response?.data || err);
-        return alert('❌ Xizmatlarni saqlab bo‘lmadi.');
-      }
+  console.log('Yuboriladigan services payload:', JSON.stringify(servicesPayload, null, 2));
 
-      this.cancelSelection();
-      this.loadRoomBookings();
-    }
-    ,
+  try {
+    await api.post('/api/v1/client-services', servicesPayload);
+    alert('✅ Xizmatlar muvaffaqiyatli saqlandi.');
+  } catch (err) {
+    console.error('❌ Xizmatlarni saqlashda xatolik:', err.response?.data || err);
+    return alert('❌ Xizmatlarni saqlab bo‘lmadi.');
+  }
+
+  this.cancelSelection();
+  this.loadRoomBookings();
+},
   },
 };
 </script>

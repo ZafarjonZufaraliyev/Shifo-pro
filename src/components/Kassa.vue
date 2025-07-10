@@ -187,7 +187,6 @@
           </div>
         </div>
       </div>
-
       <div class="patient-tabs">
         <button :class="{ active: patientTab === 'debtors' }" @click="patientTab = 'debtors'">
           Qarzdorlar ({{ debtors.length }})
@@ -204,26 +203,38 @@
             <tr>
               <th>#</th>
               <th>F.I</th>
+              <th>Sana / Vaqt</th>
+              <th>Manzil</th>
               <th>Telefon</th>
-              <th>To‘langan</th>
-              <th>Qarz</th>
-              <th>Status</th>
+              <th>Naqd</th>
+              <th>Karta</th>
+              <th>Click</th>
+              <th>Humo</th>
+              <th>Jami Haqqi</th>
+              <th>Kassir</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="(p, index) in filteredPatients" :key="p.id">
               <td>{{ index + 1 }}</td>
-              <td>{{ p.familiya  }}</td>
+              <td>{{ p.ism }} {{ p.familiya }}</td>
+              <td>{{ formatDateTime(p.datetime || p.created_at) }}</td>
+              <td>{{ p.viloyat || '' }} {{ p.tuman || '' }}</td>
               <td>{{ p.tel1 || '-' }}</td>
-              <td>{{ formatMoney(p.total_paid) }} so‘m</td>
-              <td>{{ formatMoney(p.debt) }} so‘m</td>
-              <td :style="{ color: p.status === 'To‘lanmagan' ? 'red' : 'green' }">
-                {{ p.status }}
-              </td>
+              <td>{{ formatMoney(p.naqd) }}</td>
+              <td>{{ formatMoney(p.karta) }}</td>
+              <td>{{ formatMoney(p.click) }}</td>
+              <td>{{ formatMoney(p.humo) }}</td>
+              <td>{{ formatMoney(p.haqqi) }}</td>
+              <td>{{ p.kassir || '-' }}</td>
+            </tr>
+            <tr v-if="filteredPatients.length === 0">
+              <td colspan="11" class="text-center">Ma'lumot topilmadi</td>
             </tr>
           </tbody>
         </table>
       </div>
+
     </div>
 
     <!-- Payment Modal -->
