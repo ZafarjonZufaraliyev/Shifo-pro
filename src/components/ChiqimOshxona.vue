@@ -216,7 +216,7 @@ export default {
 /* ───────── Layout ───────── */
 .calculate-page {
      max-width: 1200px;
-     margin: 20px 20px 20px 290px;
+     margin: 20px auto;
      padding: 20px;
      background: linear-gradient(135deg, #f7f9fc, #eef1f5);
      border-radius: 20px;

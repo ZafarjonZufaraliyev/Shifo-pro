@@ -480,7 +480,7 @@ export default {
   max-width: 1200px;
   overflow-x: auto;
   padding: 20px;
-  margin: 20px 20px 20px 290px;
+  margin: 20px auto;
   font-family: Arial, sans-serif;
 }
 

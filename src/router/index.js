@@ -77,6 +77,21 @@ const routes = [
         name: "AdminmaxsulotlarOshxona",
         component: MaxsulotlarOshxona,
       },
+       {
+      path: "omborMaxsulotlar",
+      name: "adminOmborMaxsulotlar",
+      component: OmborMaxsulotlar,
+    },
+    {
+      path: "omborKirim",
+      name: "adminOmborKirim",
+      component: OmborKirim,
+    },
+    {
+      path: "omborChiqim",
+      name: "adminOmborChiqim",
+      component: OmborChiqim,
+    },
     ],
   },
 
@@ -122,24 +137,16 @@ const routes = [
   },
   //OMBOR
   {
-    path: "/ombor",
-    component: OmborLayout,
-    meta: { role: "ombor" },
-    children: [
-      { path: "", name: "OmborDashboard", component: OmborDashboard },
-      { path: "omborKirim", name: "omborKirim", component: OmborKirim },
-      {
-        path: "omborChiqim",
-        name: "omborChiqim",
-        component: OmborChiqim,
-      },
-      {
-        path: "omborMaxsulotlar",
-        name: "omborMaxsulotlar",
-        component: OmborMaxsulotlar,
-      },
-    ],
-  },
+  path: "/ombor",
+  component: OmborLayout,
+  meta: { role: "ombor" },
+  children: [
+    { path: "", name: "OmborDashboard", component: OmborDashboard },
+    { path: "omborKirim", name: "omborKirim", component: OmborKirim },
+    { path: "omborChiqim", name: "omborChiqim", component: OmborChiqim },
+    { path: "omborMaxsulotlar", name: "omborMaxsulotlar", component: OmborMaxsulotlar },
+  ]
+},
 ];
 
 const router = createRouter({

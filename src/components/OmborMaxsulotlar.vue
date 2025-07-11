@@ -67,7 +67,7 @@ const products = ref([
 <style scoped>
 .warehouse-table {
   max-width: 1200px;
-  margin: 20px 20px 20px 290px;
+  margin: 20px auto;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   color: #2c3e50;
   padding: 20px;

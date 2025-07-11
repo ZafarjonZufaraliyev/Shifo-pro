@@ -215,7 +215,7 @@ export default {
 .patients-container {
   padding: 20px;
   max-width: 1200px;
-  margin: 20px 20px 20px 290px;
+  margin: 20px auto;
   background: #fefefe;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: #2c3e50;

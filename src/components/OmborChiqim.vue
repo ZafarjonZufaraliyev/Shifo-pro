@@ -103,7 +103,7 @@ export default {
 <style scoped>
 .oshxona-page {
   max-width: 1200px;
-  margin: 20px 20px 20px 290px;
+  margin: 20px auto;
   padding: 20px;
   background: #fff;
   border-radius: 12px;

@@ -192,7 +192,7 @@ export default {
 /* Asosiy konteyner */
 .room-details {
   max-width: 1200px;
-  margin: 20px 20px 20px 290px;
+  margin: 20px auto;
   padding:20px;
   background: #ffffff;
   border-radius: 20px;

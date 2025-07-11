@@ -242,7 +242,7 @@ export default {
 <style scoped>
 .xodimlar-container {
   max-width: 1200px;
-  margin: 20px 20px 20px 290px;
+  margin: 20px auto;
   padding: 20px;
   font-family: Arial, sans-serif;
 }

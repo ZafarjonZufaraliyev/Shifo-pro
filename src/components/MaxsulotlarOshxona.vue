@@ -136,7 +136,7 @@ export default {
 <style scoped>
 .oshpaz-page {
   max-width: 1200px;
-  margin: 20px 20px 20px 290px;
+  margin: 20px auto;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   padding: 20px;
   background: #fff;
