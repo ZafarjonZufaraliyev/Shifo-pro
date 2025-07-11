@@ -336,7 +336,7 @@ export default {
 
 .taklif-container {
   max-width: 1200px;
-  margin: 20px 20px 20px 290px;
+  margin: 20px auto;
   padding: 20px;
   background: #f9fafb;
   border-radius: 18px;

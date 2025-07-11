@@ -187,7 +187,7 @@ export default {
 <style scoped>
 .register-container {
   max-width: 1200px;
-  margin: 20px 20px 20px 290px;
+  margin: 20px auto;
   background: #f9fafb;
   padding: 20px;
   border-radius: 12px;

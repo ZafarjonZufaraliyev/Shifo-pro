@@ -120,7 +120,7 @@ export default {
   top: 0;
   left: 0;
   width: 290px;
-  height: 100vh;
+  height: 100%;
   background: var(--sidebar-bg);
   color: #fff;
   overflow-y: auto;
