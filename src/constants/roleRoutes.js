@@ -2,7 +2,8 @@
 export default {
   admin: "/admin",
   kassa: "/mini",
-  super: "/super",
+  oshxona:"/oshxona",
+  ombor: "/ombor",
   mini: "/mini",
   doctor: "/mini",
   manager: "/super",

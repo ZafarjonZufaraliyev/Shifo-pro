@@ -2,17 +2,15 @@
   <div class="patient-card" v-if="!loading && patient">
     <h2>🏪 Bemor Maʼlumotlari</h2>
 
-    <!-- Bemor ma'lumotlari -->
     <div class="info-grid">
       <div class="info-item"><strong>Familiya:</strong> {{ patient.familiya }}</div>
       <div class="info-item"><strong>Ism:</strong> {{ patient.ism }}</div>
-      <div class="info-item"><strong>Yoshi:</strong> {{ patient.yosh || hisoblaYosh(patient.tugulgan_sana) }}</div>
+      <div class="info-item"><strong>Yoshi:</strong> {{ hisoblaYosh(patient.tugulgan_sana) }}</div>
       <div class="info-item"><strong>Jinsi:</strong> {{ patient.jinsi || 'Nomaʼlum' }}</div>
       <div class="info-item"><strong>Kelgan vaqti:</strong> {{ formatDate(latestStay?.kelish_sanasi) }}</div>
       <div class="info-item"><strong>Ketadigan vaqti:</strong> {{ formatDate(latestStay?.ketish_sanasi) }}</div>
     </div>
 
-    <!-- Tablar -->
     <div class="tab-section">
       <div class="tab-header">
         <div :class="['tab-title', activeTab === 'xizmatlar' ? 'active' : '']" @click="activeTab = 'xizmatlar'">Xizmatlar</div>
@@ -33,10 +31,10 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(item, index) in filteredData" :key="index">
-            <td>{{ index + 1 }}</td>
-            <td v-if="activeTab === 'xizmatlar'">{{ item.nomi }}</td>
-            <td v-if="activeTab === 'xizmatlar'">{{ formatPrice(item.arxi) }}</td>
+          <tr v-for="(item, i) in filteredData" :key="i">
+            <td>{{ i + 1 }}</td>
+            <td v-if="activeTab === 'xizmatlar'">{{ item.xona }}</td>
+            <td v-if="activeTab === 'xizmatlar'">{{ formatPrice(item.price) }}</td>
             <td v-if="activeTab === 'xizmatlar'">
               <span :class="['badge', item.tolangan ? 'paid' : 'unpaid']">
                 {{ item.tolangan ? 'To‘langan' : 'To‘lanmagan' }}
@@ -56,11 +54,11 @@
       </div>
 
       <div v-if="activeTab === 'xizmatlar'" class="action-buttons">
-        <button class="btn-action" @click="showServiceModal = true">+ Xizmat qo‘shish</button>
-        <button class="btn-action" :disabled="!canReRegister" @click="showReRegister = true">🔁 Yana yotaman</button>
+        <button @click="showServiceModal = true">+ Xizmat qo‘shish</button>
+        <button :disabled="!canReRegister" @click="showReRegister = true">🔁 Yana yotaman</button>
       </div>
 
-      <!-- Yangi xizmat qo'shish modal -->
+      <!-- Service Modal -->
       <div v-if="showServiceModal" class="modal-overlay" @click.self="showServiceModal = false">
         <div class="modal">
           <h3>Yangi xizmat qo‘shish</h3>
@@ -68,59 +66,41 @@
           <input type="number" v-model.number="newService.narxi" placeholder="Narxi" />
           <label><input type="checkbox" v-model="newService.tolangan" /> To‘langan</label>
           <div class="modal-actions">
-            <button class="btn-primary" @click="addService">Qo‘shish</button>
-            <button class="btn-secondary" @click="showServiceModal = false">Bekor qilish</button>
+            <button @click="addTempService">Qo‘shish</button>
+            <button @click="showServiceModal = false">Bekor</button>
           </div>
         </div>
       </div>
 
-      <!-- Yana yotaman (re-register) modal -->
+      <!-- Re-register Modal -->
       <div v-if="showReRegister" class="modal-overlay" @click.self="showReRegister = false">
         <div class="modal">
-          <h3>Yangi yotish maʼlumotlarini kiriting</h3>
-
-          <label>
-            Kirish sanasi:
-            <input type="date" v-model="reRegisterData.kirish_sanasi" />
-          </label>
-
-          <label>
-            Chiqish sanasi:
-            <input type="date" v-model="reRegisterData.chiqish_sanasi" />
-          </label>
-
-          <label>
-            Xona tanlash:
-            <select v-model="reRegisterData.xona_id">
-              <option disabled value="">Xona tanlang</option>
-              <option v-for="x in availableRooms" :key="x.id" :value="x.id">{{ x.xona }}</option>
+          <h3>Yangi yotish</h3>
+          <label>Kirish sanasi: <input type="date" v-model="rr.kirish_sanasi" /></label>
+          <label>Chiqish sanasi: <input type="date" v-model="rr.chiqish_sanasi" /></label>
+          <label>Xona: 
+            <select v-model="rr.xona_id">
+              <option disabled value="">Tanlang</option>
+              <option v-for="r in availableRooms" :key="r.id" :value="r.id">{{ r.xona }}</option>
             </select>
           </label>
-
-          <label>
-            Xizmatlar (Ctrl / Cmd + klik bilan bir nechta tanlash mumkin):
-            <select v-model="reRegisterData.xizmatlar" multiple>
+          <label>Xizmatlar:
+            <select multiple v-model="rr.xizmatlar">
               <option v-for="s in allServices" :key="s.id" :value="s.id">{{ s.nomi }}</option>
             </select>
           </label>
-
           <div class="modal-actions">
-            <button class="btn-primary" @click="submitReRegister">✅ Tasdiqlash</button>
-            <button class="btn-secondary" @click="showReRegister = false">❌ Bekor qilish</button>
+            <button @click="submitReRegister">✅ Tasdiqlash</button>
+            <button @click="showReRegister = false">❌ Bekor</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Orqaga tugma -->
     <router-link :to="`/${role}/bemorlar`" class="btn-back">↩ Orqaga</router-link>
   </div>
-
-  <div v-else class="loading-container">
-    <p>⏳ Yuklanmoqda...</p>
-  </div>
+  <div v-else class="loading-container"><p>⏳ Yuklanmoqda...</p></div>
 </template>
-
 
 <script>
 import api from '@/api';
@@ -128,231 +108,131 @@ import api from '@/api';
 export default {
   data() {
     return {
-      canReRegister: false,
-      showServiceModal: false,
-      showReRegister: false,
-      loading: true,
-      error: null,
+      loading: false,
       patient: null,
       stays: [],
       xizmatlar: [],
       kasalliklar: [],
       natijalar: [],
-      allServices: [],
       availableRooms: [],
+      allServices: [],
       activeTab: 'xizmatlar',
+      canReRegister: false,
+      showServiceModal: false,
+      showReRegister: false,
+      newService: { nomi: '', narxi: 0, tolangan: false },
+      rr: { kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [] },
       role: localStorage.getItem('role') || 'mini',
-      newService: {
-        nomi: '',
-        narxi: 0,
-        tolangan: false,
-      },
-      reRegisterData: {
-        kirish_sanasi: '',
-        chiqish_sanasi: '',
-        xona_id: '',
-        xizmatlar: [],
-      },
     };
   },
-
   computed: {
-    latestStay() {
-      if (!this.stays.length) return null;
-      return this.stays.reduce((a, b) =>
-        new Date(a.kirish_sanasi) > new Date(b.kirish_sanasi) ? a : b
-      );
-    },
+    latestStay() { return this.stays[0] || null; },
     filteredData() {
       if (this.activeTab === 'xizmatlar') return this.xizmatlar;
-      if (this.activeTab === 'kasalliklar') return this.kasalliklar;
-      if (this.activeTab === 'natijalar') return this.natijalar;
-      return [];
+      return this.activeTab === 'kasalliklar' ? this.kasalliklar : this.natijalar;
     },
-    total() {
-      return this.xizmatlar.reduce((sum, x) => sum + (x.narxi || 0), 0);
-    },
-    totalPaid() {
-      return this.xizmatlar.filter(x => x.tolangan).reduce((sum, x) => sum + (x.narxi || 0), 0);
-    },
-    totalUnpaid() {
-      return this.total - this.totalPaid;
-    }
+    total() { return this.sumField('price'); },
+    totalPaid() { return this.xizmatlar.filter(x => x.tolangan).reduce((sum, x) => sum + x.narxi, 0); },
+    totalUnpaid() { return this.total - this.totalPaid; }
   },
-
   methods: {
-    hisoblaYosh(tugulgan_sana) {
-      if (!tugulgan_sana) return '-';
-      const today = new Date();
-      const birthDate = new Date(tugulgan_sana);
-      let yosh = today.getFullYear() - birthDate.getFullYear();
-      const m = today.getMonth() - birthDate.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-        yosh--;
-      }
-      return yosh;
+    sumField(f) { return this.xizmatlar.reduce((s, x) => s + (x[f] || 0), 0); },
+    formatDate(d) { return d ? new Date(d).toLocaleDateString('uz-UZ') : '-'; },
+    formatPrice(p) { return p ? `${p.toLocaleString()} soʻm` : '0 soʻm'; },
+    hisoblaYosh(d) {
+      if (!d) return '-'; const b = new Date(d), t = new Date();
+      let y = t.getFullYear() - b.getFullYear();
+      if (t.getMonth() < b.getMonth() || (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) y--;
+      return y;
     },
-    formatDate(d) {
-      return d ? new Date(d).toLocaleDateString('uz-UZ') : '-';
-    },
-    formatPrice(p) {
-      return p ? `${p.toLocaleString()} soʻm` : '0 soʻm';
-    },
-    getDaysBetween(start, end) {
-      if (!start || !end) return 0;
-      const d1 = new Date(start);
-      const d2 = new Date(end);
-      const diffTime = d2 - d1;
-      return diffTime > 0 ? Math.ceil(diffTime / (1000 * 60 * 60 * 24)) : 0;
-    },
-    getServiceNameById(id) {
-      return this.allServices.find(s => s.id === id)?.nomi || "Nomaʼlum xizmat";
-    },
-
-    async fetchPatient() {
+    async fetchAll() {
       this.loading = true;
       const id = this.$route.params.id;
-
       try {
-        // Bemor asosiy ma'lumotlari
-        const { data: patient } = await api.get(`/public/api/v1/clients/${id}`);
-        this.patient = patient;
-        this.kasalliklar = patient.kasalliklar || [];
-        this.natijalar = patient.natijalar || [];
-
-        // Davolanishlarni olish
-        const { data: stays } = await api.get(`/public/api/v1/davolanish?client_id=${id}`);
-        this.stays = stays;
-
-        // Xonalar va xizmatlarni olish
-        const [roomsRes, servicesRes] = await Promise.all([
-          api.get('/public/api/v1/room'),
-          api.get('/public/api/v1/services'),
+        const [p, st, rooms, services] = await Promise.all([
+          api.get('/api/v1/clients/' + id),
+          api.get('/api/v1/davolanish?client_id=' + id),
+          api.get('/api/v1/room'),
+          api.get('/api/v1/services')
         ]);
-        this.availableRooms = roomsRes.data;
-        this.allServices = servicesRes.data;
+        this.patient = p.data;
+        this.stays = st.data;
+        this.kasalliklar = this.patient.kasalliklar;
+        this.natijalar = this.patient.natijalar;
+        this.availableRooms = rooms.data;
+        this.allServices = services.data;
 
-        // Eng so‘nggi davolanish
         if (this.latestStay) {
-          const { id: davolanish_id, xona_id, kirish_sanasi, chiqish_sanasi } = this.latestStay;
-
-          // Ushbu davolanishga tegishli xizmatlarni olish
-          const { data: serviceData } = await api.get(`/public/api/v1/client-services?davolanish_id=${davolanish_id}`);
-
-          this.xizmatlar = serviceData.map(x => ({
-            id: x.id,
-            service_id: x.service_id,
-            nomi: this.getServiceNameById(x.service_id),
-            narxi: x.price,
-            sana: x.start_date,
-            tolangan: !!x.tolangan,
+          const cs = await api.get('/api/v1/client-services?davolanish_id=' + this.latestStay.id);
+          this.xizmatlar = cs.data.map(item => ({
+            ...item,
+            nomi: this.allServices.find(s => s.id === item.service_id)?.nomi || item.nomi,
           }));
-
-          // Xona narxini olish uchun xona turi
-          let xonaNarxi = 0;
-          const xona = this.availableRooms.find(x => x.id === xona_id);
-          if (xona && xona.room_type_id) {
-            const { data: roomType } = await api.get(`/public/api/v1/room_types/${xona.room_type_id}`);
-            xonaNarxi = parseFloat(roomType.Narxi) || 0;
-          }
-
-          // Kunlar soni
-          const days = this.getDaysBetween(kirish_sanasi, chiqish_sanasi);
-
-          // Xona uchun xizmatni ro‘yxat boshiga qo‘shish
-          this.xizmatlar.unshift({
-            id: 'xona-auto',
-            nomi: `Xona: ${xona?.xona || 'nomaʼlum'}`,
-            narxi: xonaNarxi * days,
-            sana: kirish_sanasi,
-            tolangan: false
-          });
-
-          // Can re-register shartlarini tekshirish (chiqish sanasi o‘tmagan bo‘lsa)
-          const today = new Date();
-          this.canReRegister = chiqish_sanasi ? (new Date(chiqish_sanasi) > today) : false;
+          this.updateRoomCharge();
         }
-      } catch (err) {
-        console.error("Xatolik:", err);
-        this.error = "Maʼlumotlarni yuklashda xatolik yuz berdi.";
+        this.canReRegister = this.latestStay && new Date(this.latestStay.ketish_sanasi) > new Date();
+      } catch (e) {
+        console.error(e);
+        alert('Maʼlumot olishda xatolik');
       } finally {
         this.loading = false;
       }
     },
-
-    addService() {
-      if (!this.newService.nomi || this.newService.narxi <= 0) {
-        alert("Iltimos, xizmat nomi va narxini kiriting!");
-        return;
-      }
-      this.xizmatlar.push({
-        id: `temp-${Date.now()}`,
-        service_id: null,
-        nomi: this.newService.nomi,
-        narxi: this.newService.narxi,
-        sana: new Date().toISOString(),
-        tolangan: this.newService.tolangan,
+    updateRoomCharge() {
+      const x = this.latestStay;
+      if (!x) return;
+      const room = this.availableRooms.find(r => r.id === x.xona_id);
+      const price = (room?.room_type_id ? room.room_type_price : 0) || 0;
+      const days = Math.max(Math.ceil((new Date(x.ketish_sanasi) - new Date(x.kelish_sanasi)) / (864e5)), 0);
+      this.xizmatlar.unshift({
+        id: 'xona-auto',
+        nomi: `Xona: ${room?.xona}`,
+        narxi: price * days,
+        sana: x.kirish_sanasi,
+        tolangan: false
       });
-      this.showServiceModal = false;
-      this.newService = { nomi: '', narxi: 0, tolangan: false };
     },
-
+    addTempService() {
+      const s = this.newService;
+      if (!s.nomi || s.narxi <= 0) return alert('Iltimos, nomi va narx kiriting');
+      this.xizmatlar.push({ ...s, id: Date.now(), sana: new Date().toISOString() });
+      this.newService = { nomi: '', narxi: 0, tolangan: false };
+      this.showServiceModal = false;
+    },
     async submitReRegister() {
-      if (!this.reRegisterData.kirish_sanasi || !this.reRegisterData.chiqish_sanasi || !this.reRegisterData.xona_id) {
-        alert("Iltimos, barcha maydonlarni to'ldiring!");
-        return;
-      }
-
+      const r = this.rr;
+      if (!r.kirish_sanasi || !r.chiqish_sanasi || !r.xona_id) return alert('Barcha maydon to‘ldirilsin');
       try {
-        const clientId = this.$route.params.id;
-
-        // Davolanish yaratish
-        const { data: newDavolanish } = await api.post('/public/api/v1/davolanish', {
-          client_id: clientId,
-          kirish_sanasi: this.reRegisterData.kirish_sanasi,
-          chiqish_sanasi: this.reRegisterData.chiqish_sanasi,
-          xona_id: this.reRegisterData.xona_id,
-          create_user_id: localStorage.getItem('user_id'),
-          create_user_name: localStorage.getItem('user_name'),
+        const nd = await api.post('/api/v1/davolanish', {
+          client_id: this.patient.id,
+          kirish_sanasi: r.kirish_sanasi,
+          chiqish_sanasi: r.chiqish_sanasi,
+          xona_id: r.xona_id
         });
-
-        // Yangi davolanishga xizmatlar qo'shish
-        if (this.reRegisterData.xizmatlar.length) {
-          for (const serviceId of this.reRegisterData.xizmatlar) {
-            const service = this.allServices.find(s => s.id === serviceId);
-            if (!service) continue;
-
-            await api.post('/public/api/v1/client-services', {
-              client_id: clientId,
-              davolanish_id: newDavolanish.id,
-              service_id: service.id,
-              price: service.Narxi || service.narxi || 0,
-              start_date: this.reRegisterData.kirish_sanasi,
-              user_id: localStorage.getItem('user_id'),
-              user_name: localStorage.getItem('user_name'),
-              tolangan: false,
-            });
-          }
+        for (const sid of r.xizmatlar) {
+          await api.post('/api/v1/client-services', {
+            client_id: this.patient.id,
+            davolanish_id: nd.data.id,
+            service_id: sid,
+            start_date: r.kirish_sanasi,
+            price: this.allServices.find(s => s.id === sid)?.narxi || 0
+          });
         }
-
-        alert("Yangi yotish muvaffaqiyatli qo'shildi!");
+        alert('Yangi yotish qo‘shildi');
         this.showReRegister = false;
-
-        // Bemor ma'lumotlarini yangilash
-        await this.fetchPatient();
-
-      } catch (error) {
-        console.error("Re-registerda xatolik:", error);
-        alert("Yangi yotish qo'shishda xatolik yuz berdi!");
+        this.fetchAll();
+      } catch (e) {
+        console.error(e);
+        alert('Xatolik yuz berdi');
       }
     }
   },
-
   mounted() {
-    this.fetchPatient();
+    this.fetchAll();
   }
 };
 </script>
+
 
 <style scoped>
 .patient-card {

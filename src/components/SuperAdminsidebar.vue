@@ -20,15 +20,18 @@
       </div>
 
       <ul>
-        <li><router-link to="/admin" @click.native="closeSidebar">🏠 Bosh sahifa</router-link></li>
-        <li><router-link to="/admin/bemorlar" @click.native="closeSidebar">Bemorlar</router-link></li>
-        <li><router-link to="/admin/rooms" @click.native="closeSidebar">Xonalar</router-link></li>
-        <li><router-link to="/admin/stats" @click.native="closeSidebar">Kassa</router-link></li>
-         <li><router-link to="/admin/xodimlar" @click.native="closeSidebar">Xodimlar</router-link></li>
+        <li><router-link to="/admin" @click.="closeSidebar">🏠 Bosh sahifa</router-link></li>
+        <li><router-link to="/admin/bemorlar" @click="closeSidebar">Bemorlar</router-link></li>
+        <li><router-link to="/admin/rooms" @click="closeSidebar">Xonalar</router-link></li>
+        <li><router-link to="/admin/stats" @click="closeSidebar">Kassa</router-link></li>
+        <li><router-link to="/admin/xodimlar" @click="closeSidebar">Xodimlar</router-link></li>
+        <li><router-link to="/admin/maxsulotlarOshxona" @click="closeSidebar">Oshxona Maxsulotlar</router-link></li>
+        <li><router-link to="/admin/retseptOshxona" @click="closeSidebar">Oshxona Retsept</router-link></li>
+        <li><router-link to="/admin/chiqimOshxona" @click="closeSidebar">Oshxona Chiqimlar</router-link></li>
       </ul>
 
       <!-- Select - telefon uchun responsive -->
-        
+
     </div>
   </div>
 </template>
@@ -75,5 +78,4 @@ export default {
 
 <style scoped>
 /* Sidebar */
-
 </style>

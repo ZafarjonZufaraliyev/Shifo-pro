@@ -7,6 +7,7 @@ import MiniAdminLayout from "@/layouts/MiniAdminLayout.vue";
 
 import SuperDashboard from "@/views/SuperDashboard.vue";
 import MiniDashboard from "@/views/MiniDashboard.vue";
+
 import Bemorlar from "@/components/Bemorlar.vue";
 import Rooms from "@/components/Rooms.vue";
 import Stats from "@/components/Kassa.vue";
@@ -17,6 +18,21 @@ import RoomDetels from "@/components/RoomDetels.vue";
 import TaklifDetelis from "@/components/TaklifDetelis.vue";
 import Xodimlar from "@/components/Xodimlar.vue";
 
+//Oshxona
+
+import OshxonaLayout from "@/layouts/OshxonaLayout.vue";
+import OshxonaDashboard from "@/views/OshxonaDashboard.vue";
+import RetseptOshxonaOshxona from "@/components/RetseptOshxona.vue";
+import ChiqimOshxona from "@/components/ChiqimOshxona.vue";
+import MaxsulotlarOshxona from "@/components/MaxsulotlarOshxona.vue";
+
+// Ombor
+
+import OmborChiqim from "@/components/OmborChiqim.vue";
+import OmborKirim from "@/components/OmborKirim.vue";
+import OmborMaxsulotlar from "@/components/OmborMaxsulotlar.vue";
+import OmborLayout from "@/layouts/OmborLayout.vue";
+import OmborDashboard from "@/views/OmborDashboard.vue";
 const routes = [
   { path: "/", redirect: "/login" },
   { path: "/TaklifDetelis", name: "TaklifDetelis", component: TaklifDetelis },
@@ -35,9 +51,32 @@ const routes = [
       { path: "bemorlar", name: "adminBemorlar", component: Bemorlar },
       { path: "rooms", name: "adminRooms", component: Rooms },
       { path: "stats", name: "adminKassa", component: Stats },
-      { path: "RegisterPage", name: "adminRegisterPage", component: RegisterPage },
-   { path: "taklif/:clientId", name: "adminTakliflar", component: Takliflar, props: true, },
-
+      {
+        path: "RegisterPage",
+        name: "adminRegisterPage",
+        component: RegisterPage,
+      },
+      {
+        path: "taklif/:clientId",
+        name: "adminTakliflar",
+        component: Takliflar,
+        props: true,
+      },
+      { 
+        path: "retseptOshxona", 
+        name: "AdminKirimOshxona", 
+        component: RetseptOshxonaOshxona 
+      },
+      {
+        path: "chiqimOshxona",
+        name: "AdminchiqimOshxona",
+        component: ChiqimOshxona,
+      },
+      {
+        path: "maxsulotlarOshxona",
+        name: "AdminmaxsulotlarOshxona",
+        component: MaxsulotlarOshxona,
+      },
     ],
   },
 
@@ -52,9 +91,53 @@ const routes = [
       { path: "room/:id", name: "miniRoomDetails", component: RoomDetels },
       { path: "bemorlar", name: "MiniBemorlar", component: Bemorlar },
       { path: "rooms", name: "MiniRooms", component: Rooms },
-      { path: "RegisterPage", name: "miniRegisterPage", component: RegisterPage },
+      {
+        path: "RegisterPage",
+        name: "miniRegisterPage",
+        component: RegisterPage,
+      },
       { path: "taklif", name: "miniTakliflar", component: Takliflar },
       { path: "stats", name: "miniKassa", component: Stats },
+    ],
+  },
+  //OSHXONA
+  {
+    path: "/oshxona",
+    component: OshxonaLayout,
+    meta: { role: "oshxona" },
+    children: [
+      { path: "", name: "OshxonaDashboard", component: OshxonaDashboard },
+      { path: "retseptOshxona", name: "KirimOshxona", component: RetseptOshxonaOshxona },
+      {
+        path: "chiqimOshxona",
+        name: "chiqimOshxona",
+        component: ChiqimOshxona,
+      },
+      {
+        path: "maxsulotlarOshxona",
+        name: "maxsulotlarOshxona",
+        component: MaxsulotlarOshxona,
+      },
+    ],
+  },
+  //OMBOR
+  {
+    path: "/ombor",
+    component: OmborLayout,
+    meta: { role: "ombor" },
+    children: [
+      { path: "", name: "OmborDashboard", component: OmborDashboard },
+      { path: "omborKirim", name: "omborKirim", component: OmborKirim },
+      {
+        path: "omborChiqim",
+        name: "omborChiqim",
+        component: OmborChiqim,
+      },
+      {
+        path: "omborMaxsulotlar",
+        name: "omborMaxsulotlar",
+        component: OmborMaxsulotlar,
+      },
     ],
   },
 ];
