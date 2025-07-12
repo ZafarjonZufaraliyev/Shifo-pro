@@ -1,150 +1,243 @@
 <template>
-  <div class="warehouse-table">
-    <!-- Header -->
-    <h2 class="header">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        class="icon"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="1.5"
-          d="M3 7l9-4 9 4m-1 8a8 8 0 11-16 0M4 7v8a8 8 0 0016 0V7"
-        />
-      </svg>
-      Ombordagi Mahsulotlar
-    </h2>
+  <div class="products-page">
+    <!-- Sarlavha -->
+    <div class="page-header">
+      <h2>📦 Ombordagi Mahsulotlar</h2>
+      <button class="add-toggle-btn" @click="showForm = !showForm">
+        {{ showForm ? '➖ Yopish' : '➕ Mahsulot qo‘shish' }}
+      </button>
+    </div>
 
-    <!-- Table -->
-    <div class="table-wrapper">
-      <table>
+    <!-- Qo‘shish formasi -->
+    <transition name="fade">
+      <div v-if="showForm" class="product-form">
+        <input v-model="newProduct.name" placeholder="Mahsulot nomi" />
+        <input v-model="newProduct.unit" placeholder="O‘lchami (kg, l, dona...)" />
+        <button :disabled="!isValid" @click="addProduct">✅ Saqlash</button>
+      </div>
+    </transition>
+
+    <!-- Yuklanmoqda animatsiyasi -->
+    <div v-if="loading" class="loading">⏳ Yuklanmoqda...</div>
+
+    <!-- Mahsulotlar jadvali -->
+    <div v-else class="product-table-wrapper">
+      <table class="product-table">
         <thead>
           <tr>
             <th>#</th>
             <th>Mahsulot nomi</th>
-            <th>O'lchami</th>
-            <th>Izoh</th>
+            <th>O‘lchami</th>
+            <th>Qo‘shilgan sana</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(item, index) in products" :key="item.id" :class="index % 2 === 0 ? 'even' : ''">
-            <td>{{ index + 1 }}</td>
-            <td class="product-name">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="icon-inline"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <path d="M3 3h18v2H3zm0 4h18v2H3zm0 4h18v2H3zm0 4h18v2H3z" />
-              </svg>
-              {{ item.name }}
-            </td>
-            <td>{{ item.size }}</td>
-            <td class="note">{{ item.note }}</td>
+          <tr v-for="(item, idx) in products" :key="item.id">
+            <td>{{ idx + 1 }}</td>
+            <td>{{ item.name }}</td>
+            <td>{{ item.unit }}</td>
+            <td>{{ fmtDate(item.created_at) }}</td>
           </tr>
         </tbody>
       </table>
+      <p v-if="!products.length" class="empty-state">
+        ❌ Mahsulotlar yo‘q. Yangi mahsulot qo‘shing!
+      </p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted, computed } from 'vue';
+import api from '@/api';
 
-const products = ref([
-  { id: 1, name: "Un", size: "50 kg", note: "Yangi yetkazib berilgan" },
-  { id: 2, name: "Shakar", size: "25 kg", note: "Talab yuqori" },
-  { id: 3, name: "Oʻsimlik yogʻi", size: "10 l", note: "Yaroqlilik muddati: 2025-11" },
-  { id: 4, name: "Guruch", size: "20 kg", note: "Premium toifa" },
-]);
+const products = ref([]);
+const showForm = ref(false);
+const loading = ref(true);
+const newProduct = ref({ name: '', unit: '' });
+
+const isValid = computed(() =>
+  newProduct.value.name.trim() && newProduct.value.unit.trim()
+);
+
+function fmtDate(d) {
+  return new Date(d).toLocaleDateString('uz-UZ');
+}
+
+async function fetchProducts() {
+  loading.value = true;
+  try {
+    const { data } = await api.get('/api/v1/products');
+    products.value = data;
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function addProduct() {
+  await api.post('/api/v1/products', { ...newProduct.value });
+  newProduct.value = { name: '', unit: '' };
+  showForm.value = false;
+  await fetchProducts();
+}
+
+onMounted(fetchProducts);
 </script>
 
 <style scoped>
-.warehouse-table {
+:root {
+  --primary: #1A6291;
+  --primary-dark: #15486a;
+  --accent: #10b981;
+  --light-bg: #f1f5f9;
+  --border: #e2e8f0;
+  --text-dark: #1f2937;
+  --text-muted: #6b7280;
+  --text-white: #ffffff;
+}
+
+.products-page {
   max-width: 1200px;
-  margin: 20px auto;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  color: #2c3e50;
+  margin:20px auto;
   padding: 20px;
-  background-color: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  font-family: 'Segoe UI', sans-serif;
+  color: var(--text-dark);
+  background-color: var(--light-bg);
 }
 
 /* Header */
-.header {
+.page-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 10px;
-  font-size: 28px;
-  font-weight: 700;
   margin-bottom: 24px;
-  color: #5c3d99;
+}
+.page-header h2 {
+  font-size: 28px;
+  color: var(--primary);
+}
+.add-toggle-btn {
+  background-color: var(--primary);
+  color: var(--text-white);
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 15px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+.add-toggle-btn:hover {
+  background-color: var(--primary-dark);
 }
 
-.icon {
-  width: 32px;
-  height: 32px;
-  stroke: #7c3aed;
+/* Form */
+.product-form {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+.product-form input {
+  flex: 1;
+  min-width: 220px;
+  padding: 10px 14px;
+  font-size: 15px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background-color: var(--text-white);
+  color: var(--text-dark);
+  transition: border-color 0.2s ease;
+}
+.product-form input::placeholder {
+  color: var(--text-muted);
+}
+.product-form input:focus {
+  border-color: var(--primary);
+  outline: none;
+  background-color: #f0f9ff;
+}
+.product-form button {
+  background: var(--accent);
+  color: var(--text-white);
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+.product-form button:hover:not(:disabled) {
+  background: #0e9e6e;
+}
+.product-form button:disabled {
+  background: #a7f3d0;
+  cursor: not-allowed;
 }
 
-/* Table wrapper */
-.table-wrapper {
+/* Table styles */
+.product-table-wrapper {
   overflow-x: auto;
+  background: var(--text-white);
   border-radius: 12px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
-
-/* Table */
-table {
+.product-table {
   width: 100%;
   border-collapse: collapse;
-  background-color: #fafafa;
-  border-radius: 12px;
-  overflow: hidden;
+  min-width: 600px;
+}
+.product-table th {
+  background-color: var(--primary);
+  color: var(--text-white);
+  padding: 14px;
+  text-align: left;
+  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 600;
+}
+.product-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 15px;
+  color: var(--text-dark);
+}
+.product-table tr:hover {
+  background-color: var(--light-bg);
 }
 
-th,
-td {
-  text-align: left;
-  padding: 12px 16px;
-  border-bottom: 1px solid #ddd;
+/* Empty state */
+.empty-state {
+  text-align: center;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 20px;
   font-size: 15px;
 }
 
-th {
-  background-color: #6b46c1;
-  color: white;
-  text-transform: uppercase;
-  font-weight: 700;
+/* Loading */
+.loading {
+  text-align: center;
+  font-size: 18px;
+  color: var(--primary);
+  padding: 40px 0;
+  animation: pulse 1.2s infinite;
+}
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
-tr.even {
-  background-color: #f3f2f7;
+/* Animation */
+.fade-enter-active, .fade-leave-active {
+  transition: all 0.3s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
 }
 
-.product-name {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-}
-
-.icon-inline {
-  width: 18px;
-  height: 18px;
-  fill: #d53f8c;
-  flex-shrink: 0;
-}
-
-.note {
-  font-style: italic;
-  font-size: 13px;
-  color: #666;
-}
 </style>

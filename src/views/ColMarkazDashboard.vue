@@ -3,74 +3,21 @@
     <h1 class="fade-in">Dashboardga xush kelibsiz, {{ username }}!</h1>
     <p class="fade-in-delay">Sizning boshqaruv panelingizga nazar soling.</p>
 
-    <!-- Statistik kartalar -->
-    <div class="stats-cards">
-      <motion-div
-        v-motion
-        :initial="{ opacity: 0, y: -30 }"
-        :enter="{ opacity: 1, y: 0 }"
-        class="stat-card card1"
-      >
-        <h3>Bugungi bemorlar</h3>
-        <p>{{ todayPatients }}</p>
-      </motion-div>
-
-      <motion-div
-        v-motion
-        :initial="{ opacity: 0, y: -30 }"
-        :enter="{ opacity: 1, y: 0 }"
-        class="stat-card card2"
-      >
-        <h3>Haftalik bemorlar</h3>
-        <p>{{ weeklyPatients }}</p>
-      </motion-div>
-
-      <motion-div
-        v-motion
-        :initial="{ opacity: 0, y: -30 }"
-        :enter="{ opacity: 1, y: 0 }"
-        class="stat-card card3"
-      >
-        <h3>Oylik foydalanuvchilar</h3>
-        <p>{{ monthlyUsers }}</p>
-      </motion-div>
-    </div>
-
-    <!-- Grafiklar -->
-    <div class="charts">
-      <motion-div
-        v-motion
-        :initial="{ opacity: 0, y: 40 }"
-        :enter="{ opacity: 1, y: 0 }"
-        class="chart-card"
-      >
-        <h3>Xizmatlar (haftalik)</h3>
-        <BarChart :chartData="weeklyServices" :options="{ responsive: true, maintainAspectRatio: false }" />
-      </motion-div>
-
-      <motion-div
-       
-        class="chart-card"
-      >
-        <h3>Foydalanuvchilar (oylik)</h3>
-        <LineChart :chartData="monthlyUsersChart" :options="{ responsive: true, maintainAspectRatio: false }" />
-      </motion-div>
-    </div>
+  
   </div>
 </template>
 
 <script>
-import { BarChart, LineChart } from 'vue-chart-3'
-import { Chart, registerables } from 'chart.js'
 
-Chart.register(...registerables)
+
+
 
 export default {
-  name: 'SuperDashboard',
-  components: { BarChart, LineChart },
+  name: 'CallDashboard',
+ 
   data() {
     return {
-      username: localStorage.getItem('username') || 'Admin',
+      username: localStorage.getItem('username') || 'Oshxona',
       todayPatients: 12,
       weeklyPatients: 80,
       monthlyUsers: 310,
@@ -119,9 +66,7 @@ export default {
 /* Umumiy stil va layout */
 .dashboard {
   padding: 20px;
-  margin: 20px ;
-  
-/* width:100%; */
+  margin: 20px auto;
   max-width: 1200px;
   font-family: "Segoe UI", sans-serif;
   background-color: #f5f7fa;

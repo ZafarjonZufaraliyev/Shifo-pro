@@ -66,12 +66,12 @@ export default {
 /* Umumiy stil va layout */
 .dashboard {
   padding: 20px;
-  margin: 20px 20px 20px 290px;
+  margin: 20px auto;
 /* width:100%; */
   max-width: 1200px;
   font-family: "Segoe UI", sans-serif;
   background-color: #f5f7fa;
-  min-height: 100vh;
+  
 }
 @media (max-width: 768px) {
  .calendar-container {

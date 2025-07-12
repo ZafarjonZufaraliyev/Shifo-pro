@@ -33,6 +33,14 @@ import OmborKirim from "@/components/OmborKirim.vue";
 import OmborMaxsulotlar from "@/components/OmborMaxsulotlar.vue";
 import OmborLayout from "@/layouts/OmborLayout.vue";
 import OmborDashboard from "@/views/OmborDashboard.vue";
+
+//Col Markaz
+
+
+import ColMarkazDashboard from "@/views/ColMarkazDashboard.vue";
+import ColMarkazLayout from "@/layouts/ColMarkazLayout.vue";
+
+
 const routes = [
   { path: "/", redirect: "/login" },
   { path: "/TaklifDetelis", name: "TaklifDetelis", component: TaklifDetelis },
@@ -99,7 +107,7 @@ const routes = [
   {
     path: "/mini",
     component: MiniAdminLayout,
-    meta: { role: "kassir" },
+    meta: { role: "kassa" },
     children: [
       { path: "", name: "MiniDashboard", component: MiniDashboard },
       { path: "BemorCard/:id", name: "miniBemor_card", component: Bemor_card },
@@ -146,7 +154,18 @@ const routes = [
     { path: "omborChiqim", name: "omborChiqim", component: OmborChiqim },
     { path: "omborMaxsulotlar", name: "omborMaxsulotlar", component: OmborMaxsulotlar },
   ]
-},
+  },
+  {
+    path: "/callCenter",
+    component: ColMarkazLayout,
+    meta: { role: "call_center" },
+    children: [
+      { path: "", name: "ColMarkazDashboard", component: ColMarkazDashboard },
+      { path: "roomsCallCenter", name: "roomsCallCenter", component: Rooms },
+      
+    ],
+  },
+  //CAL MARKAZ
 ];
 
 const router = createRouter({

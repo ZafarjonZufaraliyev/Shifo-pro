@@ -66,7 +66,7 @@ export default {
 /* Umumiy stil va layout */
 .dashboard {
   padding: 20px;
-  margin: 20px 20px 20px 290px;
+  margin: 20px auto;
 /* width:100%; */
   max-width: 1200px;
   font-family: "Segoe UI", sans-serif;
