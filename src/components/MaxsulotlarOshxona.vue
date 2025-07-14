@@ -2,17 +2,25 @@
   <div class="oshpaz-page">
     <h2>👨‍🍳 Oshxona: Maxsulotlar holati</h2>
 
+    <!-- Sana oralig'i filtri -->
     <div class="filter">
-      <label>📅 Sanani tanlang: </label>
-      <input type="date" v-model="filterDate" />
+      <label>
+        Boshlanish sanasi:
+        <input type="date" v-model="dateFrom" />
+      </label>
+      <label>
+        Tugash sanasi:
+        <input type="date" v-model="dateTo" />
+      </label>
+
       <button @click="clearFilter" class="btn-clear">Filterni tozalash</button>
     </div>
 
-    <div v-if="filteredProducts.length === 0" class="no-data">
+    <div v-if="filteredOutflows.length === 0" class="no-data">
       Hech qanday mahsulot topilmadi.
     </div>
 
-    <div v-for="(items, sana) in groupedProducts" :key="sana" class="group">
+    <div v-for="(items, sana) in groupedOutflows" :key="sana" class="group">
       <h3>📅 {{ sana }}</h3>
       <table class="product-table">
         <thead>
@@ -22,18 +30,29 @@
             <th>Birlik</th>
             <th>Vaqt</th>
             <th>Holat</th>
+            <th>Amal</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(item, index) in items" :key="index">
-            <td>{{ item.nomi }}</td>
-            <td>{{ item.miqdori }}</td>
-            <td>{{ item.birlik }}</td>
-            <td>{{ item.time }}</td>
+          <tr v-for="(item) in items" :key="item.id">
+            <td>{{ item.product?.name || "Noma'lum mahsulot" }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ item.product?.unit || '' }}</td>
+            <td>{{ formatTime(item.date) }}</td>
             <td>
-              <span :class="item.status === 'tasdiqlandi' ? 'confirmed' : 'pending'">
-                {{ item.status }}
-              </span>
+              <span v-if="item.checking === 1" class="confirmed">Omborga tasdiqlandi</span>
+              <span v-else class="pending">Tasdiqlanmadi</span>
+            </td>
+            <td>
+              <button
+                v-if="item.checking !== 1"
+                @click="confirmOutflow(item)"
+                :disabled="loadingIds.includes(item.id)"
+                class="btn-confirm"
+              >
+                {{ loadingIds.includes(item.id) ? 'Tasdiqlanmoqda...' : 'Tasdiqlash' }}
+              </button>
+              <span v-else>—</span>
             </td>
           </tr>
         </tbody>
@@ -43,97 +62,114 @@
 </template>
 
 <script>
+import api from '@/api';
+
 export default {
-  name: "OshpazSahifa",
+  name: "MaxsulotlarOshxona",
   data() {
     return {
-      filterDate: "",
-      products: [
-        {
-          nomi: "Un",
-          miqdori: 10,
-          birlik: "kg",
-          date: "2025-07-10",
-          time: "10:00",
-          status: "tasdiqlandi",
-        },
-        {
-          nomi: "Yog'",
-          miqdori: 5,
-          birlik: "liter",
-          date: "2025-07-10",
-          time: "10:00",
-          status: "tasdiqlandi",
-        },
-        {
-          nomi: "Non",
-          miqdori: 50,
-          birlik: "ta",
-          date: "2025-07-10",
-          time: "10:00",
-          status: "Tasdiqlanmagan",
-        },
-        {
-          nomi: "Tuxum",
-          miqdori: 10,
-          birlik: "ta",
-          date: "2025-07-10",
-          time: "10:00",
-          status: "Tasdiqlanmagan",
-        },
-        {
-          nomi: "Sut",
-          miqdori: 20,
-          birlik: "litr",
-          date: "2025-07-09",
-          time: "08:30",
-          status: "tasdiqlandi",
-        },
-        {
-          nomi: "Tuxum",
-          miqdori: 50,
-          birlik: "dona",
-          date: "2025-07-08",
-          time: "15:45",
-          status: "tasdiqlandi",
-        },
-        {
-          nomi: "Shakar",
-          miqdori: 30,
-          birlik: "kg",
-          date: "2025-07-09",
-          time: "12:00",
-          status: "Tasdiqlanmagan",
-        },
-      ],
+      dateFrom: '',
+      dateTo: '',
+      dateFilterApplied: false,
+
+      outflows: [], // Ombor chiqimlari ma'lumotlari
+      loading: false,
+      loadingIds: []
     };
   },
   computed: {
-    filteredProducts() {
-      let prods = this.products;
-      if (this.filterDate) {
-        prods = prods.filter((p) => p.date === this.filterDate);
-      }
-      return prods; // hammasi chiqadi: kutilmoqda va tasdiqlandi
+    filteredOutflows() {
+      if (!this.dateFilterApplied || (!this.dateFrom && !this.dateTo)) return this.outflows;
+
+      return this.outflows.filter(o => {
+        const date = o.date; // 'YYYY-MM-DD'
+        const afterFrom = !this.dateFrom || date >= this.dateFrom;
+        const beforeTo = !this.dateTo || date <= this.dateTo;
+        return afterFrom && beforeTo;
+      });
     },
-    groupedProducts() {
+    groupedOutflows() {
       const groups = {};
-      this.filteredProducts.forEach((p) => {
-        if (!groups[p.date]) groups[p.date] = [];
-        groups[p.date].push(p);
+      this.filteredOutflows.forEach(item => {
+        const dateKey = item.date;
+        if (!groups[dateKey]) groups[dateKey] = [];
+        groups[dateKey].push(item);
       });
       return groups;
-    },
+    }
   },
   methods: {
-    clearFilter() {
-      this.filterDate = "";
+    async fetchOutflows() {
+      this.loading = true;
+      try {
+        const { data } = await api.get('/api/v1/product-chiqim');
+        this.outflows = data.map(o => ({
+          ...o,
+          checking: Number(o.checking)
+        }));
+      } catch (e) {
+        console.error('Chiqimlarni olishda xatolik:', e);
+        alert('Chiqimlarni olishda xatolik yuz berdi');
+      } finally {
+        this.loading = false;
+      }
     },
+
+    applyDateFilter() {
+      this.dateFilterApplied = true;
+    },
+
+    clearFilter() {
+      this.dateFrom = '';
+      this.dateTo = '';
+      this.dateFilterApplied = false;
+    },
+
+    formatTime(dateStr) {
+      return new Date(dateStr).toLocaleTimeString('uz-UZ', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    },
+
+    async confirmOutflow(item) {
+      if (item.checking === 1) {
+        alert('Ushbu mahsulot allaqachon tasdiqlangan!');
+        return;
+      }
+
+      this.loadingIds.push(item.id);
+
+      try {
+        await api.patch(`/api/v1/product-chiqim/${item.id}`, {
+          product_id: item.product_id,
+          quantity: item.quantity,
+          used_for: item.used_for,
+          date: item.date,
+          comment: item.comment,
+          checking: 1
+        });
+
+        const index = this.outflows.findIndex(o => o.id === item.id);
+        if (index !== -1) this.outflows[index].checking = 1;
+
+        alert('Mahsulot chiqimi tasdiqlandi!');
+      } catch (error) {
+        console.error('Tasdiqlashda xatolik:', error);
+        alert('Tasdiqlashda xatolik yuz berdi!');
+      } finally {
+        this.loadingIds = this.loadingIds.filter(id => id !== item.id);
+      }
+    }
   },
+  mounted() {
+    this.fetchOutflows();
+  }
 };
 </script>
 
 <style scoped>
+/* (Sizning oldingi style’laringiz shu yerda qolsin, agar xohlasangiz menga ayting, to‘liq style kiritib beraman) */
 .oshpaz-page {
   max-width: 1200px;
   margin: 20px auto;
@@ -258,11 +294,31 @@ h2 {
 .pending {
   color: rgb(222, 149, 149);
   font-weight: 700;
-  background-color: red;
+  background-color: #f5c6c6;
   padding: 4px 10px;
   border-radius: 15px;
   display: inline-block;
   text-transform: capitalize;
+}
+
+.btn-confirm {
+  background-color: #2980b9;
+  border: none;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.btn-confirm:hover:not(:disabled) {
+  background-color: #1abc9c;
+}
+
+.btn-confirm:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
 }
 
 .no-data {

@@ -36,6 +36,7 @@
           </button>
           <ul v-if="activeSection === 'oshxona'" class="sub-menu">
             <li><router-link to="/admin/maxsulotlarOshxona" @click="closeSidebar">Oshxona Maxsulotlar</router-link></li>
+             <li><router-link to="/admin/oshxonaOvqatlari" @click="closeSidebar">Oshxona ovqatlari</router-link></li>
             <li><router-link to="/admin/retseptOshxona" @click="closeSidebar">Oshxona Retsept</router-link></li>
             <li><router-link to="/admin/chiqimOshxona" @click="closeSidebar">Oshxona Chiqimlar</router-link></li>
           </ul>
@@ -50,6 +51,8 @@
             <li><router-link to="/admin/omborMaxsulotlar" @click="closeSidebar">Ombor Maxsulotlar</router-link></li>
             <li><router-link to="/admin/omborKirim" @click="closeSidebar">Ombor Kirim</router-link></li>
             <li><router-link to="/admin/omborChiqim" @click="closeSidebar">Ombor Chiqimlar</router-link></li>
+            <li><router-link to="/admin/omborBalans" @click="closeSidebar">Ombor Balans</router-link>
+                                </li>
           </ul>
         </li>
       </ul>

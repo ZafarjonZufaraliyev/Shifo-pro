@@ -26,6 +26,8 @@
                     <li><router-link to="/ombor/omborKirim" @click="closeSidebar">Kirimlar</router-link></li>
                     <li><router-link to="/ombor/omborChiqim" @click="closeSidebar">Chiqimlar</router-link>
                     </li>
+                    <li><router-link to="/ombor/omborBalans" @click="closeSidebar">Ombor Balans</router-link>
+                    </li>
 
                </ul>
 

@@ -25,9 +25,11 @@ import OshxonaDashboard from "@/views/OshxonaDashboard.vue";
 import RetseptOshxonaOshxona from "@/components/RetseptOshxona.vue";
 import ChiqimOshxona from "@/components/ChiqimOshxona.vue";
 import MaxsulotlarOshxona from "@/components/MaxsulotlarOshxona.vue";
+import OshxonaOvqatlar from "@/components/OshxonaOvqatlar.vue"
 
 // Ombor
 
+import OmborBalans from "@/components/OmborBalans.vue";
 import OmborChiqim from "@/components/OmborChiqim.vue";
 import OmborKirim from "@/components/OmborKirim.vue";
 import OmborMaxsulotlar from "@/components/OmborMaxsulotlar.vue";
@@ -75,10 +77,20 @@ const routes = [
         name: "AdminKirimOshxona", 
         component: RetseptOshxonaOshxona 
       },
+      { 
+        path: "oshxonaOvqatlari", 
+        name: "AdminoshxonaOvqatlari", 
+        component: OshxonaOvqatlar 
+      },
       {
         path: "chiqimOshxona",
         name: "AdminchiqimOshxona",
         component: ChiqimOshxona,
+      },
+      {
+        path: "omborBalans",
+        name: "AdminomborBalans",
+        component: OmborBalans,
       },
       {
         path: "maxsulotlarOshxona",
@@ -141,6 +153,11 @@ const routes = [
         name: "maxsulotlarOshxona",
         component: MaxsulotlarOshxona,
       },
+       { 
+        path: "oshxonaOvqatlari", 
+        name: "OshxonaOvqatlari", 
+        component: OshxonaOvqatlar 
+      }
     ],
   },
   //OMBOR
@@ -153,6 +170,11 @@ const routes = [
     { path: "omborKirim", name: "omborKirim", component: OmborKirim },
     { path: "omborChiqim", name: "omborChiqim", component: OmborChiqim },
     { path: "omborMaxsulotlar", name: "omborMaxsulotlar", component: OmborMaxsulotlar },
+     {
+        path: "omborBalans",
+        name: "omborBalans",
+        component: OmborBalans,
+      },
   ]
   },
   {

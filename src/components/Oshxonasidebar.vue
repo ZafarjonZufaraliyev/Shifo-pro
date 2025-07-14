@@ -23,6 +23,7 @@
                <ul>
                     <li><router-link to="/oshxona" @click="closeSidebar">🏠 Bosh sahifa</router-link></li>
                     <li><router-link to="/oshxona/maxsulotlarOshxona" @click="closeSidebar">Maxsulotlar</router-link></li>
+                    <li><router-link to="/oshxona/oshxonaOvqatlari" @click="closeSidebar">Maxsulotlar</router-link></li>
                     <li><router-link to="/oshxona/retseptOshxona" @click="closeSidebar">Retsept</router-link></li>
                     <li><router-link to="/oshxona/chiqimOshxona" @click="closeSidebar">Chiqimlar</router-link>
                     </li>

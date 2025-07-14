@@ -55,66 +55,233 @@
 import api from '@/api';
 
 export default {
+  name: 'PatientCardView',
+
+  /* ---------------------------------------------------------------- data */
   data() {
     return {
-      booking: null,       // Asl maʼlumot (readonly holatda ko‘rsatiladi)
-      edited: null,        // Tahrirlanayotgan nusxa
-      editMode: false      // Holat: true = tahrir, false = ko‘rish
+      /* Foydalanuvchi */
+      currentUser: {},
+
+      /* Bemor va davolanishlar */
+      patient: null,
+      stays: [],
+      roomAssignments: [],
+
+      /* Qo‘shimcha ma’lumotlar */
+      xizmatlar: [],
+      kasalliklar: [],
+      natijalar: [],
+
+      /* Kataloglar */
+      availableRooms: [],
+      availableRoomTypes: [],
+      allServices: [],
+
+      /* UI holati */
+      activeTab: 'xizmatlar',
+      rr: { kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [] },
+
+      /* Yuklanish va rol */
+      loading: false,
+      role: localStorage.getItem('role') || 'mini'
     };
   },
-  mounted() {
-    const q = this.$route.query.data;
-    if (q) {
-      const parsed = JSON.parse(decodeURIComponent(q));
-      this.booking = parsed;
-      this.edited = JSON.parse(JSON.stringify(parsed));
-    }
+
+  /* ----------------------------------------------------------- lifecycle */
+  async mounted() {
+    await this.fetchUserData();  // 1) user_data
+    await this.fetchAll();       // 2) bemor va u bilan bog‘liq narsalar
   },
-  methods: {
-    async save() {
-      try {
-        // Ma'lumotni serverga yuborish
-        const response = await api.post('public/api/v1/clients', this.edited);
 
-        // Serverdan qaytgan ID ni olish
-        const savedId = response.data.id;
+  /* ----------------------------------------------------------- computed */
+  computed: {
+    /* xona turlari ➜ narx map */
+    roomTypePriceMap() {
+      const map = {};
+      (Array.isArray(this.availableRoomTypes) ? this.availableRoomTypes : [])
+        .forEach(rt => { map[rt.id] = +rt.Narxi || +rt.price || +rt.narxi || 0; });
+      return map;
+    },
 
-        // ID ni booking va edited obyektlariga yozish
-        this.edited.id = savedId;
-        this.booking = JSON.parse(JSON.stringify(this.edited));
+    /* eng so‘nggi davolanish */
+    latestStay() {
+      return this.stays[0] || null;
+    },
 
-        // LocalStorage uchun: yangilash (agar kerak bo‘lsa)
-        let all = JSON.parse(localStorage.getItem("bookings") || "[]");
-        all = all.filter(b => b.id !== this.booking.id);
-        all.push(this.booking);
-        localStorage.setItem("bookings", JSON.stringify(all));
+    /* jadvalda ko‘rinadigan xona ma’lumotlari */
+    roomData() {
+      return (Array.isArray(this.roomAssignments) ? this.roomAssignments : []).map(a => {
+        const room = (a.room || this.availableRooms.find(r => r.id == a.room_id)) || {};
+        const dayPrice = +a.price_per_day || this.roomTypePriceMap[room.room_type_id] || 0;
+        const days = Math.max(Math.ceil((new Date(a.to_date) - new Date(a.from_date)) / 864e5), 0);
 
-        this.editMode = false;
-        alert("Maʼlumot saqlandi!");
+        return {
+          roomNumber: room.xona || '-',
+          roomName:   room.nomi || room.xona || '-',
+          price:      dayPrice * days,
+          kirish_sanasi: a.from_date,
+          chiqish_sanasi: a.to_date,
+          sana: a.from_date
+        };
+      });
+    },
 
-        // Yangi sahifaga yo'naltirish
-        this.$router.push(`/super/BemorCard/${savedId}`);
-      } catch (error) {
-        console.error("Saqlashda xatolik:", error);
-        alert("Xatolik yuz berdi. Qaytadan urinib ko‘ring.");
+    /* joriy tabdagi ma’lumot */
+    filteredData() {
+      switch (this.activeTab) {
+        case 'xizmatlar': return this.xizmatlar;
+        case 'kasalliklar': return this.kasalliklar;
+        case 'natijalar':   return this.natijalar;
+        case 'xonalar':     return this.roomData;
+        default:           return [];
       }
     },
-    cancelEdit() {
-      this.edited = JSON.parse(JSON.stringify(this.booking));
-      this.editMode = false;
+
+    /* yangi xona tanlansa ➜ kunlik narx */
+    rrPrice() {
+      const r = this.availableRooms.find(x => x.id === this.rr.xona_id);
+      return r ? this.roomTypePriceMap[r.room_type_id] || 0 : 0;
     },
-    deleteAll() {
-      if (confirm("Rostdan ham o‘chirishni xohlaysizmi?")) {
-        let all = JSON.parse(localStorage.getItem("bookings") || "[]");
-        all = all.filter(b => b.id !== this.booking.id);
-        localStorage.setItem("bookings", JSON.stringify(all));
-        alert("O‘chirildi!");
-        this.$router.push("/super/bemorlar");
+
+    /* moliyaviy yig‘indilar */
+    total() {
+      return this.xizmatlar.reduce((s, x) => s + (+x.narxi || 0), 0);
+    },
+    totalPaid() {
+      return this.xizmatlar.filter(x => x.tolangan).reduce((s, x) => s + (+x.narxi || 0), 0);
+    },
+    totalUnpaid() {
+      return this.total - this.totalPaid;
+    }
+  },
+
+  /* ------------------------------------------------------------- methods */
+  methods: {
+    /* ---------- format yordamchilari ---------- */
+    formatDate(d) {
+      return d ? new Date(d).toLocaleDateString('uz-UZ') : '-';
+    },
+    formatPrice(p) {
+      return p ? `${(+p).toLocaleString()} soʻm` : '0 soʻm';
+    },
+    hisoblaYosh(d) {
+      if (!d) return '-';
+      const b = new Date(d), t = new Date();
+      let y = t.getFullYear() - b.getFullYear();
+      if (t.getMonth() < b.getMonth() || (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) y--;
+      return y;
+    },
+
+    /* ---------- 1) user_data ---------- */
+    async fetchUserData() {
+      try {
+        const { data } = await api.get('/api/v1/user_data');
+        this.currentUser = data;
+        localStorage.setItem('currentUser', JSON.stringify(data));
+      } catch (err) {
+        console.error('user_data xatosi', err);
+        alert('Foydalanuvchi maʼlumotlarini olishda xatolik. Iltimos, qayta kiring.');
+      }
+    },
+
+    /* ---------- 2) bemor va bog‘liq ma’lumotlar ---------- */
+    async fetchAll() {
+      this.loading = true;
+      try {
+        const id = this.$route.params.id;
+
+        const [
+          p, st, rooms, services, roomTypes, roomAssigns
+        ] = await Promise.all([
+          api.get(`/api/v1/clients/${id}`),
+          api.get(`/api/v1/davolanish?client_id=${id}`),
+          api.get('/api/v1/room'),
+          api.get('/api/v1/services'),
+          api.get('/api/v1/room-types'),
+          api.get(`/api/v1/xona-joylashuv?client_id=${id}`)
+        ]);
+
+        this.patient            = p.data;
+        this.stays              = st.data;
+        this.availableRooms     = rooms.data;
+        this.allServices        = services.data;
+        this.availableRoomTypes = roomTypes.data || [];
+        this.roomAssignments    = roomAssigns.data || [];
+        this.kasalliklar        = this.patient.kasalliklar || [];
+        this.natijalar          = this.patient.natijalar   || [];
+
+        if (this.latestStay) {
+          const { data: clientSrv } = await api.get(
+            `/api/v1/client-services?davolanish_id=${this.latestStay.id}`
+          );
+          this.xizmatlar = clientSrv.map(srv => ({
+            ...srv,
+            nomi:  this.allServices.find(a => a.id === srv.service_id)?.nomi || srv.nomi,
+            narxi: srv.narxi ?? srv.price ?? 0
+          }));
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Maʼlumotlarni olishda xatolik');
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    /* ---------- “Yana yotaman” ---------- */
+    async submitReRegister() {
+      const r = this.rr;
+      if (!r.kirish_sanasi || !r.chiqish_sanasi || !r.xona_id) {
+        return alert('Barcha maydonlarni toʻldiring');
+      }
+      if (!this.currentUser.id) {
+        return alert('Foydalanuvchi maʼlum emas. Qayta kiring.');
+      }
+
+      try {
+        /* 1. Davolanish yaratish */
+        const { data: newStay } = await api.post('/api/v1/davolanish', {
+          client_id:      this.patient.id,
+          room_id:        r.xona_id,
+          from_date:      r.kirish_sanasi,
+          to_date:        r.chiqish_sanasi,
+          create_user_id: this.currentUser.id
+        });
+
+        /* 2. Xona-joylashuv */
+        await api.post('/api/v1/xona-joylashuv', {
+          davolanish_id: newStay.id,
+          room_id:       r.xona_id,
+          from_date:     r.kirish_sanasi,
+          to_date:       r.chiqish_sanasi
+        });
+
+        /* 3. Xizmatlar */
+        for (const sid of r.xizmatlar) {
+          await api.post('/api/v1/client-services', {
+            client_id:     this.patient.id,
+            davolanish_id: newStay.id,
+            service_id:    sid,
+            start_date:    r.kirish_sanasi,
+            price:         this.allServices.find(s => s.id === sid)?.narxi || 0
+          });
+        }
+
+        alert('✅ Yangi yotish muvaffaqiyatli qo‘shildi');
+        this.rr = { kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [] };
+        this.fetchAll();
+      } catch (err) {
+        console.error(err);
+        alert('❌ Saqlashda xatolik yuz berdi');
       }
     }
   }
 };
 </script>
+
+
+
 
 
 <style scoped>
