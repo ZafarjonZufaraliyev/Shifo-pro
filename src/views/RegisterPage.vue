@@ -26,13 +26,7 @@
       <div class="form-row">
         <div class="form-group">
           <label>Pasport seriyasi va raqami</label>
-          <input
-            v-model="form.pasport"
-            type="text"
-            placeholder="AA1234567"
-            pattern="[A-Z]{2}[0-9]{7}"
-            required
-          />
+          <input v-model="form.pasport" type="text" placeholder="AA1234567" pattern="[A-Z]{2}[0-9]{7}" required />
         </div>
         <div class="form-group">
           <label>Tug‘ilgan sana</label>
@@ -45,9 +39,7 @@
         <label>Viloyat</label>
         <select v-model="form.viloyat" required>
           <option disabled value="">Tanlang</option>
-          <option v-for="(viloyat, index) in viloyatlar" :key="index" :value="viloyat.name">
-            {{ viloyat.name }}
-          </option>
+          <option v-for="(viloyat, index) in viloyatlar" :key="index" :value="viloyat.name">{{ viloyat.name }}</option>
         </select>
       </div>
       <div v-else-if="form.davlat === 'Xorijiy'" class="form-group">
@@ -61,22 +53,14 @@
         <input v-model="form.tuman" type="text" placeholder="Tuman nomini kiriting" required />
       </div>
 
-      <!-- Telefon raqami -->
+      <!-- Telefonlar -->
       <div class="form-group">
-        <label>Telefon raqami (majburiy)</label>
-        <input
-          v-model="form.tel1"
-          type="tel"
-          placeholder="+998901234567"
-          pattern="^\+998[0-9]{9}$"
-          required
-        />
-      </div>
-
-      <!-- Qo'shimcha telefon -->
-      <div class="form-group">
-        <label>Qo'shimcha telefon (ixtiyoriy)</label>
-        <input v-model="form.tel2" type="tel" placeholder="+998901234568" />
+        <label>Telefon raqamlari</label>
+        <div class="ismfamilya">
+          <input v-model="form.tel1" type="tel" placeholder="Asosiy: +998901234567" 
+            required />
+          <input v-model="form.tel2" type="tel" placeholder="Qo‘shimcha: +998901234568" />
+        </div>
       </div>
 
       <!-- Uy manzili -->
@@ -98,6 +82,17 @@
         </select>
       </div>
 
+      <!-- Parhez (ixtiyoriy) -->
+      <div class="form-group">
+        <label>Parhez (ixtiyoriy)</label>
+        <select v-model="form.parhez">
+          <option disabled value="">Tanlang</option>
+          <option>Diabetik</option>
+          <option>Allergik</option>
+          <option>Davleniya</option>
+        </select>
+      </div>
+
       <button type="submit">Yuborish</button>
     </form>
   </div>
@@ -105,7 +100,6 @@
 
 <script>
 import api from '@/api';
-
 export default {
   name: 'RegisterPage',
   data() {
@@ -124,6 +118,9 @@ export default {
         tel1: '',
         tel2: '',
         referral: '',
+        parhez: '', // <- qo‘shildi
+        create_user_id: null,
+        create_user_name: '',
       },
     };
   },
@@ -137,6 +134,9 @@ export default {
       }
     },
   },
+  mounted() {
+    this.fetchCurrentUser();
+  },
   methods: {
     async loadViloyatlar() {
       try {
@@ -148,23 +148,27 @@ export default {
         console.error('Viloyatlarni yuklashda xatolik:', err);
       }
     },
-
+    async fetchCurrentUser() {
+      try {
+        const res = await api.get('/api/v1/user_data');
+        const user = res.data?.user || res.data;
+        if (user?.id && user?.name) {
+          this.form.create_user_id = user.id;
+          this.form.create_user_name = user.name;
+        }
+      } catch (err) {
+        console.error('Foydalanuvchini olishda xatolik:', err);
+      }
+    },
     async registerClient() {
       try {
         const res = await api.post('/api/v1/clients', this.form);
-        console.log("Ro'yxatdan o'tish javobi:", res.data);
-
-        const client = res.data.data; // 👈 asosiy to‘g‘rilash shu yerda
-
-        if (!client || !client.id) {
-          alert('Ro‘yxatdan o‘tishda mijoz identifikatori topilmadi!');
+        const client = res.data?.data;
+        if (!client?.id) {
+          alert('Ro‘yxatdan o‘tishda mijoz ID topilmadi!');
           return;
         }
-
-        this.$router.push({
-          name: 'adminTakliflar',
-          params: { clientId: client.id },
-        });
+        this.$router.push({ name: 'adminTakliflar', params: { clientId: client.id } });
       } catch (err) {
         if (err.response?.status === 422) {
           const errors = err.response.data.errors;
@@ -175,7 +179,7 @@ export default {
           alert(msg);
         } else {
           console.error(err);
-          alert('Ro‘yxatdan o‘tishda xatolik yuz berdi.');
+          alert('❌ Ro‘yxatdan o‘tishda server xatoligi yuz berdi!');
         }
       }
     },
@@ -183,8 +187,83 @@ export default {
 };
 </script>
 
-
 <style scoped>
+/***** Stil fayli o‘zgarishsiz qoldirildi *****/
+.register-container {
+  max-width: 1200px;
+  margin: 20px auto;
+  background: #f9fafb;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .1);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #111827
+}
+
+.form-group {
+  margin-bottom: 18px
+}
+
+label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #374151
+}
+
+.ismfamilya {
+  display: flex;
+  gap: 10px
+}
+
+.ismfamilya input {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 15px
+}
+
+input[type=text],
+input[type=tel],
+input[type=date],
+select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 15px
+}
+
+button[type=submit] {
+  width: 100%;
+  padding: 14px;
+  background-color: #2563eb;
+  color: #fff;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color .3s
+}
+
+button[type=submit]:hover {
+  background-color: #1e40af
+}
+
+
+
+
+
+
+
+
 .register-container {
   max-width: 1200px;
   margin: 20px auto;

@@ -175,7 +175,7 @@ export default {
         qavat: 0,
       },
 
-      newBooking: {                // Yangi bron ma'lumotlari
+      newBooking: {               
         client_name: "",
         tel1: "",
         tel2: "",
