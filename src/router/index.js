@@ -10,7 +10,6 @@ import MiniDashboard from "@/views/MiniDashboard.vue";
 
 import Bemorlar from "@/components/Bemorlar.vue";
 import Rooms from "@/components/Rooms.vue";
-import Stats from "@/components/Kassa.vue";
 import RegisterPage from "@/views/RegisterPage.vue";
 import Takliflar from "@/views/Takliflar.vue";
 import Bemor_card from "@/components/PatientCard.vue";
@@ -42,6 +41,14 @@ import OmborDashboard from "@/views/OmborDashboard.vue";
 import ColMarkazDashboard from "@/views/ColMarkazDashboard.vue";
 import ColMarkazLayout from "@/layouts/ColMarkazLayout.vue";
 
+//Kassa
+
+import KassaSahifa from "@/components/KassaSahifa.vue";
+import KasaFilter from "@/components/BemorKassa.vue";
+import KassaPulQaytarish from "@/components/KassaPulQaytarish.vue";
+import KassaStatistika from "@/components/KassaStatistika.vue";
+import KassaTolovQoshish from "@/components/KassaTolovQoshish.vue";
+import KassaTolovlarJadvali from "@/components/KassaTolovlarJadvali.vue";
 
 const routes = [
   { path: "/", redirect: "/login" },
@@ -60,7 +67,12 @@ const routes = [
       { path: "room/:id", name: "adminRoomDetails", component: RoomDetels },
       { path: "bemorlar", name: "adminBemorlar", component: Bemorlar },
       { path: "rooms", name: "adminRooms", component: Rooms },
-      { path: "stats", name: "adminKassa", component: Stats },
+      { path: "kassaSahifa", name: "adminkassaSahifa", component: KassaSahifa },
+      { path: "kasaFilter", name: "adminkasaFilter", component: KasaFilter },
+      { path: "kassaPulQaytarish", name: "adminkassaPulQaytarish", component: KassaPulQaytarish },
+      { path: "kassaStatistika", name: "adminkassaStatistika", component: KassaStatistika },
+      { path: "kassaTolovQoshish", name: "adminkassaTolovQoshish", component: KassaTolovQoshish },
+      { path: "kassaTolovlarJadvali", name: "adminkassaTolovlarJadvali", component: KassaTolovlarJadvali },
       {
         path: "RegisterPage",
         name: "adminRegisterPage",
@@ -126,13 +138,11 @@ const routes = [
       { path: "room/:id", name: "miniRoomDetails", component: RoomDetels },
       { path: "bemorlar", name: "MiniBemorlar", component: Bemorlar },
       { path: "rooms", name: "MiniRooms", component: Rooms },
-      {
-        path: "RegisterPage",
-        name: "miniRegisterPage",
-        component: RegisterPage,
+      { path: "RegisterPage", name: "miniRegisterPage", component: RegisterPage,
       },
+
       { path: "taklif", name: "miniTakliflar", component: Takliflar },
-      { path: "stats", name: "miniKassa", component: Stats },
+   
     ],
   },
   //OSHXONA
