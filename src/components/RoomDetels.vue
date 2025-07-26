@@ -125,20 +125,7 @@ export default {
     }
   },
   created() {
-    const allRooms = [
-      {
-        id: 1,
-        number: 107,
-        type: 'LUX',
-        price: 250000,
-        floor: '2-qavat',
-        capacity: 2,
-        bookings: [
-          { name: 'Azimjon Jo‘rayev', phone: '+998901234567', arrival: '2025-06-24', departure: '2025-06-29' },
-          { name: 'Navbatdagi Mehmon', phone: '+998912345678', arrival: '2025-06-30', departure: '2025-07-05' }
-        ]
-      }
-    ];
+    
     const roomId = this.$route.params.id;
     this.room = allRooms.find(r => r.id == roomId);
   },

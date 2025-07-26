@@ -29,130 +29,33 @@
       <!-- 📋 Asosiy linklar + accordion -->
       <ul class="primary-list">
         <li>
-          <router-link to="/admin" @click="closeSidebar" active-class="router-link-active" exact>
+          <router-link to="/laborant" @click="closeSidebar" active-class="router-link-active" exact>
             🏠 Bosh sahifa
           </router-link>
         </li>
         <li>
-          <router-link to="/admin/bemorlar" @click="closeSidebar" active-class="router-link-active">
-            Bemorlar
+          <router-link to="/laborant/natijalar" @click="closeSidebar" active-class="router-link-active">
+             Natijalar
           </router-link>
         </li>
         <li>
-          <router-link to="/admin/rooms" @click="closeSidebar" active-class="router-link-active">
-            Xonalar
+          <router-link to="/laborant/taxlilTuri" @click="closeSidebar" active-class="router-link-active">
+            Taxlil turlari
           </router-link>
         </li>
       
         <li>
-          <router-link to="/admin/xodimlar" @click="closeSidebar" active-class="router-link-active">
-            Xodimlar
+          <router-link to="/laborant/taxlilBriktrish" @click="closeSidebar" active-class="router-link-active">
+            Taxlilni briktrish
           </router-link>
         </li>
 
-        <!-- 🍽️ Oshxona -->
-        <li>
-          <button
-            class="main-link"
-            :class="{ active: activeSection === 'oshxona' }"
-            @click="toggleSection('oshxona')"
-            aria-expanded="activeSection === 'oshxona'"
-          >
-            🍽️ Oshxona
-          </button>
-          <ul v-if="activeSection === 'oshxona'" class="sub-menu" role="region" aria-label="Oshxona submenu">
-            <li>
-              <router-link to="/admin/maxsulotlarOshxona" @click="closeSidebar" active-class="router-link-active">
-                Oshxona Maxsulotlar
-              </router-link>
-            </li>
-            <li>
-              <router-link to="/admin/oshxonaOvqatlari" @click="closeSidebar" active-class="router-link-active">
-                Oshxona ovqatlari
-              </router-link>
-            </li>
-            <li>
-              <router-link to="/admin/retseptOshxona" @click="closeSidebar" active-class="router-link-active">
-                Oshxona Retsept
-              </router-link>
-            </li>
-            <li>
-              <router-link to="/admin/chiqimOshxona" @click="closeSidebar" active-class="router-link-active">
-                Oshxona Chiqimlar
-              </router-link>
-            </li>
-          </ul>
-        </li>
+  
 
-        <!-- 🏬 Ombor -->
-        <li>
-          <button
-            class="main-link"
-            :class="{ active: activeSection === 'ombor' }"
-            @click="toggleSection('ombor')"
-            aria-expanded="activeSection === 'ombor'"
-          >
-            🏬 Ombor
-          </button>
-          <ul v-if="activeSection === 'ombor'" class="sub-menu" role="region" aria-label="Ombor submenu">
-            <li>
-              <router-link to="/admin/omborMaxsulotlar" @click="closeSidebar" active-class="router-link-active">
-                Ombor Maxsulotlar
-              </router-link>
-            </li>
-            <li>
-              <router-link to="/admin/omborKirim" @click="closeSidebar" active-class="router-link-active">
-                Ombor Kirim
-              </router-link>
-            </li>
-            <li>
-              <router-link to="/admin/omborChiqim" @click="closeSidebar" active-class="router-link-active">
-                Ombor Chiqimlar
-              </router-link>
-            </li>
-            <li>
-              <router-link to="/admin/omborBalans" @click="closeSidebar" active-class="router-link-active">
-                Ombor Balans
-              </router-link>
-            </li>
-          </ul>
-        </li>
 
-        <!-- Kassa -->
-        <li>
-          <button
-            class="main-link"
-            :class="{ active: activeSection === 'kassa' }"
-            @click="toggleSection('kassa')"
-            aria-expanded="activeSection === 'kassa'"
-          >
-            🏬 Kassa
-          </button>
-          <ul v-if="activeSection === 'kassa'" class="sub-menu" role="region" aria-label="Kassa submenu">
-            
-            <li>
-              <router-link to="/admin/kassaStatistika" @click="closeSidebar" active-class="router-link-active">
-                Kassa Statistika
-              </router-link>
-            </li>
-            <li>
-              <router-link to="/admin/kasaFilter" @click="closeSidebar" active-class="router-link-active">
-                Bemorlar kassa
-              </router-link>
-            </li>
-            <li>
-              <router-link to="/admin/kassaTolovlarJadvali" @click="closeSidebar" active-class="router-link-active">
-                Tolovlar Jadvali
-              </router-link>
-            </li>
-            <li>
-              <router-link to="/admin/kassaTolovQoshish" @click="closeSidebar" active-class="router-link-active">
-                Tolov Qoshish
-              </router-link>
-            </li>
-            
-          </ul>
-        </li>
+        
+
+        
       </ul>
     </nav>
   </div>

@@ -31,7 +31,6 @@
           <template v-if="activeTab === 'xizmatlar'">
             <th>Xizmat nomi</th>
             <th>Narxi</th>
-            <th>Holati</th>
           </template>
           <th v-if="activeTab === 'kasalliklar'">Kasallik nomi</th>
           <th v-if="activeTab === 'natijalar'">Natija</th>
@@ -51,11 +50,7 @@
           <template v-if="activeTab === 'xizmatlar'">
             <td>{{ item.nomi }}</td>
             <td>{{ formatPrice(item.narxi) }}</td>
-            <td>
-              <span :class="['badge', item.tolangan ? 'paid' : 'unpaid']">
-                {{ item.tolangan ? 'To‘langan' : 'To‘lanmagan' }}
-              </span>
-            </td>
+            
           </template>
 
           <td v-if="activeTab === 'kasalliklar'">{{ item.nomi }}</td>
@@ -277,51 +272,68 @@ export default {
     },
 
     /* --- “Yana yotaman” (re‑register) --- */
-    async submitReRegister() {
-      /* forma tekshiruvi */
-      const r = this.rr;
-      if (!r.kirish_sanasi || !r.chiqish_sanasi || !r.xona_id) {
-        return alert('Barcha maydonlarni toʻldiring');
-      }
+   async submitReRegister() {
+  const r = this.rr;
+  if (!r.kirish_sanasi || !r.chiqish_sanasi || !r.xona_id) {
+    return alert('Barcha maydonlarni toʻldiring');
+  }
 
-      try {
-        /* 1. Davolanish yaratish */
-        const { data: newStay } = await api.post('/api/v1/davolanish', {
-          client_id:       this.patient.id,
-          room_id:         r.xona_id,          // ← backend nomi
-          from_date:       r.kirish_sanasi,
-          to_date:         r.chiqish_sanasi,
-          create_user_id:  this.currentUser.id // ← xodim ID
-        });
+  try {
+    let currentStay = this.latestStay;
 
-        /* 2. Xona‑joylashuv */
-        await api.post('/api/v1/xona-joylashuv', {
-          davolanish_id: newStay.id,
-          room_id:       r.xona_id,
-          from_date:     r.kirish_sanasi,
-          to_date:       r.chiqish_sanasi
-        });
-
-        /* 3. Xizmatlar biriktirish */
-        for (const sid of r.xizmatlar) {
-          await api.post('/api/v1/client-services', {
-            client_id:      this.patient.id,
-            davolanish_id:  newStay.id,
-            service_id:     sid,
-            start_date:     r.kirish_sanasi,
-            price:          this.allServices.find(s => s.id === sid)?.narxi || 0
-          });
-        }
-
-        alert('✅ Yangi yotish muvaffaqiyatli qo‘shildi');
-        /* forma tozalash va yangilash */
-        this.rr = { kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [] };
-        this.fetchAll();
-      } catch (err) {
-        console.error(err);
-        alert('❌ Saqlashda xatolik yuz berdi');
-      }
+    // 1. Davolanish mavjud bo‘lmasa — yangisini yaratamiz
+    if (!currentStay || currentStay.chiqish_sanasi) {
+      const { data: newStay } = await api.post('/api/v1/davolanish', {
+        client_id:       this.patient.id,
+        room_id:         r.xona_id,
+        from_date:       r.kirish_sanasi,
+        to_date:         r.chiqish_sanasi,
+        create_user_id:  this.currentUser.id
+      });
+      currentStay = newStay;
     }
+
+    // 2. Oxirgi xona joylashuvini topish
+    const lastPlacement = this.roomAssignments
+      .filter(x => x.davolanish_id === currentStay.id)
+      .sort((a, b) => new Date(b.from_date) - new Date(a.from_date))[0];
+
+    if (lastPlacement) {
+      // ❗ Oldingi joylashuvning chiqish sanasini yangi kirish sanasiga yangilaymiz
+      await api.put(`/api/v1/xona-joylashuv/${lastPlacement.id}`, {
+        ...lastPlacement,
+        to_date: r.kirish_sanasa
+      });
+    }
+
+    // 3. Yangi xona joylashuvini POST qilish
+    await api.post('/api/v1/xona-joylashuv', {
+      davolanish_id: currentStay.id,
+      room_id:       r.xona_id,
+      from_date:     r.kirish_sanasi,
+      to_date:       r.chiqish_sanasi
+    });
+
+    // 4. Xizmatlar biriktirish
+    for (const sid of r.xizmatlar) {
+      await api.post('/api/v1/client-services', {
+        client_id:      this.patient.id,
+        davolanish_id:  currentStay.id,
+        service_id:     sid,
+        start_date:     r.kirish_sanasi,
+        price:          this.allServices.find(s => s.id === sid)?.narxi || 0
+      });
+    }
+
+    alert('✅ Xona yangilandi va yangi joylashuv yaratildi');
+    this.rr = { kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [] };
+    this.fetchAll();
+  } catch (err) {
+    console.error(err);
+    alert('❌ Xona o‘zgartirishda xatolik');
+  }
+}
+
   },
 
   /* ------------------------------ lifecycle ----------------------------- */

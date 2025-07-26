@@ -50,6 +50,13 @@ import KassaStatistika from "@/components/KassaStatistika.vue";
 import KassaTolovQoshish from "@/components/KassaTolovQoshish.vue";
 import KassaTolovlarJadvali from "@/components/KassaTolovlarJadvali.vue";
 
+//Labaratory
+
+import NatijaLab from "@/components/NatijaLab.vue";
+import TaxlilTuriLab from "@/components/TaxlilTuriLab.vue";
+import LabaratoryaDashboard from "@/views/LabaratoryaDashboard.vue";
+import LabaratoryLatout from "@/layouts/LabaratoryLatout.vue";
+import TaxlilPDFlab from "@/components/TaxlilPDFlab.vue";
 const routes = [
   { path: "/", redirect: "/login" },
   { path: "/TaklifDetelis", name: "TaklifDetelis", component: TaklifDetelis },
@@ -62,7 +69,7 @@ const routes = [
     meta: { role: "admin" },
     children: [
       { path: "", name: "adminDashboard", component: SuperDashboard },
-      { path: "BemorCard/:id", name: "adminBemor_card", component: Bemor_card },
+      { path: "BemorCard/:id", name: "adminBemor_card", component: Bemor_card,meta: { role: "admin" }, },
       { path: "xodimlar", name: "adminXodimlar", component: Xodimlar },
       { path: "room/:id", name: "adminRoomDetails", component: RoomDetels },
       { path: "bemorlar", name: "adminBemorlar", component: Bemorlar },
@@ -129,12 +136,18 @@ const routes = [
 
   // MINI
   {
-    path: "/mini",
+    path: "/kassa",
     component: MiniAdminLayout,
     meta: { role: "kassa" },
     children: [
       { path: "", name: "MiniDashboard", component: MiniDashboard },
-      { path: "BemorCard/:id", name: "miniBemor_card", component: Bemor_card },
+      { path: "BemorCard/:id", name: "miniBemor_card", component: Bemor_card,  },
+      { path: "kassaSahifa", name: "minikassaSahifa", component: KassaSahifa },
+      { path: "kasaFilter", name: "minikasaFilter", component: KasaFilter },
+      { path: "kassaPulQaytarish", name: "minikassaPulQaytarish", component: KassaPulQaytarish },
+      { path: "kassaStatistika", name: "minikassaStatistika", component: KassaStatistika },
+      { path: "kassaTolovQoshish", name: "minikassaTolovQoshish", component: KassaTolovQoshish },
+      { path: "kassaTolovlarJadvali", name: "minikassaTolovlarJadvali", component: KassaTolovlarJadvali },
       { path: "room/:id", name: "miniRoomDetails", component: RoomDetels },
       { path: "bemorlar", name: "MiniBemorlar", component: Bemorlar },
       { path: "rooms", name: "MiniRooms", component: Rooms },
@@ -187,6 +200,7 @@ const routes = [
       },
   ]
   },
+  //CAL MARKAZ
   {
     path: "/callCenter",
     component: ColMarkazLayout,
@@ -197,7 +211,21 @@ const routes = [
       
     ],
   },
-  //CAL MARKAZ
+
+//Labaratory
+
+  {
+    path: "/laborant",
+    component: LabaratoryLatout,
+    meta: { role: "laborant" },
+    children: [
+      { path: "", name: "LabaratoryaDashboard", component: LabaratoryaDashboard },
+      { path: "natijalar", name: "NatijaLab", component: NatijaLab },
+      {path: "taxlilTuri",name:"TaxlilTuriLab" , component: TaxlilTuriLab},
+      {path: "taxlilBriktrish",name:"TaxlilPDFlab" , component: TaxlilPDFlab}
+    ],
+  },
+  
 ];
 
 const router = createRouter({

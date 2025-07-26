@@ -40,7 +40,7 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import api from "@/api";
-import roleRoutes from "@/constants/roleRoutes"; // { admin: "/super", kassa: "/mini", ... }
+import roleRoutes from "@/constants/roleRoutes";
 
 const username = ref("");
 const password = ref("");
@@ -54,35 +54,37 @@ const handleLogin = async () => {
 
   try {
     const response = await api.post("/api/v1/login", {
-      username: username.value.trim(), // 👈 backend shuni kutyapti!
+      username: username.value.trim(),
       password: password.value.trim(),
     });
 
     const { token, user, role } = response.data;
 
-    console.log("Role:", role);
-    console.log("Redirect path:", roleRoutes[role]);
+    console.log("✅ Login:", username.value);
+    console.log("🛡 Role:", role);
+    console.log("➡️ Redirect path:", roleRoutes[role]);
 
     if (!token) {
       error.value = "Login yoki parol noto‘g‘ri.";
       return;
     }
 
-    // Local saqlash
+    // Ma'lumotlarni localStorage ga saqlash
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(user));
     localStorage.setItem("role", role);
 
-    // Role asosida yo‘naltirish
+    // Role asosida yo'naltirish
     const redirectPath = roleRoutes[role];
     if (redirectPath) {
       await router.push(redirectPath);
-      console.log("✅ Redirected to", redirectPath);
+      console.log("🚀 Redirected to", redirectPath);
     } else {
       error.value = `Bu rol uchun sahifa mavjud emas: ${role}`;
     }
+
   } catch (e) {
-    console.log("❌ Login xato:", e.response?.data || e);
+    console.error("❌ Login xato:", e.response?.data || e);
     error.value = e.response?.data?.message || "Login xatoligi.";
   } finally {
     loading.value = false;

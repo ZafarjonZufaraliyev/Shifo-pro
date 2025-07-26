@@ -1,14 +1,14 @@
 // Bu faylda rolga mos keluvchi bosh sahifa yo'llari saqlanadi
 export default {
   admin: "/admin",
-  kassa: "/mini",
+  kassa: "/kassa",
   oshxona:"/oshxona",
   call_center: "/callCenter",
   ombor: "/ombor",
-  mini: "/mini",
-  doctor: "/mini",
-  manager: "/super",
-  laborant: "/mini",
-  acception: "/mini",
-  hamshira: "/mini",
+  laborant: "/laborant",
+  mini: "/",
+  doctor: "/",
+  manager: "/",
+  acception: "/",
+  hamshira: "/",
 };

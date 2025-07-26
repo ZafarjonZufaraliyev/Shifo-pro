@@ -163,7 +163,10 @@ export default {
 
 <style scoped>
 .statistika-qismi {
-  padding: 1.5rem;
+  padding: 20px;
+  margin:20px auto;
+  max-width: 1200px;
+
 }
 .date-filters {
   margin-bottom: 1rem;

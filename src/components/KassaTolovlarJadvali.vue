@@ -168,7 +168,7 @@ export default {
 .payments-table {
   margin: 20px auto;
   padding: 10px;
-  max-width: 100%;
+  max-width: 1200px;
   overflow-x: auto;
   background: #fff;
   border-radius: 8px;

@@ -102,7 +102,9 @@ import PatientTable from "@/components/PatientTable.vue";
 import api from "@/api";
 
 export default {
-  components: { PatientTable },
+  components: {
+    PatientTable,
+  },
   data() {
     return {
       isCardView: true,
@@ -116,31 +118,31 @@ export default {
   },
   computed: {
     filteredPatients() {
-      const q = this.search.trim().toLowerCase();
-      if (!q) return this.patients;
-      return this.patients.filter((p) => {
-        const fullName = `${p.familiya} ${p.ism}`.toLowerCase();
-        return fullName.includes(q);
+      const query = this.search.trim().toLowerCase();
+      if (!query) return this.patients;
+      return this.patients.filter((patient) => {
+        const fullName = `${patient.familiya} ${patient.ism}`.toLowerCase();
+        return fullName.includes(query);
       });
     },
     paginatedPatients() {
       const perPage = 6;
-      const chunks = [];
+      const result = [];
       for (let i = 0; i < this.filteredPatients.length; i += perPage) {
-        chunks.push(this.filteredPatients.slice(i, i + perPage));
+        result.push(this.filteredPatients.slice(i, i + perPage));
       }
-      return chunks;
+      return result;
     },
     pageNumbersToShow() {
-      const total = this.paginatedPatients.length;
-      const current = this.activePage;
+      const totalPages = this.paginatedPatients.length;
+      const currentPage = this.activePage;
       const maxPages = this.maxVisiblePages;
 
-      let start = Math.max(0, current - Math.floor(maxPages / 2));
+      let start = Math.max(0, currentPage - Math.floor(maxPages / 2));
       let end = start + maxPages - 1;
 
-      if (end >= total) {
-        end = total - 1;
+      if (end >= totalPages) {
+        end = totalPages - 1;
         start = Math.max(0, end - maxPages + 1);
       }
 
@@ -148,8 +150,9 @@ export default {
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
+
       return pages;
-    }
+    },
   },
   watch: {
     paginatedPatients(newVal) {
@@ -159,7 +162,7 @@ export default {
       if (this.activePage < 0) {
         this.activePage = 0;
       }
-    }
+    },
   },
   methods: {
     goToPage(page) {
@@ -187,22 +190,23 @@ export default {
     calculateAge(birthdate) {
       if (!birthdate) return "—";
       const birth = new Date(birthdate);
-      const now = new Date();
-      let age = now.getFullYear() - birth.getFullYear();
-      const m = now.getMonth() - birth.getMonth();
-      if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
+      const today = new Date();
+      let age = today.getFullYear() - birth.getFullYear();
+      const m = today.getMonth() - birth.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
         age--;
       }
       return age;
-    }
+    },
   },
   async mounted() {
     try {
-    const res = await api.get("/api/v1/davolanish");
-    console.log("Davolanish data:", res.data);
-  } catch (e) {
-    console.error("Davolanish API xatolik:", e);
-  }
+      const davolanishRes = await api.get("/api/v1/davolanish");
+      console.log("Davolanish data:", davolanishRes.data);
+    } catch (e) {
+      console.error("Davolanish API xatolik:", e);
+    }
+
     try {
       const res = await api.get("/api/v1/clients");
       this.patients = res.data.users || res.data;
@@ -215,11 +219,13 @@ export default {
 };
 </script>
 
+
+
 <style scoped>
 .patients-container {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 16px;
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 20px;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
