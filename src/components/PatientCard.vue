@@ -14,9 +14,12 @@
 
     <!-- === Tablar === -->
     <div class="tab-header">
-      <div :class="['tab-title', { active: activeTab === 'xizmatlar' }]" @click="activeTab = 'xizmatlar'">Xizmatlar</div>
-      <div :class="['tab-title', { active: activeTab === 'kasalliklar' }]" @click="activeTab = 'kasalliklar'">Kasalliklar</div>
-      <div :class="['tab-title', { active: activeTab === 'natijalar' }]" @click="activeTab = 'natijalar'">Natijalar</div>
+      <div :class="['tab-title', { active: activeTab === 'xizmatlar' }]" @click="activeTab = 'xizmatlar'">Xizmatlar
+      </div>
+      <div :class="['tab-title', { active: activeTab === 'kasalliklar' }]" @click="activeTab = 'kasalliklar'">
+        Kasalliklar</div>
+      <div :class="['tab-title', { active: activeTab === 'natijalar' }]" @click="activeTab = 'natijalar'">Natijalar
+      </div>
       <div :class="['tab-title', { active: activeTab === 'xonalar' }]" @click="activeTab = 'xonalar'">Xonalar</div>
     </div>
 
@@ -41,6 +44,7 @@
         </tr>
       </thead>
       <tbody>
+
         <tr v-for="(item, i) in filteredData" :key="i">
           <td>{{ i + 1 }}</td>
 
@@ -72,11 +76,15 @@
 
         <!-- ➕ Yangi xona satri -->
         <tr v-if="activeTab === 'xonalar'" class="input-row">
-          <td>*</td>
+          <td>
+            <input type="checkbox" v-model="rr.has_child" :true-value="1" :false-value="0" />
+          </td>
           <td>
             <select v-model="rr.xona_id">
               <option disabled value="">Tanlang</option>
-              <option v-for="r in availableRooms" :key="r.id" :value="r.id">{{ r.room_type.name }} [{{ r.xona }}]</option>
+              <option v-for="r in availableRooms" :key="r.id" :value="r.id">
+                {{ r.room_type.name }} [{{ r.xona }}]
+              </option>
             </select>
           </td>
           <td>{{ rrPrice ? formatPrice(rrPrice) : '-' }}</td>
@@ -84,6 +92,7 @@
           <td><input type="date" v-model="rr.chiqish_sanasi" /></td>
           <td><button @click="submitReRegister">➕</button></td>
         </tr>
+
       </tbody>
     </table>
 
@@ -94,7 +103,7 @@
     <p>⏳ Yuklanmoqda...</p>
   </div>
 </template>
-0
+
 <script>
 import api from '@/api';
 
@@ -114,7 +123,13 @@ export default {
       availableRoomTypes: [],
       allServices: [],
       activeTab: 'xizmatlar',
-      rr: { kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [] },
+      rr: {
+        kirish_sanasi: '',
+        chiqish_sanasi: '',
+        xona_id: '',
+        xizmatlar: [],
+        has_child: 0  // Checkbox uchun qo'shildi (0 yoki 1)
+      },
       role: localStorage.getItem('role') || 'mini',
       currentUser: JSON.parse(localStorage.getItem('currentUser') || '{}')
     };
@@ -141,10 +156,10 @@ export default {
       return (Array.isArray(this.roomAssignments) ? this.roomAssignments : []).map(a => {
         const room = a.room || this.availableRooms.find(r => r.id == a.room_id) || {};
         const pricePerDay = Number(a.price_per_day || this.roomTypePriceMap[room.room_type_id] || 0);
-        const days = Math.max(Math.ceil((new Date(a.to_date) - new Date(a.from_date)) / 864e5), 0);
+        const days = Math.max(Math.ceil((new Date(a.to_date) - new Date(a.from_date)) / 864e5) + 1, 0);
 
         return {
-          id: a.id, // kerakli identifikator
+          id: a.id,
           roomNumber: room.xona || '-',
           roomName: room.nomi || room.xona || '-',
           price: pricePerDay * days,
@@ -264,7 +279,7 @@ export default {
         });
 
         alert('✅ Chiqish sanasi muvaffaqiyatli yangilandi');
-        this.fetchAll(); // ⬅ ma'lumotlarni yangilash
+        this.fetchAll();
       } catch (err) {
         console.error('Xatolik:', err);
         alert('❌ Chiqish sanasini yangilab bo‘lmadi');
@@ -302,12 +317,14 @@ export default {
           });
         }
 
+        // Bu yerda has_child (rr.has_child) qiymatini jo'natamiz:
         await api.post('/api/v1/xona-joylashuv', {
           davolanish_id: currentStay.id,
           room_id: r.xona_id,
           from_date: r.kirish_sanasi,
           to_date: r.chiqish_sanasi,
-          price_per_day: this.rrPrice
+          price_per_day: this.rrPrice,
+          has_child: r.has_child || 0  // checkbox qiymati 0 yoki 1
         });
 
         for (const sid of r.xizmatlar) {
@@ -321,7 +338,7 @@ export default {
         }
 
         alert('✅ Xona joylashuvi qoʻshildi');
-        this.rr = { kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [] };
+        this.rr = { kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [], has_child: 0 };
         this.fetchAll();
       } catch (err) {
         console.error(err);
@@ -335,14 +352,6 @@ export default {
   }
 };
 </script>
-
-
-
-
-
-
-
-
 
 
 <style scoped>

@@ -60,6 +60,7 @@ const fetchPatientPayments = async () => {
   try {
     const res = await api.get('public/api/v1/patient_payments')
     payments.value = res.data.data || []
+    console.log(payments.value)
   } catch (error) {
     console.error("Xatolik patient_payments:", error)
   }
