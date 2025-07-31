@@ -94,7 +94,7 @@
     <p>⏳ Yuklanmoqda...</p>
   </div>
 </template>
-
+0
 <script>
 import api from '@/api';
 

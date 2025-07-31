@@ -57,8 +57,8 @@
           </router-link>
           <div class="card__body">
             <p><strong>📞 Telefon:</strong> {{ patient.tel1 || '—' }}</p>
-            <p><strong>Keldi:</strong> {{ patient.kelish_sanasi || '—' }}</p>
-            <p><strong>Ketdi:</strong> {{ patient.ketish_sanasi || '—' }}</p>
+            <p><strong>Keldi:</strong> {{ getKelishSanasi(patient.id) }}</p>
+            <p><strong>Ketdi:</strong> {{ getKetishSanasi(patient.id)   }}</p>
           </div>
         </div>
       </div>
@@ -110,6 +110,7 @@ export default {
       isCardView: true,
       search: "",
       patients: [],
+      davolanish: [],
       loading: true,
       activePage: 0,
       maxVisiblePages: 7,
@@ -198,10 +199,19 @@ export default {
       }
       return age;
     },
+    getKetishSanasi(clientId) {
+      const davo = this.davolanish.find((item) => item.client_id == clientId);
+      return davo ? davo.ketish_sanasi : '—';
+    },
+    getKelishSanasi(clientId) {
+      const davo = this.davolanish.find((item) => item.client_id == clientId);
+      return davo ? davo.kelish_sanasi : '—';
+    }
   },
   async mounted() {
     try {
       const davolanishRes = await api.get("/api/v1/davolanish");
+      this.davolanish = davolanishRes.data;
       console.log("Davolanish data:", davolanishRes.data);
     } catch (e) {
       console.error("Davolanish API xatolik:", e);
@@ -218,6 +228,7 @@ export default {
   },
 };
 </script>
+
 
 
 
