@@ -10,26 +10,14 @@
     <div class="top-controls">
       <div class="search-box">
         <img src="@/assets/image/sorch.svg" alt="Qidiruv" />
-        <input
-          type="search"
-          placeholder="Ism yoki familiya bo‘yicha qidirish..."
-          v-model="search"
-        />
+        <input type="search" placeholder="Ism yoki familiya bo‘yicha qidirish..." v-model="search" />
       </div>
 
       <div class="view-toggle">
-        <button
-          :class="{ active: isCardView }"
-          @click="isCardView = true"
-          title="Card Ko‘rinish"
-        >
+        <button :class="{ active: isCardView }" @click="isCardView = true" title="Card Ko‘rinish">
           📇
         </button>
-        <button
-          :class="{ active: !isCardView }"
-          @click="isCardView = false"
-          title="Jadval Ko‘rinish"
-        >
+        <button :class="{ active: !isCardView }" @click="isCardView = false" title="Jadval Ko‘rinish">
           📋
         </button>
       </div>
@@ -41,51 +29,33 @@
 
     <div v-else-if="isCardView" class="cards-wrapper">
       <div class="cards-swiper" ref="swiperContainer">
-        <div
-          v-for="patient in paginatedPatients[activePage]"
-          :key="patient.id"
-          class="patient1-card"
-        >
-          <router-link
-            :to="`/${role}/BemorCard/${patient.id}`"
-            class="card-link"
-          >
+        <div v-for="patient in paginatedPatients[activePage]" :key="patient.id" class="patient1-card">
+          <router-link :to="`/${role}/BemorCard/${patient.id}`" class="card-link">
             <div class="card__header">
               <h3>{{ patient.familiya }} {{ patient.ism }}</h3>
-              <span>{{ calculateAge(patient.birthdate) }} yosh | {{ patient.gender }}</span>
+              <span>{{ calculateAge(patient.tugulgan_sana) }} yosh | {{ patient.gender }}</span>
+
             </div>
           </router-link>
           <div class="card__body">
             <p><strong>📞 Telefon:</strong> {{ patient.tel1 || '—' }}</p>
             <p><strong>Keldi:</strong> {{ getKelishSanasi(patient.id) }}</p>
-            <p><strong>Ketdi:</strong> {{ getKetishSanasi(patient.id)   }}</p>
+            <p><strong>Ketdi:</strong> {{ getKetishSanasi(patient.id) }}</p>
           </div>
         </div>
       </div>
 
       <div class="pagination-wrapper" v-if="paginatedPatients.length > 1">
-        <button
-          @click="prevPage"
-          :disabled="activePage === 0"
-          class="page-btn nav-btn"
-        >
+        <button @click="prevPage" :disabled="activePage === 0" class="page-btn nav-btn">
           ←
         </button>
 
-        <button
-          v-for="(page, index) in pageNumbersToShow"
-          :key="index"
-          :class="['page-btn', { active: activePage === page }]"
-          @click="goToPage(page)"
-        >
+        <button v-for="(page, index) in pageNumbersToShow" :key="index"
+          :class="['page-btn', { active: activePage === page }]" @click="goToPage(page)">
           {{ page + 1 }}
         </button>
 
-        <button
-          @click="nextPage"
-          :disabled="activePage === paginatedPatients.length - 1"
-          class="page-btn nav-btn"
-        >
+        <button @click="nextPage" :disabled="activePage === paginatedPatients.length - 1" class="page-btn nav-btn">
           →
         </button>
       </div>
@@ -197,6 +167,7 @@ export default {
       if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
         age--;
       }
+
       return age;
     },
     getKetishSanasi(clientId) {
@@ -212,7 +183,6 @@ export default {
     try {
       const davolanishRes = await api.get("/api/v1/davolanish");
       this.davolanish = davolanishRes.data;
-      console.log("Davolanish data:", davolanishRes.data);
     } catch (e) {
       console.error("Davolanish API xatolik:", e);
     }
