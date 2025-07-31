@@ -39,7 +39,7 @@
         <label>Viloyat</label>
         <select v-model="form.viloyat" required>
           <option disabled value="">Tanlang</option>
-          <option v-for="(viloyat, index) in viloyatlar" :key="index" :value="viloyat.name">{{ viloyat.name }}</option>
+          <option v-for="(viloyat, index) in viloyatlar" :key="index" :value="viloyat">{{ viloyat }}</option>
         </select>
       </div>
       <div v-else-if="form.davlat === 'Xorijiy'" class="form-group">
@@ -57,8 +57,7 @@
       <div class="form-group">
         <label>Telefon raqamlari</label>
         <div class="ismfamilya">
-          <input v-model="form.tel1" type="tel" placeholder="Asosiy: +998901234567" 
-            required />
+          <input v-model="form.tel1" type="tel" placeholder="Asosiy: +998901234567" required />
           <input v-model="form.tel2" type="tel" placeholder="Qo‘shimcha: +998901234568" />
         </div>
       </div>
@@ -104,7 +103,21 @@ export default {
   name: 'RegisterPage',
   data() {
     return {
-      viloyatlar: [],
+      viloyatlar: [
+        'Toshkent',
+        'Andijon',
+        'Farg‘ona',
+        'Namangan',
+        'Samarqand',
+        'Buxoro',
+        'Xorazm',
+        'Qashqadaryo',
+        'Surxondaryo',
+        'Jizzax',
+        'Sirdaryo',
+        'Navoiy',
+        'Qoraqalpog‘iston Respublikasi'
+      ],
       form: {
         familiya: '',
         ism: '',
@@ -118,36 +131,16 @@ export default {
         tel1: '',
         tel2: '',
         referral: '',
-        parhez: '', // <- qo‘shildi
+        parhez: '',
         create_user_id: null,
         create_user_name: '',
       },
     };
   },
-  watch: {
-    'form.davlat'(val) {
-      if (val === 'O‘zbekiston') {
-        this.loadViloyatlar();
-      } else {
-        this.viloyatlar = [];
-        this.form.viloyat = '';
-      }
-    },
-  },
   mounted() {
     this.fetchCurrentUser();
   },
   methods: {
-    async loadViloyatlar() {
-      try {
-        const res = await fetch(
-          'https://thingproxy.freeboard.io/fetch/https://uzbekistan-regions.vercel.app/api/regions'
-        );
-        this.viloyatlar = await res.json();
-      } catch (err) {
-        console.error('Viloyatlarni yuklashda xatolik:', err);
-      }
-    },
     async fetchCurrentUser() {
       try {
         const res = await api.get('/api/v1/user_data');
@@ -188,7 +181,6 @@ export default {
 </script>
 
 <style scoped>
-/***** Stil fayli o‘zgarishsiz qoldirildi *****/
 .register-container {
   max-width: 1200px;
   margin: 20px auto;
@@ -196,81 +188,6 @@ export default {
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, .1);
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif
-}
-
-h2 {
-  text-align: center;
-  margin-bottom: 20px;
-  color: #111827
-}
-
-.form-group {
-  margin-bottom: 18px
-}
-
-label {
-  display: block;
-  margin-bottom: 6px;
-  font-weight: 600;
-  color: #374151
-}
-
-.ismfamilya {
-  display: flex;
-  gap: 10px
-}
-
-.ismfamilya input {
-  flex: 1;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-  font-size: 15px
-}
-
-input[type=text],
-input[type=tel],
-input[type=date],
-select {
-  width: 100%;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-  font-size: 15px
-}
-
-button[type=submit] {
-  width: 100%;
-  padding: 14px;
-  background-color: #2563eb;
-  color: #fff;
-  font-weight: 700;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  font-size: 16px;
-  transition: background-color .3s
-}
-
-button[type=submit]:hover {
-  background-color: #1e40af
-}
-
-
-
-
-
-
-
-
-.register-container {
-  max-width: 1200px;
-  margin: 20px auto;
-  background: #f9fafb;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
@@ -291,22 +208,22 @@ label {
   color: #374151;
 }
 
+.ismfamilya {
+  display: flex;
+  gap: 10px;
+}
+
 .ismfamilya input {
-  width: calc(33% - 10px);
-  margin-right: 15px;
+  flex: 1;
   padding: 10px;
   border-radius: 8px;
   border: 1px solid #d1d5db;
   font-size: 15px;
 }
 
-.ismfamilya input:last-child {
-  margin-right: 0;
-}
-
-input[type="text"],
-input[type="tel"],
-input[type="date"],
+input[type=text],
+input[type=tel],
+input[type=date],
 select {
   width: 100%;
   padding: 10px;
@@ -315,7 +232,7 @@ select {
   font-size: 15px;
 }
 
-button[type="submit"] {
+button[type=submit] {
   width: 100%;
   padding: 14px;
   background-color: #2563eb;
@@ -328,7 +245,7 @@ button[type="submit"] {
   transition: background-color 0.3s ease;
 }
 
-button[type="submit"]:hover {
+button[type=submit]:hover {
   background-color: #1e40af;
 }
 </style>
