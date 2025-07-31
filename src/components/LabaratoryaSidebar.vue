@@ -44,17 +44,17 @@
           </router-link>
         </li>
       
-        <li>
-          <router-link to="/laborant/taxlilBriktrish" @click="closeSidebar" active-class="router-link-active">
-            Taxlilni briktrish
-          </router-link>
-        </li>
+        
          <li>
           <router-link to="/laborant/taxlilLab" @click="closeSidebar" active-class="router-link-active">
             Taxlilni briktrish
           </router-link>
         </li>
-
+        <li>
+          <router-link to="/laborant/taxlilBriktrish" @click="closeSidebar" active-class="router-link-active">
+            Bemor taxlili
+          </router-link>
+        </li>
   
 
 

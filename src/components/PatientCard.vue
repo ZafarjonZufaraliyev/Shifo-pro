@@ -128,10 +128,10 @@ export default {
         chiqish_sanasi: '',
         xona_id: '',
         xizmatlar: [],
-        has_child: 0  // Checkbox uchun qo'shildi (0 yoki 1)
+        has_child: 0,
       },
       role: localStorage.getItem('role') || 'mini',
-      currentUser: JSON.parse(localStorage.getItem('currentUser') || '{}')
+      currentUser: JSON.parse(localStorage.getItem('currentUser') || '{}'),
     };
   },
 
@@ -149,6 +149,10 @@ export default {
     },
 
     latestStay() {
+      const ongoingStays = this.stays.filter(s => !s.to_date || new Date(s.to_date) >= new Date());
+      if (ongoingStays.length) {
+        return ongoingStays.sort((a, b) => new Date(b.from_date) - new Date(a.from_date))[0];
+      }
       return this.stays.sort((a, b) => new Date(b.from_date) - new Date(a.from_date))[0] || null;
     },
 
@@ -165,7 +169,7 @@ export default {
           price: pricePerDay * days,
           kirish_sanasi: a.from_date,
           chiqish_sanasi: a.to_date,
-          sana: a.from_date
+          sana: a.from_date,
         };
       });
     },
@@ -195,7 +199,7 @@ export default {
 
     totalUnpaid() {
       return this.total - this.totalPaid;
-    }
+    },
   },
 
   methods: {
@@ -212,10 +216,7 @@ export default {
       const birthDate = new Date(d);
       const now = new Date();
       let age = now.getFullYear() - birthDate.getFullYear();
-      if (
-        now.getMonth() < birthDate.getMonth() ||
-        (now.getMonth() === birthDate.getMonth() && now.getDate() < birthDate.getDate())
-      ) {
+      if (now.getMonth() < birthDate.getMonth() || (now.getMonth() === birthDate.getMonth() && now.getDate() < birthDate.getDate())) {
         age--;
       }
       return age;
@@ -223,29 +224,33 @@ export default {
 
     async fetchAll() {
       this.loading = true;
+
+      this.patient = null;
+      this.stays = [];
+      this.roomAssignments = [];
+      this.xizmatlar = [];
+      this.kasalliklar = [];
+      this.natijalar = [];
+      this.rr = {
+        kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [], has_child: 0,
+      };
+
       try {
         const id = this.$route.params.id;
 
-        const [
-          p,
-          st,
-          rooms,
-          services,
-          roomTypes,
-          roomAssigns
-        ] = await Promise.all([
+        const [p, st, rooms, services, roomTypes, roomAssigns] = await Promise.all([
           api.get(`/api/v1/clients/${id}`),
           api.get(`/api/v1/davolanish?client_id=${id}`),
           api.get('/api/v1/room'),
           api.get('/api/v1/services'),
           api.get('/api/v1/room-types'),
-          api.get(`/api/v1/xona-joylashuv?client_id=${id}`)
+          api.get(`/api/v1/xona-joylashuv?client_id=${id}`),
         ]);
 
         this.patient = p.data;
-        this.stays = st.data;
-        this.availableRooms = rooms.data;
-        this.allServices = services.data;
+        this.stays = st.data || [];
+        this.availableRooms = rooms.data || [];
+        this.allServices = services.data || [];
         this.availableRoomTypes = roomTypes.data || [];
         this.roomAssignments = roomAssigns.data || [];
         this.kasalliklar = this.patient.kasalliklar || [];
@@ -253,11 +258,19 @@ export default {
 
         if (this.latestStay) {
           const { data: clientSrv } = await api.get(`/api/v1/client-services?davolanish_id=${this.latestStay.id}`);
-          this.xizmatlar = clientSrv.map(srv => ({
-            ...srv,
-            nomi: this.allServices.find(a => a.id === srv.service_id)?.nomi || srv.nomi,
-            narxi: srv.narxi ?? srv.price ?? 0
-          }));
+          const uniqueServicesMap = new Map();
+          clientSrv.forEach(srv => {
+            if (!uniqueServicesMap.has(srv.id)) {
+              uniqueServicesMap.set(srv.id, {
+                ...srv,
+                nomi: this.allServices.find(a => a.id === srv.service_id)?.nomi || srv.nomi,
+                narxi: srv.narxi ?? srv.price ?? 0,
+              });
+            }
+          });
+          this.xizmatlar = Array.from(uniqueServicesMap.values());
+        } else {
+          this.xizmatlar = [];
         }
       } catch (err) {
         console.error(err);
@@ -272,12 +285,10 @@ export default {
         alert('❌ Chiqish sanasi belgilanmagan');
         return;
       }
-
       try {
         await api.put(`/api/v1/xona-joylashuv/${item.id}`, {
-          to_date: item.chiqish_sanasi
+          to_date: item.chiqish_sanasi,
         });
-
         alert('✅ Chiqish sanasi muvaffaqiyatli yangilandi');
         this.fetchAll();
       } catch (err) {
@@ -294,14 +305,13 @@ export default {
 
       try {
         let currentStay = this.latestStay;
-
-        if (!currentStay || currentStay.chiqish_sanasi) {
+        if (!currentStay || currentStay.to_date) {
           const { data: newStay } = await api.post('/api/v1/davolanish', {
             client_id: this.patient.id,
             room_id: r.xona_id,
             from_date: r.kirish_sanasi,
             to_date: r.chiqish_sanasi,
-            create_user_id: this.currentUser.id
+            create_user_id: this.currentUser.id,
           });
           currentStay = newStay;
         }
@@ -313,18 +323,17 @@ export default {
         if (lastPlacement) {
           await api.put(`/api/v1/xona-joylashuv/${lastPlacement.id}`, {
             ...lastPlacement,
-            to_date: r.kirish_sanasi
+            to_date: r.kirish_sanasi,
           });
         }
 
-        // Bu yerda has_child (rr.has_child) qiymatini jo'natamiz:
         await api.post('/api/v1/xona-joylashuv', {
           davolanish_id: currentStay.id,
           room_id: r.xona_id,
           from_date: r.kirish_sanasi,
           to_date: r.chiqish_sanasi,
           price_per_day: this.rrPrice,
-          has_child: r.has_child || 0  // checkbox qiymati 0 yoki 1
+          has_child: r.has_child || 0,
         });
 
         for (const sid of r.xizmatlar) {
@@ -333,7 +342,7 @@ export default {
             davolanish_id: currentStay.id,
             service_id: sid,
             start_date: r.kirish_sanasi,
-            price: this.allServices.find(s => s.id === sid)?.narxi || 0
+            price: this.allServices.find(s => s.id === sid)?.narxi || 0,
           });
         }
 
@@ -344,14 +353,22 @@ export default {
         console.error(err);
         alert('❌ Xona o‘zgartirishda xatolik yuz berdi');
       }
-    }
+    },
   },
 
   mounted() {
     this.fetchAll();
-  }
+  },
+
+  watch: {
+    '$route.params.id'() {
+      this.fetchAll();
+    },
+  },
 };
 </script>
+ipt>
+
 
 
 <style scoped>

@@ -2,13 +2,13 @@
   <div class="register-container">
     <h2>Ro'yxatdan O'tkazish</h2>
     <form @submit.prevent="registerClient" class="form">
-      <!-- Familiya, Ism, Sharif -->
+      <!-- F.I.Sh -->
       <div class="form-group">
         <label>Familiya, Ism, Sharif</label>
         <div class="ismfamilya">
-          <input v-model="form.familiya" type="text" placeholder="Familiya" required />
-          <input v-model="form.ism" type="text" placeholder="Ism" required />
-          <input v-model="form.sharif" type="text" placeholder="Sharif (otasining ismi)" required />
+          <input v-model="form.familiya" placeholder="Familiya" required />
+          <input v-model="form.ism" placeholder="Ism" required />
+          <input v-model="form.sharif" placeholder="Sharif (otasining ismi)" required />
         </div>
       </div>
 
@@ -25,8 +25,8 @@
       <!-- Pasport va Tug‘ilgan sana -->
       <div class="form-row">
         <div class="form-group">
-          <label>Pasport seriyasi va raqami</label>
-          <input v-model="form.pasport" type="text" placeholder="AA1234567" pattern="[A-Z]{2}[0-9]{7}" required />
+          <label>Pasport</label>
+          <input v-model="form.pasport" placeholder="AA1234567" pattern="[A-Z]{2}[0-9]{7}" required />
         </div>
         <div class="form-group">
           <label>Tug‘ilgan sana</label>
@@ -35,30 +35,25 @@
       </div>
 
       <!-- Viloyat -->
-      <div v-if="form.davlat === 'O‘zbekiston'" class="form-group">
+      <div class="form-group">
         <label>Viloyat</label>
-        <select v-model="form.viloyat" required>
-          <option disabled value="">Tanlang</option>
-          <option v-for="(viloyat, index) in viloyatlar" :key="index" :value="viloyat.name">{{ viloyat.name }}</option>
-        </select>
-      </div>
-      <div v-else-if="form.davlat === 'Xorijiy'" class="form-group">
-        <label>Viloyat (yozma)</label>
-        <input v-model="form.viloyat" type="text" placeholder="Viloyatni kiriting" required />
-      </div>
-
-      <!-- Tuman -->
-      <div v-if="form.davlat" class="form-group">
-        <label>Tuman (yozma)</label>
-        <input v-model="form.tuman" type="text" placeholder="Tuman nomini kiriting" required />
+        <template v-if="form.davlat === 'O‘zbekiston'">
+          <select v-model="form.viloyat" required>
+            <option disabled value="">Tanlang</option>
+            <option v-for="v in viloyatlar" :key="v" :value="v">{{ v }}</option>
+          </select>
+        </template>
+        <template v-else-if="form.davlat === 'Xorijiy'">
+          <input v-model="form.viloyat" placeholder="Viloyatni kiriting" required />
+        </template>
       </div>
 
-      <!-- Telefonlar -->
+     
+      <!-- Telefon -->
       <div class="form-group">
         <label>Telefon raqamlari</label>
         <div class="ismfamilya">
-          <input v-model="form.tel1" type="tel" placeholder="Asosiy: +998901234567" 
-            required />
+          <input v-model="form.tel1" type="tel" placeholder="Asosiy: +998901234567" required />
           <input v-model="form.tel2" type="tel" placeholder="Qo‘shimcha: +998901234568" />
         </div>
       </div>
@@ -66,7 +61,7 @@
       <!-- Uy manzili -->
       <div class="form-group">
         <label>Uy manzili</label>
-        <input v-model="form.manzil" type="text" placeholder="Manzilni kiriting" required />
+        <input v-model="form.manzil" placeholder="Manzilni kiriting" required />
       </div>
 
       <!-- Qayerdan eshitgan -->
@@ -82,7 +77,7 @@
         </select>
       </div>
 
-      <!-- Parhez (ixtiyoriy) -->
+      <!-- Parhez -->
       <div class="form-group">
         <label>Parhez (ixtiyoriy)</label>
         <select v-model="form.parhez">
@@ -100,11 +95,16 @@
 
 <script>
 import api from '@/api';
+
 export default {
   name: 'RegisterPage',
   data() {
     return {
-      viloyatlar: [],
+      viloyatlar: [
+        'Toshkent', 'Andijon', 'Farg‘ona', 'Namangan', 'Samarqand', 'Buxoro',
+        'Xorazm', 'Qashqadaryo', 'Surxondaryo', 'Jizzax', 'Sirdaryo', 'Navoiy',
+        'Qoraqalpog‘iston Respublikasi'
+      ],
       form: {
         familiya: '',
         ism: '',
@@ -118,36 +118,18 @@ export default {
         tel1: '',
         tel2: '',
         referral: '',
-        parhez: '', // <- qo‘shildi
+        parhez: '',
         create_user_id: null,
         create_user_name: '',
       },
     };
   },
-  watch: {
-    'form.davlat'(val) {
-      if (val === 'O‘zbekiston') {
-        this.loadViloyatlar();
-      } else {
-        this.viloyatlar = [];
-        this.form.viloyat = '';
-      }
-    },
-  },
+
   mounted() {
     this.fetchCurrentUser();
   },
+
   methods: {
-    async loadViloyatlar() {
-      try {
-        const res = await fetch(
-          'https://thingproxy.freeboard.io/fetch/https://uzbekistan-regions.vercel.app/api/regions'
-        );
-        this.viloyatlar = await res.json();
-      } catch (err) {
-        console.error('Viloyatlarni yuklashda xatolik:', err);
-      }
-    },
     async fetchCurrentUser() {
       try {
         const res = await api.get('/api/v1/user_data');
@@ -157,15 +139,16 @@ export default {
           this.form.create_user_name = user.name;
         }
       } catch (err) {
-        console.error('Foydalanuvchini olishda xatolik:', err);
+        console.error('Foydalanuvchi maʼlumotlari olinmadi:', err);
       }
     },
+
     async registerClient() {
       try {
         const res = await api.post('/api/v1/clients', this.form);
         const client = res.data?.data;
         if (!client?.id) {
-          alert('Ro‘yxatdan o‘tishda mijoz ID topilmadi!');
+          alert('Ro‘yxatdan o‘tishda ID topilmadi!');
           return;
         }
         this.$router.push({ name: 'adminTakliflar', params: { clientId: client.id } });
@@ -178,153 +161,119 @@ export default {
           }
           alert(msg);
         } else {
-          console.error(err);
-          alert('❌ Ro‘yxatdan o‘tishda server xatoligi yuz berdi!');
+          console.error('Ro‘yxatdan o‘tishda xato:', err);
+          alert('❌ Server xatoligi yuz berdi!');
         }
       }
     },
   },
 };
 </script>
-
 <style scoped>
-/***** Stil fayli o‘zgarishsiz qoldirildi *****/
+/* Umumiy konteyner */
 .register-container {
   max-width: 1200px;
   margin: 20px auto;
-  background: #f9fafb;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .1);
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif
+  background-color: #ffffff;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #1f2937;
 }
 
+/* Sarlavha */
 h2 {
   text-align: center;
-  margin-bottom: 20px;
-  color: #111827
+  margin-bottom: 30px;
+  font-size: 28px;
+  color: #111827;
+  font-weight: 700;
 }
 
+/* Forma guruhi */
 .form-group {
-  margin-bottom: 18px
+  margin-bottom: 20px;
 }
 
 label {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   font-weight: 600;
-  color: #374151
+  font-size: 15px;
+  color: #374151;
 }
 
+/* 3ta yonma-yon input (F.I.SH va telefon) */
 .ismfamilya {
   display: flex;
-  gap: 10px
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .ismfamilya input {
   flex: 1;
-  padding: 10px;
-  border-radius: 8px;
+  padding: 12px;
+  border-radius: 10px;
   border: 1px solid #d1d5db;
-  font-size: 15px
+  font-size: 14px;
+  background-color: #f9fafb;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
 }
 
-input[type=text],
-input[type=tel],
-input[type=date],
-select {
-  width: 100%;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-  font-size: 15px
-}
-
-button[type=submit] {
-  width: 100%;
-  padding: 14px;
-  background-color: #2563eb;
-  color: #fff;
-  font-weight: 700;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  font-size: 16px;
-  transition: background-color .3s
-}
-
-button[type=submit]:hover {
-  background-color: #1e40af
-}
-
-
-
-
-
-
-
-
-.register-container {
-  max-width: 1200px;
-  margin: 20px auto;
-  background: #f9fafb;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-}
-
-h2 {
-  text-align: center;
-  margin-bottom: 20px;
-  color: #111827;
-}
-
-.form-group {
-  margin-bottom: 18px;
-}
-
-label {
-  display: block;
-  margin-bottom: 6px;
-  font-weight: 600;
-  color: #374151;
-}
-
-.ismfamilya input {
-  width: calc(33% - 10px);
-  margin-right: 15px;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-  font-size: 15px;
-}
-
-.ismfamilya input:last-child {
-  margin-right: 0;
-}
-
+/* Boshqa input va selectlar */
 input[type="text"],
 input[type="tel"],
 input[type="date"],
 select {
   width: 100%;
-  padding: 10px;
-  border-radius: 8px;
+  padding: 12px;
+  border-radius: 10px;
   border: 1px solid #d1d5db;
-  font-size: 15px;
+  font-size: 14px;
+  background-color: #f9fafb;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
 }
 
+input:focus,
+select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  background-color: #ffffff;
+}
+
+/* Pasport va Tug‘ilgan sana bir qatorda */
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+/* Uy manzili inputi */
+input[v-model="form.manzil"] {
+  background-color: #fefefe;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  font-size: 14px;
+}
+
+/* Submit tugmasi */
 button[type="submit"] {
   width: 100%;
   padding: 14px;
   background-color: #2563eb;
-  color: white;
+  color: #ffffff;
   font-weight: 700;
+  font-size: 16px;
   border: none;
   border-radius: 12px;
   cursor: pointer;
-  font-size: 16px;
   transition: background-color 0.3s ease;
 }
 
