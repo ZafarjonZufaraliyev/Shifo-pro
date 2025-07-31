@@ -57,6 +57,7 @@ import TaxlilTuriLab from "@/components/TaxlilTuriLab.vue";
 import LabaratoryaDashboard from "@/views/LabaratoryaDashboard.vue";
 import LabaratoryLatout from "@/layouts/LabaratoryLatout.vue";
 import TaxlilPDFlab from "@/components/TaxlilPDFlab.vue";
+import taxlilLab from "../components/taxlilLab.vue";
 const routes = [
   { path: "/", redirect: "/login" },
   { path: "/TaklifDetelis", name: "TaklifDetelis", component: TaklifDetelis },
@@ -222,7 +223,8 @@ const routes = [
       { path: "", name: "LabaratoryaDashboard", component: LabaratoryaDashboard },
       { path: "natijalar", name: "NatijaLab", component: NatijaLab },
       {path: "taxlilTuri",name:"TaxlilTuriLab" , component: TaxlilTuriLab},
-      {path: "taxlilBriktrish",name:"TaxlilPDFlab" , component: TaxlilPDFlab}
+      {path: "taxlilBriktrish",name:"TaxlilPDFlab" , component: TaxlilPDFlab},
+      {path: "taxlilLab",name:"taxlilLab" , component:taxlilLab }
     ],
   },
   

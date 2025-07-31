@@ -1,6 +1,6 @@
 <template>
   <div class="patient-card" v-if="!loading && patient">
-    <h2>🏪 Bemor Maʼlumotlari</h2>
+    <h2>🏪 Bemor Maʼlumotlari</h2>
 
     <!-- === Asosiy maʼlumotlar === -->
     <div class="info-grid">
@@ -8,18 +8,15 @@
       <div class="info-item"><strong>Ism:</strong> {{ patient.ism }}</div>
       <div class="info-item"><strong>Yoshi:</strong> {{ hisoblaYosh(patient.tugulgan_sana) }}</div>
       <div class="info-item"><strong>Jinsi:</strong> {{ patient.jinsi || 'Nomaʼlum' }}</div>
-      <div class="info-item"><strong>Kelgan:</strong> {{ formatDate(latestStay?.kirish_sanasi) }}</div>
-      <div class="info-item"><strong>Ketish:</strong> {{ formatDate(latestStay?.chiqish_sanasi) }}</div>
+      <div class="info-item"><strong>Kelgan:</strong> {{ latestStay.kelish_sanasi }}</div>
+      <div class="info-item"><strong>Ketish:</strong> {{ latestStay.ketish_sanasi }}</div>
     </div>
 
     <!-- === Tablar === -->
     <div class="tab-header">
-      <div :class="['tab-title', { active: activeTab === 'xizmatlar' }]" @click="activeTab = 'xizmatlar'">Xizmatlar
-      </div>
-      <div :class="['tab-title', { active: activeTab === 'kasalliklar' }]" @click="activeTab = 'kasalliklar'">
-        Kasalliklar</div>
-      <div :class="['tab-title', { active: activeTab === 'natijalar' }]" @click="activeTab = 'natijalar'">Natijalar
-      </div>
+      <div :class="['tab-title', { active: activeTab === 'xizmatlar' }]" @click="activeTab = 'xizmatlar'">Xizmatlar</div>
+      <div :class="['tab-title', { active: activeTab === 'kasalliklar' }]" @click="activeTab = 'kasalliklar'">Kasalliklar</div>
+      <div :class="['tab-title', { active: activeTab === 'natijalar' }]" @click="activeTab = 'natijalar'">Natijalar</div>
       <div :class="['tab-title', { active: activeTab === 'xonalar' }]" @click="activeTab = 'xonalar'">Xonalar</div>
     </div>
 
@@ -35,11 +32,11 @@
           <th v-if="activeTab === 'kasalliklar'">Kasallik nomi</th>
           <th v-if="activeTab === 'natijalar'">Natija</th>
           <template v-if="activeTab === 'xonalar'">
-       
-            <th>Xona nomi</th>
+            <th>Xona nomi</th>
             <th>Narxi</th>
             <th>Kirgan</th>
             <th>Chiqgan</th>
+            <th>Amal</th> <!-- Add a column for the action button -->
           </template>
         </tr>
       </thead>
@@ -47,22 +44,27 @@
         <tr v-for="(item, i) in filteredData" :key="i">
           <td>{{ i + 1 }}</td>
 
+          <!-- Xizmatlar -->
           <template v-if="activeTab === 'xizmatlar'">
-            <td>{{ item.nomi }}</td>
+            <td>{{ item.service.name }}</td>
             <td>{{ formatPrice(item.narxi) }}</td>
-            
           </template>
 
+          <!-- Kasalliklar -->
           <td v-if="activeTab === 'kasalliklar'">{{ item.nomi }}</td>
+
+          <!-- Natijalar -->
           <td v-if="activeTab === 'natijalar'">{{ item.natija }}</td>
 
+          <!-- Xonalar -->
           <template v-if="activeTab === 'xonalar'">
-            <!-- <td>{{ item.roomNumber }}</td> -->
             <td>{{ item.roomName }}</td>
             <td>{{ formatPrice(item.price) }}</td>
             <td>{{ formatDate(item.kirish_sanasi) }}</td>
-            <td>{{ formatDate(item.chiqish_sanasi) }}</td>
-
+            <td>
+              <input type="date" v-model="item.chiqish_sanasi" @change="updateExitDate(item)" />
+              <button @click="updateExitDate(item)">Yangilash</button> <!-- Button to update exit date -->
+            </td>
           </template>
 
           <td v-if="activeTab !== 'xonalar'">{{ formatDate(item.sana) }}</td>
@@ -74,13 +76,10 @@
           <td>
             <select v-model="rr.xona_id">
               <option disabled value="">Tanlang</option>
-              <option v-for="r in availableRooms" :key="r.id" :value="r.id">{{ r.xona }}</option>
+              <option v-for="r in availableRooms" :key="r.id" :value="r.id">{{ r.room_type.name }} [{{ r.xona }}]</option>
             </select>
           </td>
-
           <td>{{ rrPrice ? formatPrice(rrPrice) : '-' }}</td>
-
-          
           <td><input type="date" v-model="rr.kirish_sanasi" /></td>
           <td><input type="date" v-model="rr.chiqish_sanasi" /></td>
           <td><button @click="submitReRegister">➕</button></td>
@@ -88,18 +87,11 @@
       </tbody>
     </table>
 
-    <!-- Moliyaviy xulosa -->
-    <div v-if="activeTab === 'xizmatlar'" class="financial-summary">
-      <p>💰 Jami: {{ formatPrice(total) }}</p>
-      <p>✅ To‘langan: {{ formatPrice(totalPaid) }}</p>
-      <p>❌ Qarz: {{ formatPrice(totalUnpaid) }}</p>
-    </div>
-
     <router-link :to="`/${role}/bemorlar`" class="btn-back">↩ Orqaga</router-link>
   </div>
 
   <div v-else class="loading-container">
-    <p>⏳ Yuklanmoqda...</p>
+    <p>⏳ Yuklanmoqda...</p>
   </div>
 </template>
 
@@ -112,22 +104,17 @@ export default {
   data() {
     return {
       loading: false,
-
       patient: null,
       stays: [],
       roomAssignments: [],
-
       xizmatlar: [],
       kasalliklar: [],
       natijalar: [],
-
       availableRooms: [],
       availableRoomTypes: [],
       allServices: [],
-
       activeTab: 'xizmatlar',
       rr: { kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [] },
-
       role: localStorage.getItem('role') || 'mini',
       currentUser: JSON.parse(localStorage.getItem('currentUser') || '{}')
     };
@@ -147,7 +134,7 @@ export default {
     },
 
     latestStay() {
-      return this.stays[0] || null;
+      return this.stays.sort((a, b) => new Date(b.from_date) - new Date(a.from_date))[0] || null;
     },
 
     roomData() {
@@ -157,6 +144,7 @@ export default {
         const days = Math.max(Math.ceil((new Date(a.to_date) - new Date(a.from_date)) / 864e5), 0);
 
         return {
+          id: a.id, // kerakli identifikator
           roomNumber: room.xona || '-',
           roomName: room.nomi || room.xona || '-',
           price: pricePerDay * days,
@@ -180,11 +168,6 @@ export default {
     rrPrice() {
       const r = this.availableRooms.find(x => x.id === this.rr.xona_id);
       return r && r.room_type ? Number(r.room_type.Narxi) : 0;
-    },
-
-    rrType() {
-      const r = this.availableRooms.find(x => x.id === this.rr.xona_id);
-      return r && r.room_type ? r.room_type.name : '-';
     },
 
     total() {
@@ -269,6 +252,25 @@ export default {
       }
     },
 
+    async updateExitDate(item) {
+      if (!item.chiqish_sanasi) {
+        alert('❌ Chiqish sanasi belgilanmagan');
+        return;
+      }
+
+      try {
+        await api.put(`/api/v1/xona-joylashuv/${item.id}`, {
+          to_date: item.chiqish_sanasi
+        });
+
+        alert('✅ Chiqish sanasi muvaffaqiyatli yangilandi');
+        this.fetchAll(); // ⬅ ma'lumotlarni yangilash
+      } catch (err) {
+        console.error('Xatolik:', err);
+        alert('❌ Chiqish sanasini yangilab bo‘lmadi');
+      }
+    },
+
     async submitReRegister() {
       const r = this.rr;
       if (!r.kirish_sanasi || !r.chiqish_sanasi || !r.xona_id) {
@@ -278,7 +280,6 @@ export default {
       try {
         let currentStay = this.latestStay;
 
-        // Agar davolanish mavjud bo'lmasa yoki chiqish sanasi belgilangan bo'lsa, yangi yaratamiz
         if (!currentStay || currentStay.chiqish_sanasi) {
           const { data: newStay } = await api.post('/api/v1/davolanish', {
             client_id: this.patient.id,
@@ -290,20 +291,17 @@ export default {
           currentStay = newStay;
         }
 
-        // Oxirgi xona joylashuvini topish
         const lastPlacement = this.roomAssignments
           .filter(x => x.davolanish_id === currentStay.id)
           .sort((a, b) => new Date(b.from_date) - new Date(a.from_date))[0];
 
         if (lastPlacement) {
-          // Oldingi joylashuvning chiqish sanasini yangi kirish sanasiga yangilaymiz
           await api.put(`/api/v1/xona-joylashuv/${lastPlacement.id}`, {
             ...lastPlacement,
             to_date: r.kirish_sanasi
           });
         }
 
-        // Yangi xona joylashuvini yaratamiz va price_per_day ni yuboramiz
         await api.post('/api/v1/xona-joylashuv', {
           davolanish_id: currentStay.id,
           room_id: r.xona_id,
@@ -312,7 +310,6 @@ export default {
           price_per_day: this.rrPrice
         });
 
-        // Xizmatlarni biriktirish
         for (const sid of r.xizmatlar) {
           await api.post('/api/v1/client-services', {
             client_id: this.patient.id,
@@ -323,7 +320,7 @@ export default {
           });
         }
 
-        alert('✅ Xona yangilandi va yangi joylashuv yaratildi');
+        alert('✅ Xona joylashuvi qoʻshildi');
         this.rr = { kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [] };
         this.fetchAll();
       } catch (err) {
@@ -338,6 +335,13 @@ export default {
   }
 };
 </script>
+
+
+
+
+
+
+
 
 
 

@@ -49,6 +49,11 @@
             Taxlilni briktrish
           </router-link>
         </li>
+         <li>
+          <router-link to="/laborant/taxlilLab" @click="closeSidebar" active-class="router-link-active">
+            Taxlilni briktrish
+          </router-link>
+        </li>
 
   
 
