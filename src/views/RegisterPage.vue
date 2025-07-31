@@ -22,6 +22,22 @@
         </select>
       </div>
 
+      <!-- Hudud / Davlat -->
+      <div class="form-group" v-if="form.davlat">
+        <label v-if="form.davlat === 'O‘zbekiston'">Viloyat</label>
+        <label v-else-if="form.davlat === 'Xorijiy'">Davlat</label>
+
+        <select v-if="form.davlat === 'O‘zbekiston'" v-model="form.viloyat" required>
+          <option disabled value="">Tanlang</option>
+          <option v-for="v in viloyatlar" :key="v" :value="v">{{ v }}</option>
+        </select>
+
+        <select v-else-if="form.davlat === 'Xorijiy'" v-model="form.viloyat" required>
+          <option disabled value="">Tanlang</option>
+          <option v-for="c in davlatlar" :key="c" :value="c">{{ c }}</option>
+        </select>
+      </div>
+
       <!-- Pasport va Tug‘ilgan sana -->
       <div class="form-row">
         <div class="form-group">
@@ -34,21 +50,6 @@
         </div>
       </div>
 
-      <!-- Viloyat -->
-      <div class="form-group">
-        <label>Viloyat</label>
-        <template v-if="form.davlat === 'O‘zbekiston'">
-          <select v-model="form.viloyat" required>
-            <option disabled value="">Tanlang</option>
-            <option v-for="v in viloyatlar" :key="v" :value="v">{{ v }}</option>
-          </select>
-        </template>
-        <template v-else-if="form.davlat === 'Xorijiy'">
-          <input v-model="form.viloyat" placeholder="Viloyatni kiriting" required />
-        </template>
-      </div>
-
-     
       <!-- Telefon -->
       <div class="form-group">
         <label>Telefon raqamlari</label>
@@ -104,6 +105,12 @@ export default {
         'Toshkent', 'Andijon', 'Farg‘ona', 'Namangan', 'Samarqand', 'Buxoro',
         'Xorazm', 'Qashqadaryo', 'Surxondaryo', 'Jizzax', 'Sirdaryo', 'Navoiy',
         'Qoraqalpog‘iston Respublikasi'
+      ],
+      davlatlar: [
+        'Rossiya', 'Qozog‘iston', 'Qirg‘iziston', 'Tojikiston', 'Turkiya', 'AQSH',
+        'Xitoy', 'Janubiy Koreya', 'Germaniya', 'Fransiya', 'Buyuk Britaniya', 'Hindiston',
+        'Malayziya', 'Ukraina', 'Birlashgan Arab Amirliklari', 'Eron', 'Polsha', 'Italiya',
+        'Ispaniya', 'Yaponiya', 'Kanada', 'Avstraliya', 'Chexiya', 'Niderlandiya', 'Shvetsiya'
       ],
       form: {
         familiya: '',
@@ -169,6 +176,11 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+/* styling qismini o'zgartirmasangiz ham bo'ladi – sizda yaxshi yozilgan */
+</style>
+
 <style scoped>
 /* Umumiy konteyner */
 .register-container {
