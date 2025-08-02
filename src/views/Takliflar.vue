@@ -24,18 +24,29 @@
             <th>№</th>
             <th>Sig'imi</th>
             <th>Narxi</th>
+            <th>Holati</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="r in filteredRooms" :key="r.id" :class="['room-row', { busy: r.busy }]" @click="selectRoom(r)"
-            :title="r.busy ? 'Band' : 'Tanlash'">
+          <tr
+            v-for="r in filteredRooms"
+            :key="r.id"
+            :class="['room-row', { busy: r.busy }, { current: isCurrentRoom(r.id) }]"
+            @click="selectRoom(r)"
+            :title="r.busy ? 'Band' : 'Tanlash'"
+          >
             <td>{{ r.room_type }}</td>
             <td>{{ r.xona }}</td>
             <td>{{ r.sigim }}</td>
             <td>{{ r.price.toLocaleString('ru-RU') }}</td>
+            <td>
+              <span v-if="isCurrentRoom(r.id)" style="color: #d97706; font-weight: 700;">Joriy yotmoqda</span>
+              <span v-else-if="r.busy" style="color: red">Band</span>
+              <span v-else style="color: green">Bo'sh</span>
+            </td>
           </tr>
           <tr v-if="filteredRooms.length === 0">
-            <td class="no-rooms" colspan="4">Xonalar topilmadi</td>
+            <td class="no-rooms" colspan="5">Xonalar topilmadi</td>
           </tr>
         </tbody>
       </table>
@@ -53,11 +64,11 @@
       <div class="date-row">
         <div class="form-group">
           <label>Kelish</label>
-          <input type="date" :min="today" v-model="arrivalDate" @change="loadRoomBookings" />
+          <input type="date" :min="today" v-model="arrivalDate" @change="loadAllData" />
         </div>
         <div class="form-group">
           <label>Kunlar</label>
-          <input type="number" min="0" v-model.number="stayDays" @input="loadRoomBookings" />
+          <input type="number" min="1" v-model.number="stayDays" @input="loadAllData" />
         </div>
         <div class="form-group">
           <label>Ketish</label>
@@ -73,7 +84,12 @@
       <!-- Xizmatlar -->
       <div class="services-section">
         <h4>Majburiy xizmatlar</h4>
-        <div v-for="(s, i) in mandatoryServices" :key="'m' + i" class="service-item" @click="handleMandatoryClick(s)">
+        <div
+          v-for="(s, i) in mandatoryServices"
+          :key="'m' + i"
+          class="service-item"
+          @click="handleMandatoryClick(s)"
+        >
           <input type="checkbox" :checked="s.selected" readonly />
           {{ s.name }} —
           <input type="number" v-model.number="s.price" style="width:80px" /> so'm
@@ -116,49 +132,40 @@ export default {
       roomFilterNumber: '',
       roomFilterName: '',
       roomFilterSigim: null,
-      has_child: false       // boolean
+      has_child: false,
+      davolanishlar: [],  // davolanishlar ro'yxati
+      bronlar: []         // bronlar ro'yxati
     };
   },
-
   computed: {
     leaveDate() {
       const d = new Date(this.arrivalDate);
-      d.setDate(d.getDate() + this.stayDays-1);
+      d.setDate(d.getDate() + this.stayDays - 1);
       return d.toISOString().slice(0, 10);
     },
     filteredRooms() {
       return this.rooms.filter(r => {
-        const a = this.roomFilterNumber ? r.xona.includes(this.roomFilterNumber) : true;
-        const b = this.roomFilterName
-          ? r.room_type.toLowerCase().includes(this.roomFilterName.toLowerCase())
-          : true;
+        const a = this.roomFilterNumber ? r.xona.toString().includes(this.roomFilterNumber) : true;
+        const b = this.roomFilterName ? r.room_type.toLowerCase().includes(this.roomFilterName.toLowerCase()) : true;
         const c = this.roomFilterSigim ? r.sigim == this.roomFilterSigim : true;
         return a && b && c;
       });
     },
     totalSum() {
-      const room = this.selectedRoom ? this.selectedRoom.price * this.stayDays : 0;
-      const mand = this.mandatoryServices.reduce((s, x) => s + (x.selected ? x.price : 0), 0);
-      const add = this.additionalServices.filter(x => x.selected).reduce((s, x) => s + x.price, 0);
-      return room + mand + add;
+      const roomCost = this.selectedRoom ? this.selectedRoom.price * this.stayDays : 0;
+      const mand = this.mandatoryServices.reduce((sum, svc) => sum + (svc.selected ? svc.price : 0), 0);
+      const add = this.additionalServices.filter(svc => svc.selected).reduce((sum, svc) => sum + svc.price, 0);
+      return roomCost + mand + add;
     }
   },
-
-  async mounted() {
-    const id = this.clientId || this.$route.params.clientId;
-    if (!id) return alert('Client ID topilmadi!');
-    await this.loadClient(id);
-    await this.loadRooms();
-    await this.loadServices();
-    await this.loadRoomBookings();
-  },
-
   methods: {
-    /* ===== yuklamalar ===== */
     async loadClient(id) {
       try {
-        this.client = (await api.get(`/api/v1/clients/${id}`)).data;
-      } catch (e) { console.error('client', e); }
+        const res = await api.get(`/api/v1/clients/${id}`);
+        this.client = res.data;
+      } catch (error) {
+        console.error('Client load error:', error);
+      }
     },
     async loadRooms() {
       try {
@@ -171,293 +178,287 @@ export default {
           display: `${r.room_type?.name} (xona №${r.xona})`,
           busy: false
         }));
-      } catch (e) { console.error('rooms', e); }
-    },
-    async loadRoomBookings() {
-      try {
-        if (!this.arrivalDate || !this.leaveDate) return;
-        const res = await api.get('/api/v1/bron');
-        const a = new Date(this.arrivalDate), b = new Date(this.leaveDate);
-        const busyIds = res.data.filter(br => {
-          const s = new Date(br.start), e = new Date(br.end);
-          return a <= e && b >= s;
-        }).map(br => br.xona_id.toString());
-        this.rooms = this.rooms.map(r => ({ ...r, busy: busyIds.includes(r.id.toString()) }));
-        if (this.selectedRoom && busyIds.includes(this.selectedRoom.id.toString())) {
-          this.cancelSelection(); alert('Tanlangan xona band bo‘ldi.');
-        }
-      } catch (e) { console.error('bron', e); }
+      } catch (error) {
+        console.error('Rooms load error:', error);
+      }
     },
     async loadServices() {
       try {
         const res = await api.get('/api/v1/services');
-        this.mandatoryServices = res.data.filter(x => x.required == 1).map(x => ({ ...x, selected: true, price: +x.price, clickCount: 0 }));
-        this.additionalServices = res.data.filter(x => x.required != 1).map(x => ({ ...x, selected: false, price: +x.price }));
-      } catch (e) { console.error('services', e); }
+        this.mandatoryServices = res.data.filter(s => s.required == 1).map(s => ({ ...s, selected: true, price: +s.price, clickCount: 0 }));
+        this.additionalServices = res.data.filter(s => s.required != 1).map(s => ({ ...s, selected: false, price: +s.price }));
+      } catch (error) {
+        console.error('Services load error:', error);
+      }
     },
+    async loadDavolanishlar() {
+      try {
+        const res = await api.get('/api/v1/davolanish');
+        this.davolanishlar = res.data;
+      } catch (error) {
+        console.error('Davolanish load error:', error);
+      }
+    },
+    async loadBronlar() {
+      try {
+        const res = await api.get('/api/v1/bron');
+        this.bronlar = res.data;
+        console.log(this.bronlar)
+      } catch (error) {
+        console.error('Bron load error:', error);
+      }
+    },
+    markBusyRooms() {
+      const today = new Date(this.today);
 
-    /* ===== UI yordamchi ===== */
-    selectRoom(r) { if (!r.busy) this.selectedRoom = { ...r }; },
-    clearFilters() { this.roomFilterNumber = ''; this.roomFilterName = ''; this.roomFilterSigim = null; },
-    cancelSelection() { this.selectedRoom = null; this.loadServices(); },
-    handleMandatoryClick(s) { s.clickCount++; if (s.clickCount >= 5) { s.selected = false; s.clickCount = 0; } },
+      // Barcha xonalarni dastlab bo'sh deb belgilang
+      this.rooms = this.rooms.map(r => ({ ...r, busy: false }));
 
-    /* ===== Submit ===== */
+      const busyRoomIds = new Set();
+
+      // Davolanishlar bo'yicha band xonalar
+      this.davolanishlar.forEach(dav => {
+        const kelish = new Date(dav.kelish_sanasi);
+        const ketish = new Date(dav.ketish_sanasi);
+        if (today >= kelish && today <= ketish) {
+          busyRoomIds.add(dav.xona_id.toString());
+        }
+      });
+
+      // Bronlar bo'yicha band xonalar (status "faol" bo'lsa)
+      this.bronlar.forEach(bron => {
+        if (bron.status !== 'faol') return;
+        const start = new Date(bron.start);
+        const end = new Date(bron.end);
+        if (today >= start && today <= end) {
+          busyRoomIds.add(bron.xona_id.toString());
+        }
+      });
+
+      // Rooms massivida busy flagini yangilang
+      this.rooms = this.rooms.map(r => ({
+        ...r,
+        busy: busyRoomIds.has(r.id.toString())
+      }));
+    },
+    isCurrentRoom(roomId) {
+      const today = new Date(this.today);
+      // Davolanishlar orasida joriy kunda shu xonada yotgan bo'lsa true qaytaradi
+      return this.davolanishlar.some(dav => {
+        if (dav.xona_id.toString() !== roomId.toString()) return false;
+        const kelish = new Date(dav.kelish_sanasi);
+        const ketish = new Date(dav.ketish_sanasi);
+        return today >= kelish && today <= ketish;
+      });
+    },
+    selectRoom(room) {
+      if (!room.busy) {
+        this.selectedRoom = { ...room };
+      } else {
+        alert('Bu xona band!');
+      }
+    },
+    clearFilters() {
+      this.roomFilterNumber = '';
+      this.roomFilterName = '';
+      this.roomFilterSigim = null;
+    },
+    cancelSelection() {
+      this.selectedRoom = null;
+      this.loadServices();
+    },
+    handleMandatoryClick(service) {
+      service.clickCount++;
+      if (service.clickCount >= 5) {
+        service.selected = false;
+        service.clickCount = 0;
+      }
+    },
     async submitDavolanish() {
       if (!this.selectedRoom) return alert('Xona tanlang!');
 
-      // --- 1. davolanish
-      let dav = null;
+      let davolanish = null;
       try {
-        const r = await api.post('/api/v1/davolanish', {
+        const res = await api.post('/api/v1/davolanish', {
           client_id: this.client.id,
           xona_id: this.selectedRoom.id,
           kelish_sanasi: this.arrivalDate,
           ketish_sanasi: this.leaveDate
         });
-        dav = r.data.data;
-      } catch (e) { console.error('dav', e); return alert('Davolanish saqlanmadi'); }
-      if (!dav?.id) return alert('Davolanish ID topilmadi');
+        davolanish = res.data.data;
+      } catch (error) {
+        console.error('Davolanish saqlash xatosi:', error);
+        return alert('Davolanish saqlanmadi');
+      }
+      if (!davolanish?.id) return alert('Davolanish ID topilmadi');
 
-      // --- 2. xona-joylashuv
       try {
         await api.post('/api/v1/xona-joylashuv', {
-          davolanish_id: dav.id,
+          davolanish_id: davolanish.id,
           room_id: this.selectedRoom.id,
           from_date: this.arrivalDate,
           to_date: this.leaveDate,
           has_child: this.has_child ? 1 : 0,
           price_per_day: this.selectedRoom.price
         });
-      } catch (e) { console.error('joy', e); return alert('Joylashuv saqlanmadi'); }
+      } catch (error) {
+        console.error('Joylashuv saqlash xatosi:', error);
+        return alert('Joylashuv saqlanmadi');
+      }
 
-      // --- 3. xizmatlar
-      const sel = [...this.mandatoryServices.filter(x => x.selected), ...this.additionalServices.filter(x => x.selected)];
+      const selectedServices = [...this.mandatoryServices.filter(s => s.selected), ...this.additionalServices.filter(s => s.selected)];
       try {
         await api.post('/api/v1/client-services', {
           client_id: this.client.id,
-          davolanish_id: dav.id,
-          services: sel.map(s => ({
-            service_id: s.id, price: s.price, mahal: s.mahal || 1,
-            total_days: this.stayDays, start_date: this.arrivalDate,
+          davolanish_id: davolanish.id,
+          services: selectedServices.map(s => ({
+            service_id: s.id,
+            price: s.price,
+            mahal: s.mahal || 1,
+            total_days: this.stayDays,
+            start_date: this.arrivalDate,
             kunlik_vaqtlari: s.kunlik_vaqtlari || []
           }))
         });
         alert('✅ Hammasi saqlandi');
-      } catch (e) { console.error('serv', e); alert('Xizmatlar saqlanmadi'); }
+      } catch (error) {
+        console.error('Xizmatlar saqlash xatosi:', error);
+        alert('Xizmatlar saqlanmadi');
+      }
 
       this.cancelSelection();
-      this.loadRoomBookings();
+
+      await Promise.all([
+        this.loadRooms(),
+        this.loadDavolanishlar(),
+        this.loadBronlar()
+      ]);
+      this.markBusyRooms();
+    },
+    async loadAllData() {
+      await Promise.all([
+        this.loadRooms(),
+        this.loadServices(),
+        this.loadDavolanishlar(),
+        this.loadBronlar()
+      ]);
+      this.markBusyRooms();
     }
+  },
+  async mounted() {
+    const id = this.clientId || this.$route.params.clientId;
+    if (!id) {
+      alert('Client ID topilmadi!');
+      return;
+    }
+
+    await this.loadClient(id);
+
+    await Promise.all([
+      this.loadRooms(),
+      this.loadServices(),
+      this.loadDavolanishlar(),
+      this.loadBronlar()
+    ]);
+    this.markBusyRooms();
   }
 };
 </script>
 
 <style scoped>
 .taklif-container {
-  max-width: 1200px;
-  margin: 20px auto;
+  max-width: 900px;
+  margin: auto;
   padding: 20px;
-  background: #f9fafb;
-  border-radius: 18px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
-  font-family: 'Segoe UI', sans-serif;
-  color: #1f2937;
-}
-
-.title {
-  font-size: 28px;
-  font-weight: 700;
-  text-align: center;
-  color: #111827;
-  margin-bottom: 30px;
-}
-
-.user-info {
-  background: #e0f2fe;
-  border-left: 6px solid #3b82f6;
-  padding: 16px 24px;
-  margin-bottom: 30px;
-  border-radius: 12px;
-  font-size: 16px;
+  font-family: Arial, sans-serif;
 }
 
 .filter-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
   margin-bottom: 20px;
-}
-
-.filter-row input {
-  flex: 1 1 200px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-  font-size: 15px;
-}
-
-.clear-filter-btn {
-  padding: 10px 16px;
-  background: #2563eb;
-  color: white;
-  font-weight: 600;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.clear-filter-btn:hover {
-  background: #1e40af;
+  display: flex;
+  gap: 10px;
 }
 
 .rooms-table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 20px;
 }
 
 .rooms-table th,
 .rooms-table td {
-  padding: 12px 16px;
-  border: 1px solid #e5e7eb;
-  text-align: left;
-  font-size: 15px;
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
 }
 
 .room-row {
-  transition: background 0.2s ease;
   cursor: pointer;
 }
 
-.room-row:hover:not(.busy) {
-  background: #eff6ff;
+.room-row.busy {
+  background-color: #f8d7da;
 }
 
-.room-row.busy {
-  background-color: #ffe4e6 !important;
-  color: #991b1b !important;
-  border: 1px solid #f87171 !important;
-  cursor: not-allowed !important;
-  pointer-events: none !important;
-  font-style: italic;
-  font-weight: bold;
+.room-row.current {
+  background-color: #fff3cd;
 }
 
 .no-rooms {
   text-align: center;
-  color: #6b7280;
   font-style: italic;
-  padding: 12px;
+  color: #999;
 }
 
 .selected-room {
-  background: #f0fdf4;
-  border-left: 6px solid #10b981;
-  padding: 24px;
-  border-radius: 16px;
-  margin-top: 30px;
+  margin-top: 20px;
+  border: 1px solid #ccc;
+  padding: 15px;
 }
 
 .date-row {
   display: flex;
-  gap: 20px;
-  margin: 20px 0;
-  flex-wrap: wrap;
-}
-
-.form-group {
-  flex: 1 1 200px;
-  display: flex;
-  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 15px;
 }
 
 .form-group label {
+  display: block;
   font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.form-group input {
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-  font-size: 15px;
-}
-
-.total-sum {
-  font-size: 20px;
-  font-weight: 700;
-  text-align: right;
-  margin-top: 10px;
-  color: #1e40af;
-}
-
-.submit-btn {
-  background: #22c55e;
-  color: white;
-  font-weight: 700;
-  font-size: 16px;
-  padding: 14px 24px;
-  border: none;
-  border-radius: 12px;
-  margin-top: 20px;
-  float: right;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.submit-btn:hover {
-  background: #16a34a;
-}
-
-.cancel-btn {
-  background: #f87171;
-  color: white;
-  padding: 10px 16px;
-  border: none;
-  border-radius: 10px;
-  margin-top: 20px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.cancel-btn:hover {
-  background: #dc2626;
+  margin-bottom: 5px;
 }
 
 .services-section {
-  margin: 30px 0 20px 0;
-  background: #eff6ff;
-  padding: 16px 20px;
-  border-radius: 12px;
-}
-
-.services-section h3,
-.services-section h4 {
-  margin-bottom: 12px;
-  color: #1e40af;
+  margin-top: 10px;
 }
 
 .service-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 10px;
-  font-size: 15px;
+  margin-bottom: 5px;
+  cursor: pointer;
 }
 
-@media (max-width: 768px) {
-  .filter-row,
-  .date-row {
-    flex-direction: column;
-  }
+.total-sum {
+  margin-top: 15px;
+  font-size: 1.2em;
+}
 
-  .submit-btn {
-    width: 100%;
-    float: none;
-  }
+.submit-btn,
+.cancel-btn {
+  margin-top: 15px;
+  margin-right: 10px;
+  padding: 8px 15px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.submit-btn {
+  background-color: #28a745;
+  color: white;
+  border: none;
+}
+
+.cancel-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
 }
 </style>

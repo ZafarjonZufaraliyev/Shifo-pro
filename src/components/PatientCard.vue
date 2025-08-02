@@ -14,12 +14,9 @@
 
     <!-- === Tablar === -->
     <div class="tab-header">
-      <div :class="['tab-title', { active: activeTab === 'xizmatlar' }]" @click="activeTab = 'xizmatlar'">Xizmatlar
-      </div>
-      <div :class="['tab-title', { active: activeTab === 'kasalliklar' }]" @click="activeTab = 'kasalliklar'">
-        Kasalliklar</div>
-      <div :class="['tab-title', { active: activeTab === 'natijalar' }]" @click="activeTab = 'natijalar'">Natijalar
-      </div>
+      <div :class="['tab-title', { active: activeTab === 'xizmatlar' }]" @click="activeTab = 'xizmatlar'">Xizmatlar</div>
+      <div :class="['tab-title', { active: activeTab === 'kasalliklar' }]" @click="activeTab = 'kasalliklar'">Kasalliklar</div>
+      <div :class="['tab-title', { active: activeTab === 'natijalar' }]" @click="activeTab = 'natijalar'">Natijalar</div>
       <div :class="['tab-title', { active: activeTab === 'xonalar' }]" @click="activeTab = 'xonalar'">Xonalar</div>
     </div>
 
@@ -44,7 +41,6 @@
         </tr>
       </thead>
       <tbody>
-
         <tr v-for="(item, i) in filteredData" :key="i">
           <td>{{ i + 1 }}</td>
 
@@ -76,15 +72,11 @@
 
         <!-- ➕ Yangi xona satri -->
         <tr v-if="activeTab === 'xonalar'" class="input-row">
-          <td>
-            <input type="checkbox" v-model="rr.has_child" :true-value="1" :false-value="0" />
-          </td>
+          <td>*</td>
           <td>
             <select v-model="rr.xona_id">
               <option disabled value="">Tanlang</option>
-              <option v-for="r in availableRooms" :key="r.id" :value="r.id">
-                {{ r.room_type.name }} [{{ r.xona }}]
-              </option>
+              <option v-for="r in availableRooms" :key="r.id" :value="r.id">{{ r.room_type.name }} [{{ r.xona }}]</option>
             </select>
           </td>
           <td>{{ rrPrice ? formatPrice(rrPrice) : '-' }}</td>
@@ -92,7 +84,6 @@
           <td><input type="date" v-model="rr.chiqish_sanasi" /></td>
           <td><button @click="submitReRegister">➕</button></td>
         </tr>
-
       </tbody>
     </table>
 
@@ -123,15 +114,9 @@ export default {
       availableRoomTypes: [],
       allServices: [],
       activeTab: 'xizmatlar',
-      rr: {
-        kirish_sanasi: '',
-        chiqish_sanasi: '',
-        xona_id: '',
-        xizmatlar: [],
-        has_child: 0,
-      },
+      rr: { kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [] },
       role: localStorage.getItem('role') || 'mini',
-      currentUser: JSON.parse(localStorage.getItem('currentUser') || '{}'),
+      currentUser: JSON.parse(localStorage.getItem('currentUser') || '{}')
     };
   },
 
@@ -149,10 +134,6 @@ export default {
     },
 
     latestStay() {
-      const ongoingStays = this.stays.filter(s => !s.to_date || new Date(s.to_date) >= new Date());
-      if (ongoingStays.length) {
-        return ongoingStays.sort((a, b) => new Date(b.from_date) - new Date(a.from_date))[0];
-      }
       return this.stays.sort((a, b) => new Date(b.from_date) - new Date(a.from_date))[0] || null;
     },
 
@@ -162,14 +143,15 @@ export default {
         const pricePerDay = Number(a.price_per_day || this.roomTypePriceMap[room.room_type_id] || 0);
         const days = Math.max(Math.ceil((new Date(a.to_date) - new Date(a.from_date)) / 864e5) + 1, 0);
 
+
         return {
-          id: a.id,
+          id: a.id, // kerakli identifikator
           roomNumber: room.xona || '-',
           roomName: room.nomi || room.xona || '-',
           price: pricePerDay * days,
           kirish_sanasi: a.from_date,
           chiqish_sanasi: a.to_date,
-          sana: a.from_date,
+          sana: a.from_date
         };
       });
     },
@@ -199,7 +181,7 @@ export default {
 
     totalUnpaid() {
       return this.total - this.totalPaid;
-    },
+    }
   },
 
   methods: {
@@ -216,7 +198,10 @@ export default {
       const birthDate = new Date(d);
       const now = new Date();
       let age = now.getFullYear() - birthDate.getFullYear();
-      if (now.getMonth() < birthDate.getMonth() || (now.getMonth() === birthDate.getMonth() && now.getDate() < birthDate.getDate())) {
+      if (
+        now.getMonth() < birthDate.getMonth() ||
+        (now.getMonth() === birthDate.getMonth() && now.getDate() < birthDate.getDate())
+      ) {
         age--;
       }
       return age;
@@ -224,33 +209,29 @@ export default {
 
     async fetchAll() {
       this.loading = true;
-
-      this.patient = null;
-      this.stays = [];
-      this.roomAssignments = [];
-      this.xizmatlar = [];
-      this.kasalliklar = [];
-      this.natijalar = [];
-      this.rr = {
-        kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [], has_child: 0,
-      };
-
       try {
         const id = this.$route.params.id;
 
-        const [p, st, rooms, services, roomTypes, roomAssigns] = await Promise.all([
+        const [
+          p,
+          st,
+          rooms,
+          services,
+          roomTypes,
+          roomAssigns
+        ] = await Promise.all([
           api.get(`/api/v1/clients/${id}`),
           api.get(`/api/v1/davolanish?client_id=${id}`),
           api.get('/api/v1/room'),
           api.get('/api/v1/services'),
           api.get('/api/v1/room-types'),
-          api.get(`/api/v1/xona-joylashuv?client_id=${id}`),
+          api.get(`/api/v1/xona-joylashuv?client_id=${id}`)
         ]);
 
         this.patient = p.data;
-        this.stays = st.data || [];
-        this.availableRooms = rooms.data || [];
-        this.allServices = services.data || [];
+        this.stays = st.data;
+        this.availableRooms = rooms.data;
+        this.allServices = services.data;
         this.availableRoomTypes = roomTypes.data || [];
         this.roomAssignments = roomAssigns.data || [];
         this.kasalliklar = this.patient.kasalliklar || [];
@@ -258,19 +239,11 @@ export default {
 
         if (this.latestStay) {
           const { data: clientSrv } = await api.get(`/api/v1/client-services?davolanish_id=${this.latestStay.id}`);
-          const uniqueServicesMap = new Map();
-          clientSrv.forEach(srv => {
-            if (!uniqueServicesMap.has(srv.id)) {
-              uniqueServicesMap.set(srv.id, {
-                ...srv,
-                nomi: this.allServices.find(a => a.id === srv.service_id)?.nomi || srv.nomi,
-                narxi: srv.narxi ?? srv.price ?? 0,
-              });
-            }
-          });
-          this.xizmatlar = Array.from(uniqueServicesMap.values());
-        } else {
-          this.xizmatlar = [];
+          this.xizmatlar = clientSrv.map(srv => ({
+            ...srv,
+            nomi: this.allServices.find(a => a.id === srv.service_id)?.nomi || srv.nomi,
+            narxi: srv.narxi ?? srv.price ?? 0
+          }));
         }
       } catch (err) {
         console.error(err);
@@ -285,12 +258,14 @@ export default {
         alert('❌ Chiqish sanasi belgilanmagan');
         return;
       }
+
       try {
         await api.put(`/api/v1/xona-joylashuv/${item.id}`, {
-          to_date: item.chiqish_sanasi,
+          to_date: item.chiqish_sanasi
         });
+
         alert('✅ Chiqish sanasi muvaffaqiyatli yangilandi');
-        this.fetchAll();
+        this.fetchAll(); // ⬅ ma'lumotlarni yangilash
       } catch (err) {
         console.error('Xatolik:', err);
         alert('❌ Chiqish sanasini yangilab bo‘lmadi');
@@ -305,13 +280,14 @@ export default {
 
       try {
         let currentStay = this.latestStay;
-        if (!currentStay || currentStay.to_date) {
+
+        if (!currentStay || currentStay.chiqish_sanasi) {
           const { data: newStay } = await api.post('/api/v1/davolanish', {
             client_id: this.patient.id,
             room_id: r.xona_id,
             from_date: r.kirish_sanasi,
             to_date: r.chiqish_sanasi,
-            create_user_id: this.currentUser.id,
+            create_user_id: this.currentUser.id
           });
           currentStay = newStay;
         }
@@ -323,7 +299,7 @@ export default {
         if (lastPlacement) {
           await api.put(`/api/v1/xona-joylashuv/${lastPlacement.id}`, {
             ...lastPlacement,
-            to_date: r.kirish_sanasi,
+            to_date: r.kirish_sanasi
           });
         }
 
@@ -332,8 +308,7 @@ export default {
           room_id: r.xona_id,
           from_date: r.kirish_sanasi,
           to_date: r.chiqish_sanasi,
-          price_per_day: this.rrPrice,
-          has_child: r.has_child || 0,
+          price_per_day: this.rrPrice
         });
 
         for (const sid of r.xizmatlar) {
@@ -342,35 +317,25 @@ export default {
             davolanish_id: currentStay.id,
             service_id: sid,
             start_date: r.kirish_sanasi,
-            price: this.allServices.find(s => s.id === sid)?.narxi || 0,
+            price: this.allServices.find(s => s.id === sid)?.narxi || 0
           });
         }
 
         alert('✅ Xona joylashuvi qoʻshildi');
-        this.rr = { kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [], has_child: 0 };
+        this.rr = { kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [] };
         this.fetchAll();
       } catch (err) {
         console.error(err);
         alert('❌ Xona o‘zgartirishda xatolik yuz berdi');
       }
-    },
+    }
   },
 
   mounted() {
     this.fetchAll();
-  },
-
-  watch: {
-    '$route.params.id'() {
-      this.fetchAll();
-    },
-  },
+  }
 };
 </script>
-ipt>
-
-
-
 <style scoped>
 .patient-card {
   background: #fff;

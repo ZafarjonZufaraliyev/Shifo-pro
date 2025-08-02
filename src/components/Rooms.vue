@@ -1,62 +1,121 @@
 <template>
   <div class="calendar-container">
     <!-- Filtrlar -->
-    <div class="filters">
+    <div class="filters" style="margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
       <label>📅 Sana oralig'i:</label>
       <input type="date" v-model="startInput" />
       <span>–</span>
       <input type="date" v-model="endInput" />
 
       <label>🏨 Xona:</label>
-      <input type="text" v-model="roomFilter" placeholder="Masalan: LUX 101" />
+      <input
+        type="text"
+        v-model="roomFilter"
+        placeholder="Masalan: LUX 101"
+        style="min-width: 150px;"
+      />
 
       <label>🏢 Qavat:</label>
-      <select v-model="floorFilter">
+      <select v-model="floorFilter" style="min-width: 100px;">
         <option value="">Barchasi</option>
         <option v-for="f in uniqueFloors" :key="f" :value="f">{{ f }}-qavat</option>
       </select>
 
-      <button @click="applyFilters">Filterlash</button>
-      <button v-if="canAddRoom" @click="showAddRoomModal = true">➕ Xona qo‘shish</button>
+      <button @click="applyFilters" style="padding: 5px 12px; cursor: pointer;">Filterlash</button>
+
+      <button
+        v-if="canAddRoom"
+        @click="showAddRoomModal = true"
+        style="padding: 5px 12px; background-color: #28a745; color: white; border: none; cursor: pointer;"
+      >
+        ➕ Xona qo‘shish
+      </button>
     </div>
 
     <!-- Jadval -->
-    <div class="calendar-wrapper" v-if="filteredRooms.length">
-      <div class="calendar-scroll">
-        <table class="calendar">
-          <thead>
-            <tr>
-              <th>Xona</th>
-              <th v-for="day in dateRange" :key="day.toISOString()">
-                {{ formatShortDate(day) }}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="room in filteredRooms" :key="room.id">
-              <td>{{ room.display }}</td>
-              <td
-                v-for="day in dateRange"
-                :key="day.toISOString()"
-                :class="getCellClass(room, day)"
-                @click="handleCellClick(room, day)"
-                :title="`Band qilingan: ${getGuestsCountByRoomAndDate(room, day)} / ${room.kishilik} kishi`"
-              >
-                <span v-if="getGuestsCountByRoomAndDate(room, day) > 0">
-                  {{ isLastBookingDay(room, day) ? "🔓" : "🔒" }}
-                  &nbsp;{{ getGuestsCountByRoomAndDate(room, day) }}
+    <div v-if="filteredRooms.length" class="calendar-wrapper" style="overflow-x: auto;">
+      <table
+        class="calendar"
+        border="1"
+        cellspacing="0"
+        cellpadding="5"
+        style="min-width: 100%; border-collapse: collapse; text-align: center;"
+      >
+        <thead style="background-color: #f0f0f0;">
+          <tr>
+            <th style="position: sticky; left: 0; background: #f0f0f0; z-index: 2; white-space: nowrap;">Xona</th>
+            <th
+              v-for="day in dateRange"
+              :key="day.toISOString()"
+              style="white-space: nowrap; padding: 5px 8px;"
+              :title="day.toLocaleDateString('uz-UZ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })"
+            >
+              {{ formatShortDate(day) }}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="room in filteredRooms" :key="room.id" style="border-bottom: 1px solid #ddd;">
+            <td
+              style="white-space: nowrap; font-weight: 600; background: #fafafa; position: sticky; left: 0; z-index: 1;"
+              :title="room.display"
+            >
+              {{ room.display }}
+            </td>
+
+            <td
+              v-for="date in dateRange"
+              :key="date"
+              :class="getCellClass(room, date)"
+              @click="handleCellClick(room, date)"
+              style="cursor: pointer; vertical-align: middle; min-width: 45px; position: relative; padding: 6px 4px;"
+              :title="generateTooltip(room, date)"
+            >
+              <template v-if="getCellClass(room, date) === 'locked'">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  
+                  <span style="font-weight: bold; color: green;">+</span>
+                </div>
+              </template>
+
+              <template v-else-if="getCellClass(room, date) === 'partially-booked'">
+                <span style="font-weight: bold; color: green;">+</span>
+                <span
+  @click.stop="openServiceInfo(room, date)"
+  style="cursor: pointer;"
+  title="Xizmat tafsilotlari"
+>
+  🖊️
+</span>
+
+              </template>
+
+              <template v-else>
+                <span style="color: #777;">
+                  {{ getGuestsCountByRoomAndDate(room, date) }}/{{ room.kishilik }}
                 </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+              </template>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
-    <p v-else>❗ Filtrga mos xona topilmadi.</p>
+
+    <p v-else style="margin-top: 20px; font-weight: bold; color: #c00;">
+      ❗ Filtrga mos xona topilmadi.
+    </p>
 
     <!-- Xona qo‘shish modal -->
-    <div v-if="showAddRoomModal" class="modal-overlay" @click.self="showAddRoomModal = false">
-      <div class="modal">
+    <div
+      v-if="showAddRoomModal"
+      class="modal-overlay"
+      @click.self="showAddRoomModal = false"
+      style="position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: center;"
+    >
+      <div
+        class="modal"
+        style="max-width: 400px; padding: 20px; background: white; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"
+      >
         <h3>➕ Yangi xona qo‘shish</h3>
 
         <label>Xona raqami:</label>
@@ -74,14 +133,34 @@
         <label>Qavati:</label>
         <input v-model.number="newRoom.qavat" type="number" min="0" />
 
-        <button @click="addRoom">✅ Saqlash</button>
-        <button @click="showAddRoomModal = false">❌ Bekor qilish</button>
+        <div style="margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
+          <button
+            @click="addRoom"
+            style="padding: 6px 12px; background-color: #28a745; color: white; border: none; cursor: pointer;"
+          >
+            ✅ Saqlash
+          </button>
+          <button
+            @click="showAddRoomModal = false"
+            style="padding: 6px 12px; background-color: #dc3545; color: white; border: none; cursor: pointer;"
+          >
+            ❌ Bekor qilish
+          </button>
+        </div>
       </div>
     </div>
 
     <!-- Bron tahrirlash modal -->
-    <div v-if="editBronModal" class="modal-overlay" @click.self="editBronModal = false">
-      <div class="modal">
+    <div
+      v-if="editBronModal"
+      class="modal-overlay"
+      @click.self="editBronModal = false"
+      style="position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: center;"
+    >
+      <div
+        class="modal"
+        style="max-width: 450px; padding: 20px; background: white; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"
+      >
         <h3>✏️ Bron tahrirlash</h3>
 
         <p>
@@ -122,15 +201,23 @@
           :max="getMaxGuestsForEdit(editingBooking)"
         />
 
-        <div style="margin-top: 15px;">
-          <button @click="updateBooking">💾 Saqlash</button>
+        <div style="margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
+          <button
+            @click="updateBooking"
+            style="padding: 6px 12px; background-color: #007bff; color: white; border: none; cursor: pointer;"
+          >
+            💾 Saqlash
+          </button>
           <button
             @click="deleteBooking"
-            style="background-color: #dc3545; margin-left: 10px;"
+            style="background-color: #dc3545; color: white; border: none; padding: 6px 12px; cursor: pointer;"
           >
             🗑️ O'chirish
           </button>
-          <button @click="editBronModal = false" style="margin-left: 10px;">
+          <button
+            @click="editBronModal = false"
+            style="background-color: #6c757d; color: white; border: none; padding: 6px 12px; cursor: pointer;"
+          >
             ❌ Bekor qilish
           </button>
         </div>
@@ -138,32 +225,28 @@
     </div>
 
     <!-- Yangi bron qilish modal -->
-    <div v-if="showBronModal" class="modal-overlay" @click.self="showBronModal = false">
-      <div class="modal">
+    <div
+      v-if="showBronModal"
+      class="modal-overlay"
+      @click.self="showBronModal = false"
+      style="position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: center;"
+    >
+      <div
+        class="modal"
+        style="max-width: 450px; padding: 20px; background: white; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"
+      >
         <h3>📝 Yangi bron</h3>
         <p><strong>Xona:</strong> {{ selectedRoom?.display }}</p>
         <p><strong>Boshlanish:</strong> {{ newBooking.start }}</p>
 
         <label>F.I.Sh:</label>
-        <input
-          v-model="newBooking.client_name"
-          type="text"
-          placeholder="Ism familiya"
-        />
+        <input v-model="newBooking.client_name" type="text" placeholder="Ism familiya" />
 
         <label>Telefon 1:</label>
-        <input
-          v-model="newBooking.tel1"
-          type="text"
-          placeholder="Telefon raqam 1"
-        />
+        <input v-model="newBooking.tel1" type="text" placeholder="Telefon raqam 1" />
 
         <label>Telefon 2:</label>
-        <input
-          v-model="newBooking.tel2"
-          type="text"
-          placeholder="Telefon raqam 2 (ixtiyoriy)"
-        />
+        <input v-model="newBooking.tel2" type="text" placeholder="Telefon raqam 2 (ixtiyoriy)" />
 
         <label>Boshlanish sanasi:</label>
         <input v-model="newBooking.start" type="date" />
@@ -195,14 +278,26 @@
           :max="selectedRoom?.kishilik || 1"
         />
 
-        <button :disabled="!canSaveNewBooking" @click="saveBooking">
-          💾 Saqlash
-        </button>
-        <button @click="showBronModal = false">❌ Bekor qilish</button>
+        <div style="margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
+          <button
+            :disabled="!canSaveNewBooking"
+            @click="saveBooking"
+            style="padding: 6px 12px; background-color: #007bff; color: white; border: none; cursor: pointer;"
+          >
+            💾 Saqlash
+          </button>
+          <button
+            @click="showBronModal = false"
+            style="background-color: #6c757d; color: white; border: none; padding: 6px 12px; cursor: pointer;"
+          >
+            ❌ Bekor qilish
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </template>
+
 
 <script>
 import api from "@/api";
@@ -211,28 +306,34 @@ export default {
   data() {
     const today = new Date();
     return {
+      // Modal va tahrirlash uchun
       editBronModal: false,
       editingBooking: null,
+
+      // Asosiy ma'lumotlar
       rooms: [],
       bookings: [],
+      clientServices: [],
 
+      // Kalendar uchun sanalar
       startInput: today.toISOString().split("T")[0],
-      endInput: new Date(today.getTime() + 14 * 86400000)
-        .toISOString()
-        .split("T")[0],
-
+      endInput: new Date(today.getTime() + 14 * 86400000).toISOString().split("T")[0],
       startDate: today,
       endDate: new Date(today.getTime() + 14 * 86400000),
 
+      // Filtrlar
       roomFilter: "",
       floorFilter: "",
 
+      // Modal oynalar
       showAddRoomModal: false,
       showBronModal: false,
 
+      // Tanlangan xona va sana
       selectedRoom: null,
       selectedDate: null,
 
+      // Yangi xona qo'shish uchun
       newRoom: {
         xona: "",
         name: "",
@@ -241,6 +342,7 @@ export default {
         qavat: 0,
       },
 
+      // Yangi bron uchun
       newBooking: {
         client_name: "",
         tel1: "",
@@ -249,9 +351,10 @@ export default {
         end: "",
         daysCount: 1,
         status: "faol",
-        guestsCount: 1, // yangi maydon: nechta kishi bron qilmoqda
+        guestsCount: 1,
       },
 
+      // Hozirgi foydalanuvchi (API dan olish mumkin)
       currentUser: {
         id: null,
         name: "",
@@ -260,8 +363,8 @@ export default {
   },
 
   computed: {
+    // Kalendar sanalari oralig'i
     dateRange() {
-      // Eng oxirgi sanani hisoblash (filtrda tanlangan yoki bronlarda eng katta)
       const maxBookingEnd = this.bookings.reduce((max, b) => {
         const endDate = new Date(b.end);
         return endDate > max ? endDate : max;
@@ -278,32 +381,27 @@ export default {
       return range;
     },
 
+    // Unikal qavatlar ro'yxati (filter uchun)
     uniqueFloors() {
       return [...new Set(this.rooms.map((r) => r.qavat))].sort((a, b) => a - b);
     },
 
+    // Xonalarni nomi va qavatga qarab filtrlash
     filteredRooms() {
       const term = this.roomFilter.trim().toLowerCase();
       return this.rooms.filter((r) => {
-        const match = r.display.toLowerCase().includes(term);
-        const floorMatch = this.floorFilter
-          ? String(r.qavat) === String(this.floorFilter)
-          : true;
-        return match && floorMatch;
+        const matchesName = r.display.toLowerCase().includes(term);
+        const matchesFloor = this.floorFilter ? String(r.qavat) === String(this.floorFilter) : true;
+        return matchesName && matchesFloor;
       });
     },
 
-    // Yangi xona qo'shish faqat filtrdan keyin xona bor bo'lsa ko'rsatiladi
-    canAddRoom() {
-      return this.filteredRooms.length > 0;
-    },
-
-    // Yangi bron saqlash uchun majburiy maydonlar to'liq to'ldirilganmi
+    // Bron saqlash uchun tekshiruv
     canSaveNewBooking() {
       const b = this.newBooking;
       if (
-        !b.client_name ||
-        !b.tel1 ||
+        !b.client_name.trim() ||
+        !b.tel1.trim() ||
         !b.start ||
         !b.end ||
         b.guestsCount <= 0 ||
@@ -311,19 +409,27 @@ export default {
       )
         return false;
 
-      // Sig‘imni tekshirish
-      const bookedGuestsCount = this.getGuestsCountByRoomAndDate(
-        this.selectedRoom,
-        new Date(b.start)
-      );
-      if (bookedGuestsCount + b.guestsCount > (this.selectedRoom?.kishilik || 1))
-        return false;
+      const bookedGuestsCount = this.getGuestsCountByRoomAndDate(this.selectedRoom, new Date(b.start));
+      if (bookedGuestsCount + b.guestsCount > (this.selectedRoom?.kishilik || 1)) return false;
 
       return true;
+    },
+
+    // Yangi xona qo'shish buttoni faolligi uchun
+    canAddRoom() {
+      const { xona, name, kishilik, narxi, qavat } = this.newRoom;
+      return (
+        xona.trim() !== "" &&
+        name.trim() !== "" &&
+        kishilik > 0 &&
+        narxi >= 0 &&
+        qavat >= 0
+      );
     },
   },
 
   watch: {
+    // Days count yoki start sanasi o'zgarganda end sanani yangilash
     "newBooking.daysCount"(newVal) {
       this.updateEndDate();
     },
@@ -333,8 +439,15 @@ export default {
   },
 
   methods: {
-    // Berilgan xona va sana uchun faol va bajarilgan bronlarni qaytaradi
+    // Maksimal odam sonini olish (booking tahrirlashda kerak)
+    getMaxGuestsForEdit(booking) {
+      if (!booking) return 1;
+      const room = this.rooms.find((r) => String(r.id) === String(booking.xona_id));
+      return room ? room.kishilik : 1;
+    },
+
     getBookingsByRoomAndDate(room, date) {
+      if (!room || !date) return [];
       const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
       return this.bookings.filter((b) => {
         if (!["faol", "bajarildi"].includes(b.status)) return false;
@@ -349,49 +462,84 @@ export default {
       });
     },
 
-    // Berilgan xona va sana uchun jami qancha kishilik bron qilinganini hisoblaydi
     getGuestsCountByRoomAndDate(room, date) {
       const bookings = this.getBookingsByRoomAndDate(room, date);
-      // Har bir bron uchun guestsCount maydonini hisobga oladi, agar yo'q bo'lsa 1 deb oladi
       return bookings.reduce((sum, b) => sum + (b.guestsCount || 1), 0);
     },
 
     getBooking(room, date) {
-      // Ushbu sana uchun xona bo‘yicha birinchi bronni qaytaradi
       const bookings = this.getBookingsByRoomAndDate(room, date);
       return bookings.length ? bookings[0] : null;
     },
 
-    isLastBookingDay(room, date) {
-      const booking = this.getBooking(room, date);
-      if (!booking) return false;
+    openServiceInfo(room, date) {
+      if (!room || !date) {
+        alert("Xona yoki sana tanlanmagan.");
+        return;
+      }
 
-      const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-      const endDate = new Date(booking.end);
-      const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+      const dateStr = date.toISOString().split("T")[0];
 
-      return dateOnly.getTime() === endDateOnly.getTime();
+      const booking = this.bookings.find(
+        (b) =>
+          String(b.xona_id) === String(room.id) &&
+          b.start <= dateStr &&
+          dateStr <= b.end
+      );
+
+      if (!booking) {
+        alert("Bu sanada bron topilmadi.");
+        return;
+      }
+
+      this.editingBooking = { ...booking };
+      this.editBronModal = true;
     },
 
-    // Jadval hujayrasining CSS sinfini belgilaydi
+    generateTooltip(room, date) {
+      return `Xona: ${room.display}\nSana: ${date.toLocaleDateString()}`;
+    },
+
     getCellClass(room, date) {
+      if (!room || !date) return "";
+
       const guestsCount = this.getGuestsCountByRoomAndDate(room, date);
-      const roomData = this.rooms.find((r) => r.id === room.id);
-      const sigim = roomData?.kishilik || 1;
+      const capacity = room.kishilik || 1;
+      const dateStr = date.toISOString().split("T")[0];
 
+      const isLocked = this.clientServices.some(
+        (s) =>
+          String(s.room_id) === String(room.id) &&
+          s.start_date <= dateStr &&
+          dateStr <= s.end_date
+      );
+
+      if (isLocked) return "locked";
       if (guestsCount === 0) return "available";
-      if (guestsCount >= sigim) return "booked";
-
+      if (guestsCount >= capacity) return "booked";
       return "partially-booked";
     },
 
     handleCellClick(room, date) {
-      // Agar xona to‘liq to‘lgan bo‘lsa yangi bron qo‘shishga ruxsat bermaymiz
-      const guestsCount = this.getGuestsCountByRoomAndDate(room, date);
-      const roomSigim = room.kishilik || 1;
+      if (!room || !date) return;
 
-      if (guestsCount >= roomSigim) {
-        // To‘liq to‘lgan, faqat mavjud bronni tahrirlashga ruxsat bering
+      const guestsCount = this.getGuestsCountByRoomAndDate(room, date);
+      const capacity = room.kishilik || 1;
+      const dateStr = date.toISOString().split("T")[0];
+
+      const isLocked = this.clientServices.some(
+        (s) =>
+          String(s.room_id) === String(room.id) &&
+          s.start_date <= dateStr &&
+          dateStr <= s.end_date
+      );
+
+      if (isLocked) {
+        alert("🔒 Bu xona ushbu sanada band (xizmat davom etmoqda).");
+        return;
+      }
+
+      if (guestsCount >= capacity) {
         const booking = this.getBooking(room, date);
         if (booking) {
           this.editingBooking = { ...booking };
@@ -402,10 +550,9 @@ export default {
         return;
       }
 
-      // Agar xona bo‘sh yoki to‘liq to‘lmagan bo‘lsa yangi bron qo‘shish oynasini ochamiz
       this.selectedRoom = room;
       this.selectedDate = date;
-      const isoDate = date.toISOString().split("T")[0];
+      const isoDate = dateStr;
 
       this.newBooking = {
         client_name: "",
@@ -433,6 +580,7 @@ export default {
     },
 
     formatShortDate(d) {
+      if (!d) return "";
       return d.toLocaleDateString("uz-UZ", { day: "2-digit", month: "short" });
     },
 
@@ -450,7 +598,7 @@ export default {
     async saveBooking() {
       const { client_name, tel1, start, end, status, guestsCount } = this.newBooking;
 
-      if (!client_name || !tel1 || !start || !end) {
+      if (!client_name.trim() || !tel1.trim() || !start || !end) {
         alert("❗ Barcha majburiy maydonlar to‘ldirilishi kerak!");
         return;
       }
@@ -465,11 +613,10 @@ export default {
         return;
       }
 
-      // Sig‘imni tekshirish — xonaning mavjud sig‘imi va bron qilingan kishilar soni
       const bookedGuestsCount = this.getGuestsCountByRoomAndDate(this.selectedRoom, new Date(start));
-      const roomSigim = this.selectedRoom.kishilik || 1;
-      if (bookedGuestsCount + guestsCount > roomSigim) {
-        alert(`❗ Bu sanada xona sig‘imi (${roomSigim}) dan ko‘p odam band qilib bo‘lmaydi!`);
+      const capacity = this.selectedRoom.kishilik || 1;
+      if (bookedGuestsCount + guestsCount > capacity) {
+        alert(`❗ Bu sanada xona sig‘imi (${capacity}) dan ko‘p odam band qilib bo‘lmaydi!`);
         return;
       }
 
@@ -493,25 +640,20 @@ export default {
         alert("✅ Bron muvaffaqiyatli saqlandi!");
       } catch (err) {
         console.error("Serverdan xatolik:", err.response?.data || err);
-        alert("❌ Bron saqlashda xatolik yuz berdi. Serverdan javobni konsolda tekshiring.");
+        alert("❌ Bron saqlashda xatolik yuz berdi.");
       }
     },
 
     async updateBooking() {
       if (!this.editingBooking) return;
 
-      // Yangilash oldidan sig'imni tekshirish (editingBooking uchun)
       const editing = this.editingBooking;
-      // boshqalar tomonidan band qilinganlar soni
-      const othersGuestsCount = this.getGuestsCountByRoomAndDate(
-        this.rooms.find(r => r.id === editing.xona_id),
-        new Date(editing.start)
-      ) - (editing.guestsCount || 1);
+      const room = this.rooms.find((r) => r.id === editing.xona_id);
+      if (!room) return alert("Xona topilmadi!");
 
-      const roomSigim = this.rooms.find(r => r.id === editing.xona_id)?.kishilik || 1;
-
-      if (othersGuestsCount + (editing.guestsCount || 1) > roomSigim) {
-        alert(`❗ Bu sanada xona sig‘imi (${roomSigim}) dan ko‘p odam band qilib bo‘lmaydi!`);
+      const othersGuestsCount = this.getGuestsCountByRoomAndDate(room, new Date(editing.start)) - (editing.guestsCount || 1);
+      if (othersGuestsCount + (editing.guestsCount || 1) > room.kishilik) {
+        alert(`❗ Bu sanada xona sig‘imi (${room.kishilik}) dan ko‘p odam band qilib bo‘lmaydi!`);
         return;
       }
 
@@ -548,13 +690,13 @@ export default {
 
     async addRoom() {
       const { xona, name, kishilik, narxi, qavat } = this.newRoom;
-      if (!xona || !name || kishilik <= 0 || narxi < 0 || qavat < 0) {
+      if (!xona.trim() || !name.trim() || kishilik <= 0 || narxi < 0 || qavat < 0) {
         alert("❗ Barcha maydonlarni to‘g‘ri to‘ldiring!");
         return;
       }
 
       try {
-        // Room type yaratish (yoki backend bilan moslashtiring)
+        // Xona turi yaratish
         const { data: roomType } = await api.post("/api/v1/room-types", {
           name: name.trim(),
           Narxi: narxi,
@@ -570,7 +712,7 @@ export default {
 
         this.rooms.push({
           id: room.id,
-          display: `${name} – xona ${xona}, ${kishilik} kishilik, qavat ${qavat}`,
+          display: `${name.trim()} – xona ${xona.trim()}, ${kishilik} kishilik, qavat ${qavat}`,
           qavat: Number(qavat),
           kishilik: Number(kishilik),
         });
@@ -583,43 +725,42 @@ export default {
         alert("❌ Xona qo‘shishda xatolik yuz berdi!");
       }
     },
-
-    getMaxGuestsForEdit(booking) {
-      if (!booking) return 1;
-      const room = this.rooms.find((r) => r.id === booking.xona_id);
-      if (!room) return 1;
-
-      // boshqalar tomonidan band qilinganlar soni (ushbu bronni hisoblamay)
-      const othersGuestsCount = this.getGuestsCountByRoomAndDate(room, new Date(booking.start)) - (booking.guestsCount || 1);
-
-      return room.kishilik - othersGuestsCount;
-    },
   },
 
   async mounted() {
     try {
-      // Foydalanuvchi ma'lumotlari (moslashtiring)
+      // Hozirgi foydalanuvchini o‘rnatish (demo uchun)
       this.currentUser.id = 1;
       this.currentUser.name = "Admin";
 
-      // Xonalarni olish
+      // Xonalarni yuklash
       const { data: roomData } = await api.get("/api/v1/room");
       this.rooms = roomData.map((r) => ({
         id: Number(r.id),
-        display: `${r.room_type.name} – xona ${r.xona}, ${r.sigim} kishilik, qavat ${r.qavat}`,
+        display: `${r.room_type?.name || "Noma'lum"} – xona ${r.xona}, ${r.sigim} kishilik, qavat ${r.qavat}`,
         qavat: Number(r.qavat),
         kishilik: Number(r.sigim),
       }));
 
-      // Bronlarni olish
-      const { data: bronData } = await api.get("/api/v1/bron");
-      this.bookings = bronData.data || bronData;
+      // Bronlarni yuklash
+      const { data: bookingData } = await api.get("/api/v1/bron");
+      this.bookings = bookingData;
+
+      // ClientServices ni yuklash (agar kerak bo'lsa)
+      const { data: clientServiceData } = await api.get("/api/v1/client-services");
+      this.clientServices = clientServiceData;
+
+      console.log("Bronlar yuklandi:", this.bookings);
     } catch (err) {
-      console.error("Yuklashda xatolik:", err);
+      console.error("Ma'lumot yuklashda xatolik:", err);
+      alert("❌ Ma'lumotlarni yuklashda muammo yuz berdi.");
     }
   },
 };
 </script>
+
+
+
 
 <style scoped>
 .calendar-container {
@@ -671,6 +812,15 @@ export default {
   min-width: 800px;
 }
 
+
+.locked {
+  background-color: #e63946;
+  color: white;
+  font-weight: bold;
+  padding: 4px;
+  border-radius: 4px;
+}
+
 .calendar th,
 .calendar td {
   border: 1px solid #ccc;
@@ -680,17 +830,20 @@ export default {
 }
 
 .available {
-  background-color: #d4edda; /* light green */
+  background-color: #d4edda;
+  /* light green */
   cursor: pointer;
 }
 
 .partially-booked {
-  background-color: #fff3cd; /* light yellow */
+  background-color: #fff3cd;
+  /* light yellow */
   cursor: pointer;
 }
 
 .booked {
-  background-color: #f8d7da; /* light red */
+  background-color: #f8d7da;
+  /* light red */
   cursor: default;
 }
 
