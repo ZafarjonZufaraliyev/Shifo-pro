@@ -5,7 +5,7 @@
 
     <!-- Statistik kartalar -->
     <div class="stats-cards">
-      <motion-div
+      <div
         v-motion
         :initial="{ opacity: 0, y: -30 }"
         :enter="{ opacity: 1, y: 0 }"
@@ -13,9 +13,9 @@
       >
         <h3>Bugungi bemorlar</h3>
         <p>{{ todayPatients }}</p>
-      </motion-div>
+      </div>
 
-      <motion-div
+      <div
         v-motion
         :initial="{ opacity: 0, y: -30 }"
         :enter="{ opacity: 1, y: 0 }"
@@ -23,9 +23,9 @@
       >
         <h3>Haftalik bemorlar</h3>
         <p>{{ weeklyPatients }}</p>
-      </motion-div>
+      </div>
 
-      <motion-div
+      <div
         v-motion
         :initial="{ opacity: 0, y: -30 }"
         :enter="{ opacity: 1, y: 0 }"
@@ -33,28 +33,36 @@
       >
         <h3>Oylik foydalanuvchilar</h3>
         <p>{{ monthlyUsers }}</p>
-      </motion-div>
+      </div>
     </div>
 
     <!-- Grafiklar -->
     <div class="charts">
-      <motion-div
+      <div
         v-motion
         :initial="{ opacity: 0, y: 40 }"
         :enter="{ opacity: 1, y: 0 }"
         class="chart-card"
       >
         <h3>Xizmatlar (haftalik)</h3>
-        <BarChart :chartData="weeklyServices" :options="{ responsive: true, maintainAspectRatio: false }" />
-      </motion-div>
+        <BarChart
+          :chartData="weeklyServices"
+          :options="{ responsive: true, maintainAspectRatio: false }"
+        />
+      </div>
 
-      <motion-div
-       
+      <div
+        v-motion
+        :initial="{ opacity: 0, y: 40 }"
+        :enter="{ opacity: 1, y: 0 }"
         class="chart-card"
       >
         <h3>Foydalanuvchilar (oylik)</h3>
-        <LineChart :chartData="monthlyUsersChart" :options="{ responsive: true, maintainAspectRatio: false }" />
-      </motion-div>
+        <LineChart
+          :chartData="monthlyUsersChart"
+          :options="{ responsive: true, maintainAspectRatio: false }"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -62,6 +70,7 @@
 <script>
 import { BarChart, LineChart } from 'vue-chart-3'
 import { Chart, registerables } from 'chart.js'
+import api from '@/api.js'  // api instance, baseURL bilan /api/v1 ni qo'shib qo'ygan deb hisoblaymiz
 
 Chart.register(...registerables)
 
@@ -71,85 +80,148 @@ export default {
   data() {
     return {
       username: localStorage.getItem('username') || 'Admin',
-      todayPatients: 12,
-      weeklyPatients: 80,
-      monthlyUsers: 310,
+      todayPatients: 0,
+      weeklyPatients: 0,
+      monthlyUsers: 0,
       weeklyServices: {
         labels: ['Dush', 'Sesh', 'Chor', 'Pay', 'Juma', 'Shan', 'Yak'],
         datasets: [
           {
             label: 'Xizmatlar',
-            data: [10, 14, 9, 13, 15, 18, 11],
+            data: [0, 0, 0, 0, 0, 0, 0],
             backgroundColor: ctx => {
-              const chart = ctx.chart;
-              const { ctx: canvasCtx, chartArea } = chart;
-              if (!chartArea) return null;
-              const gradient = canvasCtx.createLinearGradient(0, 0, 0, chartArea.height);
-              gradient.addColorStop(0, '#4a90e2');
-              gradient.addColorStop(1, '#357ABD');
-              return gradient;
+              const chart = ctx.chart
+              const { ctx: canvasCtx, chartArea } = chart
+              if (!chartArea) return null
+              const gradient = canvasCtx.createLinearGradient(0, 0, 0, chartArea.height)
+              gradient.addColorStop(0, '#4a90e2')
+              gradient.addColorStop(1, '#357ABD')
+              return gradient
             },
             borderRadius: 6,
             maxBarThickness: 35,
-          }
-        ]
+          },
+        ],
       },
       monthlyUsersChart: {
         labels: ['Yan', 'Fev', 'Mart', 'Apr', 'May', 'Iyun'],
         datasets: [
           {
             label: 'Foydalanuvchilar',
-            data: [100, 120, 150, 170, 180, 210],
+            data: [0, 0, 0, 0, 0, 0],
             borderColor: '#2c3e50',
             backgroundColor: 'rgba(44, 62, 80, 0.15)',
             fill: true,
             tension: 0.3,
             pointRadius: 4,
             pointHoverRadius: 6,
+          },
+        ],
+      },
+    }
+  },
+  methods: {
+    async fetchStats() {
+      try {
+        // /api/v1/davolanish dan ma'lumot olish
+        const res = await api.get('/davolanish')
+        const davolanishlar = res.data
+
+        const today = new Date()
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+
+        // Haftaning boshlanishi - dushanba
+        const dayOfWeek = today.getDay() === 0 ? 7 : today.getDay()
+        const monday = new Date(today)
+        monday.setDate(today.getDate() - (dayOfWeek - 1))
+
+        let todayCount = 0
+        let weeklyCount = 0
+        let monthlyCount = 0
+        let weeklyServicesCount = [0, 0, 0, 0, 0, 0, 0]
+
+        davolanishlar.forEach(item => {
+          // status maydoni bo'lmasa, shartni moslashtiring
+          if (item.status !== 'faol' && item.status !== 'bajarildi') return
+
+          const start = new Date(item.kelish_sanasi)
+          const end = new Date(item.ketish_sanasi)
+
+          if (start <= today && today <= end) {
+            todayCount++
           }
-        ]
+
+          if (end >= monday && start <= today) {
+            weeklyCount++
+
+            for (let i = 0; i < 7; i++) {
+              const currentDay = new Date(monday)
+              currentDay.setDate(monday.getDate() + i)
+
+              if (start <= currentDay && currentDay <= end) {
+                weeklyServicesCount[i]++
+              }
+            }
+          }
+
+          if (end >= monthStart && start <= today) {
+            monthlyCount++
+          }
+        })
+
+        let monthlyUsersData = [0, 0, 0, 0, 0, 0]
+        davolanishlar.forEach(item => {
+          if (item.status !== 'faol' && item.status !== 'bajarildi') return
+
+          const start = new Date(item.kelish_sanasi)
+          const month = start.getMonth()
+          const year = start.getFullYear()
+
+          if (year === today.getFullYear() && month >= 0 && month <= 5) {
+            monthlyUsersData[month]++
+          }
+        })
+
+        this.todayPatients = todayCount
+        this.weeklyPatients = weeklyCount
+        this.monthlyUsers = monthlyCount
+        this.weeklyServices.datasets[0].data = weeklyServicesCount
+        this.monthlyUsersChart.datasets[0].data = monthlyUsersData
+      } catch (error) {
+        console.error('Statistikani olishda xatolik:', error)
+        alert('Statistikani yuklashda muammo yuz berdi!')
+      }
+    },
+
+    async fetchUserData() {
+      try {
+        const res = await api.get('/user-data')
+        this.username = res.data.username || this.username
+      } catch (error) {
+        console.error('Foydalanuvchi ma\'lumotlarini olishda xatolik:', error)
       }
     }
-  }
+  },
+  mounted() {
+    this.fetchUserData()
+    this.fetchStats()
+  },
 }
 </script>
 
+
+
+
 <style scoped>
-/* Umumiy */
-/* Umumiy stil va layout */
 .dashboard {
   padding: 20px;
-  margin: 20px ;
-  
-/* width:100%; */
+  margin: 20px;
   max-width: 1200px;
   font-family: "Segoe UI", sans-serif;
   background-color: #f5f7fa;
   min-height: 100vh;
 }
-@media (max-width: 768px) {
- .calendar-container {
-  max-width: 1200px;
-  margin: 20px;
-  }}
 
-
-/* Sarlavha va kichik matn */
-h1 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: 8px;
-  color: #1f2937;
-}
-
-p {
-  margin-bottom: 40px;
-  font-weight: 400;
-  font-size: 1.1rem;
-  color: #6b7280;
-}
-
-/* Statistik kartalar konteyneri */
 .stats-cards {
   display: flex;
   gap: 26px;
@@ -157,7 +229,6 @@ p {
   flex-wrap: wrap;
 }
 
-/* Har bir statistik karta */
 .stat-card {
   background-color: white;
   flex: 1;
@@ -178,7 +249,6 @@ p {
   box-shadow: 0 10px 30px rgba(44, 62, 80, 0.18);
 }
 
-/* Kartalarning rangli chiziqlari */
 .card1 {
   border-left: 6px solid #4a90e2;
 }
@@ -191,7 +261,6 @@ p {
   border-left: 6px solid #f59e0b;
 }
 
-/* Karta sarlavhasi */
 .stat-card h3 {
   font-weight: 600;
   font-size: 1.25rem;
@@ -200,7 +269,6 @@ p {
   letter-spacing: 0.04em;
 }
 
-/* Karta ichidagi katta raqam */
 .stat-card p {
   font-weight: 800;
   font-size: 2.8rem;
@@ -209,14 +277,12 @@ p {
   line-height: 1;
 }
 
-/* Grafiklar konteyneri */
 .charts {
   display: flex;
   gap: 36px;
   flex-wrap: wrap;
 }
 
-/* Har bir grafik karta */
 .chart-card {
   background-color: #fff;
   flex: 1 1 460px;
@@ -229,7 +295,6 @@ p {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  /* height: 440px; */
   color: #1f2937;
   border: 1px solid #e0e7ff;
   transition: box-shadow 0.3s ease;
@@ -241,7 +306,6 @@ p {
     0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
-/* Grafik sarlavhasi */
 .chart-card h3 {
   font-size: 1.6rem;
   font-weight: 700;
@@ -251,7 +315,6 @@ p {
   user-select: none;
 }
 
-/* Grafik ichidagi <canvas> element uchun to‘g‘ri o‘lcham */
 .chart-card > .chartjs-render-monitor {
   flex-grow: 1;
   width: 100% !important;
@@ -259,7 +322,6 @@ p {
   user-select: none;
 }
 
-/* Fade in animatsiyalar */
 .fade-in {
   animation: fadeInUp 0.7s ease forwards;
 }
@@ -279,16 +341,12 @@ p {
   }
 }
 
-/* RESPONSIVE */
-
-/* 1200px dan kichik ekranlar uchun */
 @media (max-width: 1200px) {
   .charts {
     gap: 20px;
   }
 }
 
-/* 900px dan kichik ekranlar uchun */
 @media (max-width: 900px) {
   .stats-cards {
     flex-direction: column;
@@ -309,7 +367,6 @@ p {
   }
 }
 
-/* 480px dan kichik ekranlar uchun */
 @media (max-width: 480px) {
   h1 {
     font-size: 1.8rem;
@@ -333,5 +390,4 @@ p {
     margin-bottom: 12px;
   }
 }
-
 </style>

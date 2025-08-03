@@ -206,7 +206,8 @@ export default {
 .contaner{
   max-width: 1200px;
   padding:20px;
-  margin:20px auto
+  margin:20px auto;
+  
 }
 table {
   width: 100%;

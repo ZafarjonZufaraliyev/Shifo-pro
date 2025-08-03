@@ -176,9 +176,6 @@
         <label>Telefon 1:</label>
         <input v-model="editingBooking.tel1" type="text" />
 
-        <label>Telefon 2:</label>
-        <input v-model="editingBooking.tel2" type="text" />
-
         <label>Boshlanish sanasi:</label>
         <input v-model="editingBooking.start" type="date" />
 
@@ -244,9 +241,6 @@
 
         <label>Telefon 1:</label>
         <input v-model="newBooking.tel1" type="text" placeholder="Telefon raqam 1" />
-
-        <label>Telefon 2:</label>
-        <input v-model="newBooking.tel2" type="text" placeholder="Telefon raqam 2 (ixtiyoriy)" />
 
         <label>Boshlanish sanasi:</label>
         <input v-model="newBooking.start" type="date" />
@@ -867,11 +861,14 @@ export default {
 .modal {
   background-color: white;
   padding: 20px;
-  width: 320px;
-  max-width: 90%;
+  width: 500px;
+  margin: 50px 0px;
+  max-height: 90vh; /* Ekran balandligining 90% dan oshmasin */
+  overflow-y: auto; /* Vertikal scroll qo‘shadi agar kontent sig‘masa */
   border-radius: 5px;
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
 }
+
 
 .modal h3 {
   margin-top: 0;

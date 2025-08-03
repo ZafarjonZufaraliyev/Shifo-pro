@@ -40,20 +40,43 @@
         </li>
         <li>
           <router-link to="/laborant/taxlilTuri" @click="closeSidebar" active-class="router-link-active">
-            Taxlil turlari
+            Analiz turlari
           </router-link>
         </li>
       
         
          <li>
           <router-link to="/laborant/taxlilLab" @click="closeSidebar" active-class="router-link-active">
-            Taxlilni briktrish
+            Analiz parametrlari
           </router-link>
         </li>
         <li>
           <router-link to="/laborant/taxlilBriktrish" @click="closeSidebar" active-class="router-link-active">
-            Bemor taxlili
+            Bemor analiz
           </router-link>
+        </li>
+         <li>
+          <button
+            class="main-link"
+            :class="{ active: activeSection === 'kassa' }"
+            @click="toggleSection('kassa')"
+            aria-expanded="activeSection === 'kassa'"
+          >
+            🏬 Kassa
+          </button>
+          <ul v-if="activeSection === 'kassa'" class="sub-menu" role="region" aria-label="Kassa submenu">
+            
+            <li>
+              <router-link to="/laborant/labaratoryaKassa" @click="closeSidebar" active-class="router-link-active">
+                Bemor Kassa
+              </router-link>
+            </li>
+            <li>
+              <router-link to="/laborant/labaratoryaTolov" @click="closeSidebar" active-class="router-link-active">
+                Bemor tolov
+              </router-link>
+            </li>
+          </ul>
         </li>
   
 

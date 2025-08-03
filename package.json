@@ -12,6 +12,7 @@
     "@vueuse/motion": "^3.0.3",
     "axios": "^1.10.0",
     "chart.js": "^3.9.1",
+    "dayjs": "^1.11.13",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",

@@ -1,5 +1,5 @@
 <template>
-  <div class="container">
+  <div class="containerr">
     <h2 class="title">To‘lov qo‘shish</h2>
 
     <!-- To‘lov turi -->
@@ -257,7 +257,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.container {
+.containerr {
   max-width: 1200px;
   margin: 20px auto;
   padding: 20px;
