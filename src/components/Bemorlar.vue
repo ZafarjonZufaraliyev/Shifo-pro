@@ -14,14 +14,16 @@
           type="search"
           placeholder="Ism yoki familiya bo‘yicha qidirish..."
           v-model="search"
+          aria-label="Bemorlarni qidirish"
         />
       </div>
 
-      <div class="view-toggle">
+      <div class="view-toggle" role="group" aria-label="Ko‘rinish turini tanlash">
         <button
           :class="{ active: isCardView }"
           @click="isCardView = true"
           title="Card Ko‘rinish"
+          aria-pressed="isCardView"
         >
           📇
         </button>
@@ -29,46 +31,55 @@
           :class="{ active: !isCardView }"
           @click="isCardView = false"
           title="Jadval Ko‘rinish"
+          aria-pressed="!isCardView"
         >
           📋
         </button>
       </div>
     </div>
 
-    <div v-if="loading" class="loading-container">
+    <div v-if="loading" class="loading-container" role="status" aria-live="polite">
       <div class="spinner"></div>
     </div>
 
+    <!-- Card ko'rinish -->
     <div v-else-if="isCardView" class="cards-wrapper">
-      <!-- 3 qator x 4 ustun gridda -->
-      <div class="cards-grid">
+      <div class="cards-grid" role="list">
         <div
-          v-for="patient in paginatedPatients[activePage]"
+          v-for="patient in patients"
           :key="patient.id"
           class="patient1-card"
+          role="listitem"
         >
           <router-link
-            :to="`/${role}/BemorCard/${patient.id}`"
+            :to="`/${role}/BemorCard/${patient.client.id}`"
             class="card-link"
           >
             <div class="card__header">
-              <h3>{{ patient.familiya }} {{ patient.ism }}</h3>
-              <span>{{ calculateAge(patient.tugulgan_sana) }} yosh | {{ patient.gender }}</span>
+              <h3>{{ patient.client.ism }} {{ patient.client.familiya }}</h3>
+              <span>
+                {{ calculateAge(patient.client.tugulgan_sana) }} yosh | {{ patient.client.jinsi }}
+              </span>
             </div>
           </router-link>
           <div class="card__body">
-            <p><strong>📞 Telefon:</strong> {{ patient.tel1 || '—' }}</p>
-            <p><strong>Keldi:</strong> {{ getKelishSanasi(patient.id) }}</p>
-            <p><strong>Ketdi:</strong> {{ getKetishSanasi(patient.id) }}</p>
+            <p><strong>📞 Telefon:</strong> {{ patient.client.tel1 || '—' }}</p>
+            <p><strong>Keldi:</strong> {{ patient.kelish_sanasi || '—' }}</p>
+            <p><strong>Ketdi:</strong> {{ patient.ketish_sanasi || '—' }}</p>
           </div>
         </div>
       </div>
 
-      <!-- Pagination pastda -->
-      <div class="pagination-wrapper" v-if="paginatedPatients.length > 1">
+      <!-- Pagination -->
+      <nav
+        v-if="lastPage > 1"
+        class="pagination-wrapper"
+        role="navigation"
+        aria-label="Bemorlar sahifalari"
+      >
         <button
-          @click="prevPage"
-          :disabled="activePage === 0"
+          @click="changePage(currentPage - 1)"
+          :disabled="currentPage <= 1"
           class="page-btn nav-btn"
           aria-label="Oldingi sahifa"
         >
@@ -76,28 +87,29 @@
         </button>
 
         <button
-          v-for="(page, index) in pageNumbersToShow"
-          :key="index"
-          :class="['page-btn', { active: activePage === page }]"
-          @click="goToPage(page)"
-          :aria-current="activePage === page ? 'page' : null"
+          v-for="page in pagesToShow"
+          :key="page"
+          :class="['page-btn', { active: currentPage === page }]"
+          @click="changePage(page)"
+          :aria-current="currentPage === page ? 'page' : null"
         >
-          {{ page + 1 }}
+          {{ page }}
         </button>
 
         <button
-          @click="nextPage"
-          :disabled="activePage === paginatedPatients.length - 1"
+          @click="changePage(currentPage + 1)"
+          :disabled="currentPage >= lastPage"
           class="page-btn nav-btn"
           aria-label="Keyingi sahifa"
         >
           &gt;
         </button>
-      </div>
+      </nav>
     </div>
 
+    <!-- Jadval ko'rinish -->
     <div v-else>
-      <PatientTable :patients="filteredPatients" />
+      <PatientTable :patients="patients" />
     </div>
   </div>
 </template>
@@ -105,115 +117,109 @@
 <script>
 import PatientTable from "@/components/PatientTable.vue";
 import api from "@/api";
+import dayjs from "dayjs";
+import debounce from "lodash.debounce";
 
 export default {
-  components: { PatientTable },
+  components: {
+    PatientTable,
+  },
   data() {
     return {
       isCardView: true,
       search: "",
       patients: [],
-      davolanish: [],
-      loading: true,
-      activePage: 0,
-      maxVisiblePages: 7,
-      role: localStorage.getItem("role") || "mini", // rolni localStorage dan olish, agar yo'q bo'lsa "mini" default
+      loading: false,
+      currentPage: 1,
+      lastPage: 1,
+      perPage: 12,
+      role: localStorage.getItem("role") || "mini",
     };
   },
-  computed: {
-    filteredPatients() {
-      const query = this.search.trim().toLowerCase();
-      if (!query) return this.patients;
-      return this.patients.filter((p) =>
-        `${p.familiya} ${p.ism}`.toLowerCase().includes(query)
-      );
-    },
-    paginatedPatients() {
-      const perPage = 12;
-      const result = [];
-      for (let i = 0; i < this.filteredPatients.length; i += perPage) {
-        result.push(this.filteredPatients.slice(i, i + perPage));
-      }
-      return result;
-    },
-    pageNumbersToShow() {
-      const total = this.paginatedPatients.length;
-      const current = this.activePage;
-      const max = this.maxVisiblePages;
-
-      let start = Math.max(0, current - Math.floor(max / 2));
-      let end = start + max - 1;
-
-      if (end >= total) {
-        end = total - 1;
-        start = Math.max(0, end - max + 1);
-      }
-
-      return Array.from({ length: end - start + 1 }, (_, i) => i + start);
-    },
-  },
   watch: {
-    paginatedPatients(newVal) {
-      if (this.activePage > newVal.length - 1) this.activePage = newVal.length - 1;
-      if (this.activePage < 0) this.activePage = 0;
+    search: {
+      handler: debounce(function () {
+        this.currentPage = 1;
+        this.fetchPatients();
+      }, 500),
+      immediate: true,
     },
   },
   methods: {
-    goToPage(page) {
-      this.activePage = page;
+    async fetchPatients() {
+      this.loading = true;
+      try {
+        // 1. Davolanish (active) ro'yxatini olish
+        const davolanishRes = await api.get("/api/v1/davolanish", {
+          params: {
+            search: this.search,
+            page: this.currentPage,
+            per_page: this.perPage,
+          },
+        });
+        const davolanishData = davolanishRes.data.data || [];
+
+        // 2. Faqat status=1 va ketish sanasi kelajak yoki bo'sh bo'lganlarni filtrlaymiz
+        const today = dayjs().format("YYYY-MM-DD");
+        const activeDavolanish = davolanishData.filter(
+          (item) => item.status === "1" && (!item.ketish_sanasi || item.ketish_sanasi >= today)
+        );
+
+        // 3. Faqat ushbu davolanishdagi bemorlarni saqlaymiz
+        this.patients = activeDavolanish;
+
+        this.lastPage = davolanishRes.data.last_page || 1;
+      } catch (error) {
+        console.error("Ma'lumot olishda xatolik:", error);
+      } finally {
+        this.loading = false;
+      }
     },
-    prevPage() {
-      if (this.activePage > 0) this.activePage--;
-    },
-    nextPage() {
-      if (this.activePage < this.paginatedPatients.length - 1) this.activePage++;
+    changePage(page) {
+      if (page < 1 || page > this.lastPage) return;
+      this.currentPage = page;
+      this.fetchPatients();
     },
     calculateAge(birthdate) {
       if (!birthdate) return "—";
-      const birth = new Date(birthdate);
-      const today = new Date();
-      let age = today.getFullYear() - birth.getFullYear();
-      const m = today.getMonth() - birth.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+      const birth = dayjs(birthdate);
+      const today = dayjs();
+      let age = today.year() - birth.year();
+      if (
+        today.month() < birth.month() ||
+        (today.month() === birth.month() && today.date() < birth.date())
+      ) {
+        age--;
+      }
       return age;
     },
-    getKetishSanasi(clientId) {
-      const davo = this.davolanish.find((item) => item.client_id == clientId);
-      return davo ? davo.ketish_sanasi : "—";
-    },
-    getKelishSanasi(clientId) {
-      const davo = this.davolanish.find((item) => item.client_id == clientId);
-      return davo ? davo.kelish_sanasi : "—";
-    },
   },
-  async mounted() {
-    this.loading = true;
-    try {
-      const davoRes = await api.get("/api/v1/davolanish");
-      const allDavo = davoRes.data.data || davoRes.data || [];
-      const activeDavo = allDavo.filter((item) => item.status == 1);
+  mounted() {
+    this.fetchPatients();
+  },
+  computed: {
+    pagesToShow() {
+      const maxVisiblePages = 7;
+      const total = this.lastPage;
+      const current = this.currentPage;
 
-      this.davolanish = activeDavo;
+      let start = Math.max(1, current - Math.floor(maxVisiblePages / 2));
+      let end = start + maxVisiblePages - 1;
 
-      const activeClientIds = activeDavo.map((item) => String(item.client_id));
+      if (end > total) {
+        end = total;
+        start = Math.max(1, end - maxVisiblePages + 1);
+      }
 
-      const clientRes = await api.get("/api/v1/clients");
-      const allClients = clientRes.data.data || clientRes.data || [];
-
-      this.patients = allClients.filter((p) =>
-        activeClientIds.includes(String(p.id))
-      );
-    } catch (err) {
-      console.error("❌ Ma'lumot olishda xatolik:", err);
-    } finally {
-      this.loading = false;
-    }
+      const pages = [];
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      return pages;
+    },
   },
 };
 </script>
-
-
-
 
 <style scoped>
 .patients-container {
@@ -313,8 +319,8 @@ export default {
 /* Kartalar uchun grid */
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(3, auto);
+  grid-template-columns: repeat(4, 1fr); /* 4 ustun */
+  grid-template-rows: repeat(3, auto); /* 3 qator */
   gap: 20px 20px;
   margin-top: 15px;
 }

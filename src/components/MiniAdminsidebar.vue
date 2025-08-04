@@ -21,10 +21,10 @@
 
       <ul>
         <li><router-link to="/kassa" @click="closeSidebar">🏠 Bosh sahifa</router-link></li>
-        <li><router-link to="/kassa/bemorlar" @click="closeSidebar">Bemorlar</router-link></li>
+        <li><router-link to="/kassa/bemorlar" @click="closeSidebar">Davolanuvchilar</router-link></li>
         <li>
           <router-link to="/kassa/bemorSpiska" @click="closeSidebar" active-class="router-link-active">
-            Bemor spiska
+            Mijozlar ro'yxati
           </router-link>
         </li>
         <li><router-link to="/kassa/rooms" @click="closeSidebar">Xonalar</router-link></li>

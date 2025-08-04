@@ -2,7 +2,6 @@
   <div class="container">
     <!-- Filtrlar -->
     <div class="filters">
-      
       <input
         v-model="filters.familiya"
         @input="debouncedFetchClients"
@@ -66,37 +65,44 @@
     </table>
 
     <!-- Paginatsiya -->
-    <div class="pagination">
+    <div v-if="pagination.last_page > 1" class="pagination">
       <button
-        @click="changePage(pagination.current_page - 1)"
-        :disabled="!pagination.prev_page_url"
         class="btn pagination-btn"
+        :disabled="pagination.current_page === 1"
+        @click="changePage(pagination.current_page - 1)"
         aria-label="Previous page"
       >
-        ←
+        ← Oldingi
       </button>
 
-      <div class="page-info">
-        <span>Page</span>
-        <input
-          v-model.number="pagination.current_page"
-          @change="onPageInputChange"
-          type="number"
-          min="1"
-          :max="pagination.last_page"
-          class="page-input"
-          aria-label="Current page number"
-        />
-        <span>of {{ pagination.last_page }}</span>
-      </div>
+      <!-- Sahifa raqamlari -->
+      <button
+        v-for="page in pagesToShow"
+        :key="page"
+        class="btn pagination-btn"
+        :class="{ active: pagination.current_page === page }"
+        @click="changePage(page)"
+      >
+        {{ page }}
+      </button>
+
+      <!-- Agar oxirgi sahifa ko‘rinmasa, alohida tugma -->
+      <button
+        v-if="!pagesToShow.includes(pagination.last_page)"
+        class="btn pagination-btn"
+        :class="{ active: pagination.current_page === pagination.last_page }"
+        @click="changePage(pagination.last_page)"
+      >
+        {{ pagination.last_page }}
+      </button>
 
       <button
-        @click="changePage(pagination.current_page + 1)"
-        :disabled="!pagination.next_page_url"
         class="btn pagination-btn"
+        :disabled="pagination.current_page === pagination.last_page"
+        @click="changePage(pagination.current_page + 1)"
         aria-label="Next page"
       >
-        →
+        Keyingi →
       </button>
     </div>
   </div>
@@ -120,7 +126,7 @@ export default {
       pagination: {
         current_page: 1,
         last_page: 1,
-        per_page: 20,
+        per_page: 50,           // Har sahifada 50 ta klient ko‘rsatish
         prev_page_url: null,
         next_page_url: null,
       },
@@ -128,24 +134,42 @@ export default {
       token: null,
     };
   },
+  computed: {
+    pagesToShow() {
+      const total = this.pagination.last_page;
+      const current = this.pagination.current_page;
+      const maxButtons = 7; // ko‘rsatadigan sahifa tugmalari soni
+
+      let start = Math.max(1, current - Math.floor(maxButtons / 2));
+      let end = start + maxButtons - 1;
+
+      if (end > total) {
+        end = total;
+        start = Math.max(1, end - maxButtons + 1);
+      }
+
+      const pages = [];
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      return pages;
+    },
+  },
   created() {
     this.role = localStorage.getItem('role');
     this.token = localStorage.getItem('token');
 
-   const allowedRoles = ['admin',  'kassa'];
-if (!allowedRoles.includes(this.role)) {
-  alert('Sizda bu sahifaga kirish uchun ruxsat yo‘q!');
-  this.$router.push({ name: 'LoginPage' });
-  return;
-}
+    const allowedRoles = ['admin', 'kassa'];
+    if (!allowedRoles.includes(this.role)) {
+      alert('Sizda bu sahifaga kirish uchun ruxsat yo‘q!');
+      this.$router.push({ name: 'LoginPage' });
+      return;
+    }
 
-
-    // Tokenni headerga qo‘shamiz (agar api.js-da yo'q bo‘lsa)
     if (api.defaults) {
       api.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
     }
 
-    // Debounce funksiyani tayyorlaymiz
     this.debouncedFetchClients = debounce(this.fetchClients, 400);
     this.fetchClients();
   },
@@ -198,7 +222,7 @@ if (!allowedRoles.includes(this.role)) {
     },
 
     changePage(page) {
-      if (page > 0 && page <= this.pagination.last_page) {
+      if (page > 0 && page <= this.pagination.last_page && page !== this.pagination.current_page) {
         this.pagination.current_page = page;
         this.fetchClients();
       }
@@ -216,151 +240,135 @@ if (!allowedRoles.includes(this.role)) {
 };
 </script>
 
-
 <style scoped>
-/* Styling sizning oldingi kodingiz kabi */
 .container {
-  padding: 24px;
+  padding: 20px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: #333;
-  max-width: 1100px;
-  margin: 0 auto;
-  background-color: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  color: #2c3e50;
+  max-width: 1200px;
+  margin: 20 auto;
+  background-color: #fafafa;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .filters {
   display: flex;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 18px;
   flex-wrap: wrap;
 }
 
 .input {
-  flex: 1 1 200px;
-  padding: 12px 16px;
-  font-size: 16px;
-  border: 2px solid #ccc;
-  border-radius: 10px;
-  background-color: #fafafa;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  color: #333;
+  flex: 1 1 180px;
+  padding: 10px 14px;
+  font-size: 15px;
+  border: 1.5px solid #ccc;
+  border-radius: 6px;
+  background-color: white;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  color: #34495e;
 }
 
 .input::placeholder {
-  color: #999;
+  color: #a0a0a0;
 }
 
 .input:focus {
   outline: none;
-  border-color: #1A6291;
-  box-shadow: 0 0 8px rgba(26, 98, 145, 0.5);
+  border-color: #3498db;
+  box-shadow: 0 0 6px rgba(52, 152, 219, 0.4);
 }
 
 .client-table {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-  border-radius: 12px;
+  border-collapse: collapse;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+  border-radius: 6px;
   overflow: hidden;
 }
 
 .client-table thead tr {
-  background-color: #1A6291;
+  background-color: #3498db;
   color: white;
   font-weight: 600;
   text-align: left;
-  border-radius: 12px 12px 0 0;
 }
 
 .client-table th,
 .client-table td {
-  padding: 14px 20px;
+  padding: 12px 18px;
+  border-bottom: 1px solid #e1e8f0;
 }
 
 .client-table tbody tr {
-  background-color: #f9fbfd;
-  transition: background-color 0.3s ease;
+  background-color: white;
+  transition: background-color 0.25s ease;
   cursor: pointer;
-  border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(26, 98, 145, 0.1);
 }
 
 .client-table tbody tr:hover {
-  background-color: #dbe9f8;
-  box-shadow: 0 4px 10px rgba(26, 98, 145, 0.2);
+  background-color: #eaf4fc;
 }
 
 .no-data {
   text-align: center;
-  padding: 20px 0;
+  padding: 16px 0;
   color: #999;
   font-style: italic;
 }
 
+/* Paginatsiya */
 .pagination {
-  margin-top: 30px;
+  margin-top: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 20px;
+  gap: 10px;
   user-select: none;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+/* Tugmalar kvadrat shaklida, biroz yumaloq burchaklar */
 .pagination-btn {
-  background-color: #1A6291;
+  background-color: #2980b9;
   border: none;
   color: white;
-  padding: 10px 18px;
-  font-size: 20px;
-  border-radius: 50%;
+  padding: 8px 14px;
+  font-size: 16px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
-  width: 48px;
-  height: 48px;
+  user-select: none;
+  min-width: 36px;
+  min-height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  user-select: none;
+  transition: background-color 0.3s ease;
 }
 
 .pagination-btn:disabled {
-  background-color: #a0aec0;
+  background-color: #bdc3c7;
   cursor: not-allowed;
   opacity: 0.6;
 }
 
 .pagination-btn:not(:disabled):hover {
-  background-color: #154d71;
+  background-color: #1f618d;
 }
 
+/* Faol (aktiv) sahifa tugmasi aniqroq */
+.pagination-btn.active {
+  background-color: #1b4f72;
+  font-weight: 700;
+  cursor: default;
+  box-shadow: 0 0 8px rgba(27, 79, 114, 0.6);
+}
+
+/* Kerak bo'lsa input paginatsiya joyi */
 .page-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 16px;
-  color: #1A6291;
-  font-weight: 600;
-  user-select: text;
+  display: none; /* Agar kerak bo'lsa yoqing */
 }
 
-.page-input {
-  width: 60px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  border: 2px solid #1A6291;
-  font-size: 16px;
-  text-align: center;
-  color: #1A6291;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
 
-.page-input:focus {
-  outline: none;
-  border-color: #154d71;
-  box-shadow: 0 0 10px rgba(26, 98, 145, 0.6);
-}
 </style>
