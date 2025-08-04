@@ -12,6 +12,16 @@
         </div>
       </div>
 
+      <!-- Jins -->
+      <div class="form-group">
+        <label>Jins</label>
+        <select v-model="form.jins" required>
+          <option disabled value="">Tanlang</option>
+          <option>Erkak</option>
+          <option>Ayol</option>
+        </select>
+      </div>
+
       <!-- Fuqarolik -->
       <div class="form-group">
         <label>Fuqaroligi</label>
@@ -99,6 +109,7 @@
 
 <script>
 import api from '@/api';
+
 export default {
   name: 'RegisterPage',
   data() {
@@ -122,6 +133,7 @@ export default {
         familiya: '',
         ism: '',
         sharif: '',
+        jins: '',          // qo'shildi
         davlat: '',
         pasport: '',
         tugulgan_sana: '',
@@ -135,6 +147,7 @@ export default {
         create_user_id: null,
         create_user_name: '',
       },
+      client: null,
     };
   },
   mounted() {
@@ -161,18 +174,25 @@ export default {
           alert('Ro‘yxatdan o‘tishda mijoz ID topilmadi!');
           return;
         }
-        this.$router.push({ name: 'adminTakliflar', params: { clientId: client.id } });
+        this.client = client;
+        const role = this.client.role || 'admin';
+        this.$router.push({
+          name: role === 'kassa' ? 'miniTakliflar' : 'adminTakliflar',
+          params: { clientId: client.id }
+        });
       } catch (err) {
-        if (err.response?.status === 422) {
+        console.error('API xatosi:', err.response || err);
+        if (err.response && err.response.status === 422) {
           const errors = err.response.data.errors;
           let msg = '❗ Xatoliklar:\n';
           for (let key in errors) {
             msg += `- ${key}: ${errors[key].join(', ')}\n`;
           }
           alert(msg);
+        } else if (err.response) {
+          alert(`❌ Serverdan xatolik qaytdi: ${err.response.status} ${err.response.statusText}`);
         } else {
-          console.error(err);
-          alert('❌ Ro‘yxatdan o‘tishda server xatoligi yuz berdi!');
+          alert('❌ Ro‘yxatdan o‘tishda nomaʼlum xatolik yuz berdi!');
         }
       }
     },

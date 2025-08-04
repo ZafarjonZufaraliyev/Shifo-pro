@@ -35,7 +35,12 @@
         </li>
         <li>
           <router-link to="/admin/bemorlar" @click="closeSidebar" active-class="router-link-active">
-            Bemorlar
+            Davolonuvchilar
+          </router-link>
+        </li>
+         <li>
+          <router-link to="/admin/BemorSpiska" @click="closeSidebar" active-class="router-link-active">
+            Mijozlar ro'yxati
           </router-link>
         </li>
         <li>
@@ -71,6 +76,7 @@
                 Oshxona ovqatlari
               </router-link>
             </li>
+            
             <li>
               <router-link to="/admin/retseptOshxona" @click="closeSidebar" active-class="router-link-active">
                 Oshxona Retsept

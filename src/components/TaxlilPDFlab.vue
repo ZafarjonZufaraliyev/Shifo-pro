@@ -47,28 +47,71 @@
     <!-- Shifokor kommentariyasi -->
     <div class="form-group">
       <label for="doctorComment">Shifokor kommentariyasi:</label>
-      <textarea id="doctorComment" v-model="labTestData.doctor_comment" placeholder="Kommentariyani kiriting"
-        rows="3"></textarea>
+      <textarea
+        id="doctorComment"
+        v-model="labTestData.doctor_comment"
+        placeholder="Kommentariyani kiriting"
+        rows="3"
+      ></textarea>
     </div>
 
     <!-- Natijalar -->
-    <div class="results-section">
+    <div class="results-section" v-if="labTestData.results.length > 0">
       <h3>Tahlil natijalari</h3>
-      <div v-for="(result, index) in labTestData.results" :key="index" class="result-row">
-        <input v-model="result.parametr_name" placeholder="Parametr nomi" class="result-input" />
-        <input v-model="result.parametr_value" placeholder="Natija" class="result-input" />
-        <input v-model="result.parametr_norma" placeholder="Norma" class="result-input" />
-        <button @click="removeResult(index)" type="button" class="btn-remove" title="O‘chirish"
-          :disabled="labTestData.results.length === 1">&times;</button>
+      <div
+        v-for="(result, index) in labTestData.results"
+        :key="index"
+        class="result-row"
+      >
+        <!-- Parametr nomi (readonly) -->
+        <input
+          v-model="result.parametr_name"
+          class="result-input"
+          readonly
+          style="background-color:#eee; cursor:not-allowed;"
+        />
+        <!-- Natija (foydalanuvchi kiritadi) -->
+        <input
+          v-model="result.parametr_value"
+          placeholder="Natija"
+          class="result-input"
+        />
+        <!-- Norma (readonly) -->
+        <input
+          v-model="result.parametr_norma"
+          class="result-input"
+          readonly
+          style="background-color:#eee; cursor:not-allowed;"
+        />
+        <!-- O'chirish tugmasi -->
+        <button
+          v-if="labTestData.results.length > 1"
+          @click="removeResult(index)"
+          type="button"
+          class="btn-remove"
+          title="O‘chirish"
+        >
+          &times;
+        </button>
       </div>
-      <button @click="addResult" type="button" class="btn-add">+ Parametr qo‘shish</button>
+      <!-- Parametr qo'shish tugmasi -->
+      <button @click="addResult" type="button" class="btn-add">
+        + Parametr qo‘shish
+      </button>
     </div>
 
     <!-- Tugmalar -->
     <div class="actions">
-      <button @click="saveLabTest" type="button" class="btn-save">Saqlash</button>
-      <button @click="generatePDF" type="button" :disabled="!selectedClient || !selectedTestType || !labTestData.test_date"
-        class="btn-pdf" title="PDF yaratish va yuklab olish">
+      <button @click="saveLabTest" type="button" class="btn-save">
+        Saqlash
+      </button>
+      <button
+        @click="generatePDF"
+        type="button"
+        :disabled="!selectedClient || !selectedTestType || !labTestData.test_date"
+        class="btn-pdf"
+        title="PDF yaratish va yuklab olish"
+      >
         PDF olish
       </button>
     </div>
@@ -78,8 +121,8 @@
 <script>
 import axios from "axios";
 import { jsPDF } from "jspdf";
-import logo from "@/assets/image/logo.png";  // Rasmni import qilish
-import api from "@/api";
+import logo from "@/assets/image/logo.png";
+
 export default {
   name: "TaxlilVaroghi",
   data() {
@@ -94,11 +137,13 @@ export default {
         test_type_id: null,
         test_date: "",
         doctor_comment: "",
-        results: [{
-          parametr_name: "",
-          parametr_value: "",
-          parametr_norma: "",
-        }, ],
+        results: [
+          {
+            parametr_name: "",
+            parametr_value: "",
+            parametr_norma: "",
+          },
+        ],
       },
     };
   },
@@ -107,7 +152,6 @@ export default {
     this.fetchTestTypes();
   },
   methods: {
-    // Bemorlar ro'yxatini olish
     async fetchClients() {
       try {
         const token = localStorage.getItem("token");
@@ -121,7 +165,6 @@ export default {
         console.error("❌ Bemorlar ro'yxatini olishda xatolik:", error);
       }
     },
-    // Tahlil turlarini olish
     async fetchTestTypes() {
       try {
         const token = localStorage.getItem("token");
@@ -130,24 +173,44 @@ export default {
             Authorization: `Bearer ${token}`,
           },
         });
+        // Serverdan kelayotgan testTypes ichida parameters bo'lishi kerak!
+        // Misol: [{id, name, description, parameters: [{name, norma}, ...]}]
         this.testTypes = res.data;
       } catch (error) {
         console.error("❌ Tahlil turlarini olishda xatolik:", error);
       }
     },
-    // Bemorni tanlash
     onClientSelect() {
       const clientIdNum = Number(this.selectedClientId);
       this.selectedClient = this.clients.find((c) => c.id === clientIdNum) || null;
       this.labTestData.client_id = clientIdNum;
     },
-    // Tahlil turini tanlash
     onTestTypeSelect() {
       const testTypeIdNum = Number(this.labTestData.test_type_id);
       this.selectedTestType = this.testTypes.find((t) => t.id === testTypeIdNum) || null;
-      this.labTestData.test_type_id = testTypeIdNum;
+
+      if (
+        this.selectedTestType &&
+        Array.isArray(this.selectedTestType.parameters) &&
+        this.selectedTestType.parameters.length > 0
+      ) {
+        // Tanlangan test turining parametrlarini avto to'ldirish
+        this.labTestData.results = this.selectedTestType.parameters.map((p) => ({
+          parametr_name: p.name,
+          parametr_value: "",
+          parametr_norma: p.norma || "",
+        }));
+      } else {
+        // Agar parametrlar yo'q bo'lsa, bitta bo'sh qatordan boshlash
+        this.labTestData.results = [
+          {
+            parametr_name: "",
+            parametr_value: "",
+            parametr_norma: "",
+          },
+        ];
+      }
     },
-    // Parametr qo'shish
     addResult() {
       this.labTestData.results.push({
         parametr_name: "",
@@ -155,21 +218,23 @@ export default {
         parametr_norma: "",
       });
     },
-    // Parametr o'chirish
     removeResult(index) {
       if (this.labTestData.results.length > 1) {
         this.labTestData.results.splice(index, 1);
       }
     },
-    // Sanani formatlash
     formatDate(dateStr) {
       if (!dateStr) return "-";
       const d = new Date(dateStr);
       return d.toLocaleDateString("uz-UZ");
     },
-    // Tahlilni saqlash
     async saveLabTest() {
-      if (!this.labTestData.client_id || !this.labTestData.test_type_id || !this.labTestData.test_date || this.labTestData.results.length === 0) {
+      if (
+        !this.labTestData.client_id ||
+        !this.labTestData.test_type_id ||
+        !this.labTestData.test_date ||
+        this.labTestData.results.length === 0
+      ) {
         alert("Iltimos, barcha maydonlarni to‘ldiring!");
         return;
       }
@@ -206,7 +271,6 @@ export default {
         alert("❌ Ma'lumotlarni saqlashda xatolik yuz berdi");
       }
     },
-    // PDF yaratish
     async generatePDF() {
       if (!this.selectedClient || !this.selectedTestType || !this.labTestData.test_date) {
         alert("Iltimos, barcha maydonlarni to‘ldiring!");
@@ -223,7 +287,7 @@ export default {
 
       const htmlContent = `
         <div style="max-width: 800px; margin: 20px auto; padding: 20px; font-family: Arial, sans-serif; background-color: #fdfdfd;">
-          <div style="display: flex; justify-content: space-between; gap:300px align-items: flex-start; margin-bottom: 15px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
             <div style="font-size: 24px; font-weight: bold; color: #004c97; display: flex; align-items: center;">
               <img src="${logo}" alt="Logo" style="height:40px; margin-right:8px;" />
               Koinot Kavsari
@@ -277,7 +341,6 @@ export default {
         format: "a4",
       });
 
-      // HTMLni jsPDFga qo'shish
       doc.html(htmlContent, {
         callback: function (doc) {
           doc.save(`Bemor_${this.selectedClient.familiya}_tahlil_natijalari.pdf`);
@@ -294,9 +357,8 @@ export default {
 </script>
 
 <style scoped>
-/* Simplified and optimised styles */
 .container {
-  max-width: 600px;
+  max-width: 1200px;
   margin: 20px auto;
   padding: 20px;
   font-family: Arial, sans-serif;
@@ -316,7 +378,10 @@ label {
   font-weight: bold;
 }
 
-select, input[type="text"], input[type="date"], textarea {
+select,
+input[type="text"],
+input[type="date"],
+textarea {
   width: 100%;
   padding: 10px;
   font-size: 15px;
@@ -328,7 +393,10 @@ textarea {
   resize: vertical;
 }
 
-.btn-add, .btn-remove, .btn-save, .btn-pdf {
+.btn-add,
+.btn-remove,
+.btn-save,
+.btn-pdf {
   padding: 10px 15px;
   font-size: 15px;
   cursor: pointer;
@@ -346,6 +414,10 @@ textarea {
   display: flex;
   gap: 10px;
   margin-bottom: 10px;
+}
+
+.result-input {
+  flex: 1;
 }
 
 @media (max-width: 480px) {

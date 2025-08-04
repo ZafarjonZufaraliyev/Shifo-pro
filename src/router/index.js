@@ -16,7 +16,7 @@ import Bemor_card from "@/components/PatientCard.vue";
 import RoomDetels from "@/components/RoomDetels.vue";
 import TaklifDetelis from "@/components/TaklifDetelis.vue";
 import Xodimlar from "@/components/Xodimlar.vue";
-
+import BemorSpiska from "@/components/BemorSpiska.vue";
 //Oshxona
 
 import OshxonaLayout from "@/layouts/OshxonaLayout.vue";
@@ -74,6 +74,7 @@ const routes = [
       { path: "", name: "adminDashboard", component: SuperDashboard },
       { path: "BemorCard/:id", name: "adminBemor_card", component: Bemor_card,meta: { role: "admin" }, },
       { path: "xodimlar", name: "adminXodimlar", component: Xodimlar },
+      { path: "bemorSpiska", name: "adminBemorSpiska", component: BemorSpiska },
       { path: "room/:id", name: "adminRoomDetails", component: RoomDetels },
       { path: "bemorlar", name: "adminBemorlar", component: Bemorlar },
       { path: "rooms", name: "adminRooms", component: Rooms },
@@ -147,6 +148,7 @@ const routes = [
       { path: "BemorCard/:id", name: "miniBemor_card", component: Bemor_card,  },
       { path: "kassaSahifa", name: "minikassaSahifa", component: KassaSahifa },
       { path: "kasaFilter", name: "minikasaFilter", component: KasaFilter },
+      { path: "bemorSpiska", name: "miniBemorSpiska", component: BemorSpiska },
       { path: "kassaPulQaytarish", name: "minikassaPulQaytarish", component: KassaPulQaytarish },
       { path: "kassaStatistika", name: "minikassaStatistika", component: KassaStatistika },
       { path: "kassaTolovQoshish", name: "minikassaTolovQoshish", component: KassaTolovQoshish },
@@ -156,8 +158,13 @@ const routes = [
       { path: "rooms", name: "MiniRooms", component: Rooms },
       { path: "RegisterPage", name: "miniRegisterPage", component: RegisterPage,
       },
-
-      { path: "taklif", name: "miniTakliflar", component: Takliflar },
+      {
+        path: "taklif/:clientId",
+        name: "miniTakliflar",
+        component: Takliflar,
+        props: true,
+      },
+      
    
     ],
   },

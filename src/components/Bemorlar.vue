@@ -105,12 +105,9 @@
 <script>
 import PatientTable from "@/components/PatientTable.vue";
 import api from "@/api";
-import dayjs from "dayjs";  // dayjs kutubxonasini import qilamiz
 
 export default {
-  components: {
-    PatientTable,
-  },
+  components: { PatientTable },
   data() {
     return {
       isCardView: true,
@@ -120,57 +117,44 @@ export default {
       loading: true,
       activePage: 0,
       maxVisiblePages: 7,
-      role: localStorage.getItem("role") || "mini",
     };
   },
   computed: {
     filteredPatients() {
       const query = this.search.trim().toLowerCase();
       if (!query) return this.patients;
-      return this.patients.filter((patient) => {
-        const fullName = `${patient.familiya} ${patient.ism}`.toLowerCase();
-        return fullName.includes(query);
-      });
+      return this.patients.filter((p) =>
+        `${p.familiya} ${p.ism}`.toLowerCase().includes(query)
+      );
     },
-
     paginatedPatients() {
-      const perPage = 12; // 3 qator x 4 ustun
+      const perPage = 12;
       const result = [];
       for (let i = 0; i < this.filteredPatients.length; i += perPage) {
         result.push(this.filteredPatients.slice(i, i + perPage));
       }
       return result;
     },
-
     pageNumbersToShow() {
-      const totalPages = this.paginatedPatients.length;
-      const currentPage = this.activePage;
-      const maxPages = this.maxVisiblePages;
+      const total = this.paginatedPatients.length;
+      const current = this.activePage;
+      const max = this.maxVisiblePages;
 
-      let start = Math.max(0, currentPage - Math.floor(maxPages / 2));
-      let end = start + maxPages - 1;
+      let start = Math.max(0, current - Math.floor(max / 2));
+      let end = start + max - 1;
 
-      if (end >= totalPages) {
-        end = totalPages - 1;
-        start = Math.max(0, end - maxPages + 1);
+      if (end >= total) {
+        end = total - 1;
+        start = Math.max(0, end - max + 1);
       }
 
-      const pages = [];
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
-
-      return pages;
+      return Array.from({ length: end - start + 1 }, (_, i) => i + start);
     },
   },
   watch: {
     paginatedPatients(newVal) {
-      if (this.activePage > newVal.length - 1) {
-        this.activePage = newVal.length - 1;
-      }
-      if (this.activePage < 0) {
-        this.activePage = 0;
-      }
+      if (this.activePage > newVal.length - 1) this.activePage = newVal.length - 1;
+      if (this.activePage < 0) this.activePage = 0;
     },
   },
   methods: {
@@ -178,14 +162,10 @@ export default {
       this.activePage = page;
     },
     prevPage() {
-      if (this.activePage > 0) {
-        this.activePage--;
-      }
+      if (this.activePage > 0) this.activePage--;
     },
     nextPage() {
-      if (this.activePage < this.paginatedPatients.length - 1) {
-        this.activePage++;
-      }
+      if (this.activePage < this.paginatedPatients.length - 1) this.activePage++;
     },
     calculateAge(birthdate) {
       if (!birthdate) return "—";
@@ -193,9 +173,7 @@ export default {
       const today = new Date();
       let age = today.getFullYear() - birth.getFullYear();
       const m = today.getMonth() - birth.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
-        age--;
-      }
+      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
       return age;
     },
     getKetishSanasi(clientId) {
@@ -208,42 +186,32 @@ export default {
     },
   },
   async mounted() {
-  this.loading = true;
-  try {
-    // 1. Davolanishlarni olish
-    const davolanishRes = await api.get("/api/v1/davolanish");
-    const allDavolanish = davolanishRes.data || [];
-    console.log("Davolanish:", allDavolanish);
+    this.loading = true;
+    try {
+      const davoRes = await api.get("/api/v1/davolanish");
+      const allDavo = davoRes.data.data || davoRes.data || [];
+      const activeDavo = allDavo.filter((item) => item.status == 1); // son bo'lishi mumkin
 
-    // 2. Bugungi sana (YYYY-MM-DD formatida)
-    const today = dayjs().format("YYYY-MM-DD");
+      this.davolanish = activeDavo;
 
-    // 3. Ketish sanasi bo‘yicha faqat ketmagan bemorlar idlari (string sifatida)
-    const activePatientsIds = allDavolanish
-      .filter(item => !item.ketish_sanasi || item.ketish_sanasi >= today)
-      .map(item => String(item.client_id));
+      const activeClientIds = activeDavo.map((item) => String(item.client_id));
 
-    this.davolanish = allDavolanish;
+      const clientRes = await api.get("/api/v1/clients");
+      const allClients = clientRes.data.data || clientRes.data || [];
 
-    // 4. Bemorlar ro‘yxatini olish
-    const clientsRes = await api.get("/api/v1/clients");
-    const allPatients = clientsRes.data.users || clientsRes.data || [];
-    console.log("Bemorlar:", allPatients);
-
-    // 5. Faqat ketmagan bemorlarni filterlash (stringga aylantirilgan id bilan solishtirish)
-    this.patients = allPatients.filter(patient =>
-      activePatientsIds.includes(String(patient.id))
-    );
-
-    console.log("Faol bemorlar:", this.patients);
-  } catch (err) {
-    console.error("❌ API orqali ma'lumot olishda xatolik:", err);
-  } finally {
-    this.loading = false;
-  }
-},
+      this.patients = allClients.filter((p) =>
+        activeClientIds.includes(String(p.id))
+      );
+    } catch (err) {
+      console.error("❌ Ma'lumot olishda xatolik:", err);
+    } finally {
+      this.loading = false;
+    }
+  },
 };
 </script>
+
+
 
 
 <style scoped>
