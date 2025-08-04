@@ -133,7 +133,7 @@ export default {
         familiya: '',
         ism: '',
         sharif: '',
-        jins: '',          // qo'shildi
+        jins: '',
         davlat: '',
         pasport: '',
         tugulgan_sana: '',
@@ -151,6 +151,14 @@ export default {
     };
   },
   mounted() {
+    const role = localStorage.getItem('role');
+    const allowedRoles = ['admin', 'kassa'];
+    if (!allowedRoles.includes(role)) {
+      alert("Sizda bu sahifaga kirish huquqi yo'q!");
+      this.$router.push({ name: 'LoginPage' }); // agar mavjud bo‘lmasa, mavjud route nomini yozing
+      return;
+    }
+
     this.fetchCurrentUser();
   },
   methods: {
@@ -166,39 +174,49 @@ export default {
         console.error('Foydalanuvchini olishda xatolik:', err);
       }
     },
-    async registerClient() {
-      try {
-        const res = await api.post('/api/v1/clients', this.form);
-        const client = res.data?.data;
-        if (!client?.id) {
-          alert('Ro‘yxatdan o‘tishda mijoz ID topilmadi!');
-          return;
-        }
-        this.client = client;
-        const role = this.client.role || 'admin';
-        this.$router.push({
-          name: role === 'kassa' ? 'miniTakliflar' : 'adminTakliflar',
-          params: { clientId: client.id }
-        });
-      } catch (err) {
-        console.error('API xatosi:', err.response || err);
-        if (err.response && err.response.status === 422) {
-          const errors = err.response.data.errors;
-          let msg = '❗ Xatoliklar:\n';
-          for (let key in errors) {
-            msg += `- ${key}: ${errors[key].join(', ')}\n`;
-          }
-          alert(msg);
-        } else if (err.response) {
-          alert(`❌ Serverdan xatolik qaytdi: ${err.response.status} ${err.response.statusText}`);
-        } else {
-          alert('❌ Ro‘yxatdan o‘tishda nomaʼlum xatolik yuz berdi!');
-        }
+  async registerClient() {
+  try {
+    const res = await api.post('/api/v1/clients', this.form);
+    const client = res.data?.data;
+    if (!client?.id) {
+      alert('Ro‘yxatdan o‘tishda mijoz ID topilmadi!');
+      return;
+    }
+
+    alert("✅ Mijoz muvaffaqiyatli qo‘shildi.");
+
+    // localStorage dan role oling (trim bilan)
+    const role = (localStorage.getItem('role') || 'admin'||'kassa').trim();
+
+    if (role === 'kassa') {
+      this.$router.push({ name: 'miniTakliflar', params: { clientId: client.id } });
+    } else if (role === 'admin') {
+      this.$router.push({ name: 'adminTakliflar', params: { clientId: client.id } });
+    } else {
+      this.$router.push({ name: 'ClientListPage' });
+    }
+
+  } catch (err) {
+    console.error('API xatosi:', err.response || err);
+    if (err.response && err.response.status === 422) {
+      const errors = err.response.data.errors;
+      let msg = '❗ Xatoliklar:\n';
+      for (let key in errors) {
+        msg += `- ${key}: ${errors[key].join(', ')}\n`;
       }
-    },
+      alert(msg);
+    } else if (err.response) {
+      alert(`❌ Serverdan xatolik qaytdi: ${err.response.status} ${err.response.statusText}`);
+    } else {
+      alert('❌ Ro‘yxatdan o‘tishda nomaʼlum xatolik yuz berdi!');
+    }
+  }
+}
+,
   },
 };
 </script>
+
 
 <style scoped>
 .register-container {

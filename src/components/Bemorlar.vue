@@ -117,6 +117,7 @@ export default {
       loading: true,
       activePage: 0,
       maxVisiblePages: 7,
+      role: localStorage.getItem("role") || "mini", // rolni localStorage dan olish, agar yo'q bo'lsa "mini" default
     };
   },
   computed: {
@@ -190,7 +191,7 @@ export default {
     try {
       const davoRes = await api.get("/api/v1/davolanish");
       const allDavo = davoRes.data.data || davoRes.data || [];
-      const activeDavo = allDavo.filter((item) => item.status == 1); // son bo'lishi mumkin
+      const activeDavo = allDavo.filter((item) => item.status == 1);
 
       this.davolanish = activeDavo;
 

@@ -23,7 +23,7 @@
         <li><router-link to="/kassa" @click="closeSidebar">🏠 Bosh sahifa</router-link></li>
         <li><router-link to="/kassa/bemorlar" @click="closeSidebar">Bemorlar</router-link></li>
         <li>
-          <router-link to="/admin/BemorSpiska" @click="closeSidebar" active-class="router-link-active">
+          <router-link to="/kassa/bemorSpiska" @click="closeSidebar" active-class="router-link-active">
             Bemor spiska
           </router-link>
         </li>

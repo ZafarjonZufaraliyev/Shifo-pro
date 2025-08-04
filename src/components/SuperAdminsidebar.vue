@@ -39,7 +39,7 @@
           </router-link>
         </li>
          <li>
-          <router-link to="/admin/BemorSpiska" @click="closeSidebar" active-class="router-link-active">
+          <router-link to="/admin/bemorSpiska" @click="closeSidebar" active-class="router-link-active">
             Mijozlar ro'yxati
           </router-link>
         </li>

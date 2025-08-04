@@ -103,7 +103,7 @@
 </template>
 
 <script>
-import api from '@/api'; // Sizning api.js faylingiz
+import api from '@/api';
 import debounce from 'lodash.debounce';
 
 export default {
@@ -115,7 +115,7 @@ export default {
         familiya: '',
         ism: '',
         pasport: '',
-        tugulgan_sana: '',  // yangi filter
+        tugulgan_sana: '',
       },
       pagination: {
         current_page: 1,
@@ -124,9 +124,28 @@ export default {
         prev_page_url: null,
         next_page_url: null,
       },
+      role: null,
+      token: null,
     };
   },
   created() {
+    this.role = localStorage.getItem('role');
+    this.token = localStorage.getItem('token');
+
+   const allowedRoles = ['admin',  'kassa'];
+if (!allowedRoles.includes(this.role)) {
+  alert('Sizda bu sahifaga kirish uchun ruxsat yo‘q!');
+  this.$router.push({ name: 'LoginPage' });
+  return;
+}
+
+
+    // Tokenni headerga qo‘shamiz (agar api.js-da yo'q bo‘lsa)
+    if (api.defaults) {
+      api.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    // Debounce funksiyani tayyorlaymiz
     this.debouncedFetchClients = debounce(this.fetchClients, 400);
     this.fetchClients();
   },
@@ -134,7 +153,7 @@ export default {
     filters: {
       deep: true,
       handler() {
-        this.pagination.current_page = 1; // Filter o'zgarganda sahifa 1 bo'lsin
+        this.pagination.current_page = 1;
         this.debouncedFetchClients();
       },
     },
@@ -142,10 +161,11 @@ export default {
   methods: {
     async fetchClients() {
       try {
-        // Bo‘sh stringlarni filter qilib yubormaymiz
         const filteredParams = {};
         Object.entries(this.filters).forEach(([key, val]) => {
-          if (val && val.toString().trim() !== '') filteredParams[key] = val.toString().trim();
+          if (val && val.toString().trim() !== '') {
+            filteredParams[key] = val.toString().trim();
+          }
         });
 
         const params = {
@@ -154,10 +174,8 @@ export default {
           per_page: this.pagination.per_page,
         };
 
-        // API ga so'rov yuborish
         const res = await api.get('public/api/v1/clients', { params });
 
-        // Javobni saqlash
         this.clients = res.data.data;
         this.pagination = {
           current_page: res.data.current_page,
@@ -167,7 +185,13 @@ export default {
           next_page_url: res.data.next_page_url,
         };
       } catch (error) {
-        console.error('Xatolik:', error);
+        if (error.response && error.response.status === 401) {
+          alert("Sessiya muddati tugagan. Qayta login qiling.");
+          localStorage.clear();
+          this.$router.push({ name: 'LoginPage' });
+        } else {
+          console.error('Xatolik:', error);
+        }
         this.clients = [];
         this.pagination.last_page = 1;
       }
@@ -191,6 +215,7 @@ export default {
   },
 };
 </script>
+
 
 <style scoped>
 /* Styling sizning oldingi kodingiz kabi */

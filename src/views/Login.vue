@@ -39,20 +39,25 @@
 <script setup>
 import { ref } from "vue";
 import { useRouter } from "vue-router";
-import api from "@/api";
-import roleRoutes from "@/constants/roleRoutes";
+import api from "@/api";               // Sizning API chaqiruvlar uchun modul
+import roleRoutes from "@/constants/roleRoutes"; // Rolga qarab redirect yo'llari
 
+// Reactive holatlar
 const username = ref("");
 const password = ref("");
 const loading = ref(false);
 const error = ref("");
+
+// Routerni olish
 const router = useRouter();
 
+// Login funksiyasi
 const handleLogin = async () => {
-  error.value = "";
-  loading.value = true;
+  error.value = "";        // Xatolarni tozalash
+  loading.value = true;    // Yuklanish holatini yoqish
 
   try {
+    // API ga login so‘rovi yuborish
     const response = await api.post("/api/v1/login", {
       username: username.value.trim(),
       password: password.value.trim(),
@@ -60,21 +65,19 @@ const handleLogin = async () => {
 
     const { token, user, role } = response.data;
 
-    console.log("✅ Login:", username.value);
-    console.log("🛡 Role:", role);
-    console.log("➡️ Redirect path:", roleRoutes[role]);
-
+    // Token yo'q bo'lsa, xato chiqarish
     if (!token) {
       error.value = "Login yoki parol noto‘g‘ri.";
+      loading.value = false;
       return;
     }
 
-    // Ma'lumotlarni localStorage ga saqlash
+    // LocalStorage ga saqlash
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(user));
     localStorage.setItem("role", role);
 
-    // Role asosida yo'naltirish
+    // Rol asosida bosh sahifaga yo'naltirish
     const redirectPath = roleRoutes[role];
     if (redirectPath) {
       await router.push(redirectPath);
@@ -82,15 +85,16 @@ const handleLogin = async () => {
     } else {
       error.value = `Bu rol uchun sahifa mavjud emas: ${role}`;
     }
-
   } catch (e) {
     console.error("❌ Login xato:", e.response?.data || e);
+    // Serverdan xatolik xabarini ko'rsatish
     error.value = e.response?.data?.message || "Login xatoligi.";
   } finally {
-    loading.value = false;
+    loading.value = false;  // Yuklanishni o'chirish
   }
 };
 </script>
+
 
 <style scoped>
 .login-container {

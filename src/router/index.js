@@ -74,7 +74,7 @@ const routes = [
       { path: "", name: "adminDashboard", component: SuperDashboard },
       { path: "BemorCard/:id", name: "adminBemor_card", component: Bemor_card,meta: { role: "admin" }, },
       { path: "xodimlar", name: "adminXodimlar", component: Xodimlar },
-      { path: "bemorSpiska", name: "adminBemorSpiska", component: BemorSpiska },
+      { path: "bemorSpiska", name: "BemorSpiska", component: BemorSpiska },
       { path: "room/:id", name: "adminRoomDetails", component: RoomDetels },
       { path: "bemorlar", name: "adminBemorlar", component: Bemorlar },
       { path: "rooms", name: "adminRooms", component: Rooms },
@@ -159,7 +159,7 @@ const routes = [
       { path: "RegisterPage", name: "miniRegisterPage", component: RegisterPage,
       },
       {
-        path: "taklif/:clientId",
+        path: "taklifmi/:clientId",
         name: "miniTakliflar",
         component: Takliflar,
         props: true,
@@ -246,21 +246,30 @@ const router = createRouter({
   routes,
 });
 
-// 🔐 Route Guard
 router.beforeEach((to, from, next) => {
   const role = localStorage.getItem("role");
 
-  // Ochiq sahifalarga ruxsat
   if (to.meta.public) {
     return next();
   }
 
-  // Agar sahifa rolega bog‘liq bo‘lsa, tekshir
-  if (to.meta.role && to.meta.role !== role) {
-    return next("/login");
+  if (to.meta.role) {
+    // to.meta.role string yoki array bo‘lishi mumkin
+    if (Array.isArray(to.meta.role)) {
+      if (!to.meta.role.includes(role)) {
+        alert("Sizda ushbu sahifaga kirish ruxsati yo'q.");
+        return next('/login'); // yoki login sahifasiga yo'naltirish
+      }
+    } else {
+      if (role !== to.meta.role) {
+        alert("Sizda ushbu sahifaga kirish ruxsati yo'q.");
+        return next('/login');
+      }
+    }
   }
 
   next();
 });
+
 
 export default router;
