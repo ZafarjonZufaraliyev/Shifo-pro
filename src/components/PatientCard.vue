@@ -10,15 +10,11 @@
     </div>
 
     <div class="tab-header">
-      <div :class="['tab-title', { active: activeTab === 'xizmatlar' }]" @click="activeTab = 'xizmatlar'">Xizmatlar
-      </div>
-      <div :class="['tab-title', { active: activeTab === 'kasalliklar' }]" @click="activeTab = 'kasalliklar'">
-        Kasalliklar</div>
-      <div :class="['tab-title', { active: activeTab === 'natijalar' }]" @click="activeTab = 'natijalar'">Natijalar
-      </div>
+      <div :class="['tab-title', { active: activeTab === 'xizmatlar' }]" @click="activeTab = 'xizmatlar'">Xizmatlar</div>
+      <div :class="['tab-title', { active: activeTab === 'kasalliklar' }]" @click="activeTab = 'kasalliklar'">Kasalliklar</div>
+      <div :class="['tab-title', { active: activeTab === 'natijalar' }]" @click="activeTab = 'natijalar'">Natijalar</div>
       <div :class="['tab-title', { active: activeTab === 'xonalar' }]" @click="activeTab = 'xonalar'">Xonalar</div>
-      <div :class="['tab-title', { active: activeTab === 'davolanishlar' }]" @click="activeTab = 'davolanishlar'">
-        Davolanishlar</div>
+      <div :class="['tab-title', { active: activeTab === 'davolanishlar' }]" @click="activeTab = 'davolanishlar'">Davolanishlar</div>
     </div>
 
     <table class="data-table">
@@ -91,6 +87,7 @@
           </template>
         </tr>
 
+        <!-- Yangi xona qo'shish qatori -->
         <tr v-if="activeTab === 'xonalar'" class="input-row">
           <td>*</td>
           <td>
@@ -133,7 +130,7 @@ export default {
       roomAssignments: [],
       stays: [],
       availableRooms: [],
-      availableRoomTypes: [], // BO‘SH MASSIV
+      availableRoomTypes: [],
       allServices: [],
       activeTab: 'xizmatlar',
       rr: { kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [] },
@@ -152,43 +149,31 @@ export default {
       });
     },
 
-    roomTypePriceMap() {
-      const map = {};
-      for (const rt of this.availableRoomTypes) {
-        map[rt.id] = Number(rt.Narxi || rt.price || 0);
-      }
-      return map;
+    roomData() {
+      const stayIds = this.stays.map(s => s.id);
+      return this.roomAssignments
+        .filter(a => stayIds.includes(Number(a.davolanish_id)))
+        .map(a => {
+          const room = this.availableRooms.find(r => String(r.id) === String(a.room_id)) || {};
+          const roomType = this.availableRoomTypes.find(rt => String(rt.id) === String(room.room_type_id)) || {};
+          const pricePerDay = Number(a.price_per_day || roomType.Narxi || roomType.price || 0);
+
+          const fromDate = new Date(a.from_date || a.kirish_sanasi);
+          const toDate = new Date(a.to_date || a.chiqish_sanasi);
+          const diff = toDate - fromDate;
+          const days = diff >= 0 ? Math.floor(diff / 86400000) + 1 : 0;
+
+          return {
+            id: a.id,
+            roomNumber: room.xona || room.room_number || room.nomi || room.name || 'Nomaʼlum',
+            roomName: room.nomi || room.name || room.xona || room.room_number || 'Nomaʼlum',
+            price: pricePerDay * days,
+            kirish_sanasi: a.from_date || a.kirish_sanasi,
+            chiqish_sanasi: a.to_date || a.chiqish_sanasi,
+            sana: a.from_date || a.kirish_sanasi,
+          };
+        });
     },
-
-   roomData() {
-  const stayIds = this.stays.map(s => s.id);
-
-  const result = this.roomAssignments
-    .filter(a => stayIds.includes(Number(a.davolanish_id)))
-    .map(a => {
-      const room = this.availableRooms.find(r => r.id === Number(a.room_id)) || {};
-      const roomType = this.availableRoomTypes.find(rt => rt.id === room.room_type_id) || {};
-      const pricePerDay = Number(a.price_per_day || roomType.Narxi || roomType.price || 0);
-
-      const fromDate = new Date(a.from_date || a.kirish_sanasi);
-      const toDate = new Date(a.to_date || a.chiqish_sanasi);
-      const diff = toDate - fromDate;
-      const days = diff >= 0 ? Math.floor(diff / 86400000) + 1 : 0;
-
-      return {
-        id: a.id,
-        roomNumber: room.xona || room.nomi || room.name || 'Nomaʼlum',
-        roomName: room.nomi || room.name || room.xona || 'Nomaʼlum',
-        price: pricePerDay * days,
-        kirish_sanasi: a.from_date || a.kirish_sanasi,
-        chiqish_sanasi: a.to_date || a.chiqish_sanasi,
-        sana: a.from_date || a.kirish_sanasi,
-      };
-    });
-
-  return result;
-}
-,
 
     filteredData() {
       if (this.activeTab === 'xizmatlar') return this.xizmatlar;
@@ -236,12 +221,11 @@ export default {
       this.loading = true;
       const clientId = Number(this.$route.params.id);
       try {
-        console.log('🧑‍⚕️ Client ID:', clientId);
-
+        // Bemor ma'lumotlari
         const { data: patient } = await api.get(`/api/v1/clients/${clientId}`);
         this.patient = patient;
-        console.log('👤 Patient:', patient);
 
+        // Kasalliklar va natijalar (filtrlash)
         this.kasalliklar = (patient.kasalliklar || []).filter(k =>
           Number(k.client_id ?? k.clientId ?? 0) === clientId
         );
@@ -249,35 +233,23 @@ export default {
           Number(n.client_id ?? n.clientId ?? 0) === clientId
         );
 
+        // Davolanishlar (stays)
         const response = await api.get(`/api/v1/davolanish?client_id=${clientId}`);
         const allStays = Array.isArray(response.data) ? response.data : (response.data?.data || []);
         this.stays = allStays;
-        console.log('🛏 Davolanishlar:', allStays);
 
-        if (allStays.length) {
-          const ids = allStays.map(s => s.id);
-          console.log('🔗 Davolanish IDlari:', ids);
+        // Xona joylashuvlarni bitta chaqiruv orqali olish
+        const { data: roomAssignmentsData } = await api.get(`/api/v1/xona-joylashuv/kassa?client_id=${clientId}`);
+        this.roomAssignments = Array.isArray(roomAssignmentsData) ? roomAssignmentsData : (roomAssignmentsData?.data || []);
 
-          const resList = await Promise.all(
-            ids.map(id => api.get(`/api/v1/xona-joylashuv?davolanish_id=${id}`))
-          );
-
-          this.roomAssignments = resList.flatMap(res => res.data || []);
-          console.log('📦 Xona joylashuvlar (hammasi):', this.roomAssignments);
-        } else {
-          this.roomAssignments = [];
-        }
-
+        // Xona turlari va xonalar
         const { data: roomTypesRaw } = await api.get('/api/v1/room-types');
-        this.availableRoomTypes = Array.isArray(roomTypesRaw?.data)
-          ? roomTypesRaw.data
-          : roomTypesRaw;
-        console.log('🏷 Xona turlari:', this.availableRoomTypes);
+        this.availableRoomTypes = Array.isArray(roomTypesRaw?.data) ? roomTypesRaw.data : roomTypesRaw;
 
         const { data: rooms } = await api.get('/api/v1/room');
         this.availableRooms = rooms || [];
-        console.log('🚪 Xonalar:', rooms);
 
+        // Xizmatlar va client xizmatlari
         const { data: services } = await api.get('/api/v1/services');
         this.allServices = services || [];
 
@@ -310,7 +282,7 @@ export default {
       try {
         await api.put(`/api/v1/xona-joylashuv/${item.id}`, { to_date: item.chiqish_sanasi });
         alert('✅ Chiqish sanasi yangilandi');
-        this.fetchAll();
+        await this.fetchAll();
       } catch (err) {
         console.error(err);
         alert('❌ Yangilashda xatolik yuz berdi');
@@ -325,6 +297,7 @@ export default {
 
       try {
         let stay = this.latestStay;
+        // Agar oxirgi davolanish yopilgan bo'lsa, yangi ochamiz
         if (!stay || stay.to_date) {
           const { data: newStay } = await api.post('/api/v1/davolanish', {
             client_id: this.patient.id,
@@ -335,6 +308,7 @@ export default {
           stay = newStay;
         }
 
+        // Oxirgi xona joylashuvni topib, undan chiqish sanasini kirish sanasiga o'zgartirish (agar kerak bo'lsa)
         let lastRoom = null;
         for (const ra of this.roomAssignments) {
           if (ra.davolanish_id === stay.id) {
@@ -343,7 +317,6 @@ export default {
             }
           }
         }
-
         if (lastRoom) {
           await api.put(`/api/v1/xona-joylashuv/${lastRoom.id}`, {
             ...lastRoom,
@@ -351,6 +324,7 @@ export default {
           });
         }
 
+        // Yangi xona joylashuv qo'shish
         await api.post('/api/v1/xona-joylashuv', {
           davolanish_id: stay.id,
           room_id: r.xona_id,
@@ -359,6 +333,7 @@ export default {
           price_per_day: this.rrPrice,
         });
 
+        // Tanlangan xizmatlarni qo'shish
         for (const sid of r.xizmatlar) {
           const s = this.allServices.find(srv => srv.id === sid);
           await api.post('/api/v1/client-services', {
@@ -372,7 +347,7 @@ export default {
 
         alert('✅ Muvaffaqiyatli qoʻshildi');
         this.rr = { kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [] };
-        this.fetchAll();
+        await this.fetchAll();
       } catch (err) {
         console.error(err);
         alert('❌ Saqlashda xatolik yuz berdi');
@@ -385,7 +360,6 @@ export default {
   },
 };
 </script>
-
 
 
 <style scoped>

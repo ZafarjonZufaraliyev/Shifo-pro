@@ -49,33 +49,23 @@
 
     <!-- Pagination -->
     <div v-if="lastPage > 1" class="pagination">
-  <button :disabled="currentPage === 1" @click="changePage(currentPage - 1)">
-    &lt; Oldingi
-  </button>
+      <button :disabled="currentPage === 1" @click="changePage(currentPage - 1)">
+        &lt; Oldingi
+      </button>
 
-  <button
-    v-for="page in pagesToShow"
-    :key="page"
-    :class="{ active: currentPage === page }"
-    @click="changePage(page)"
-  >
-    {{ page }}
-  </button>
+      <button
+        v-for="page in pagesToShow"
+        :key="page"
+        :class="{ active: currentPage === page }"
+        @click="changePage(page)"
+      >
+        {{ page }}
+      </button>
 
-  <!-- Oxirgi sahifa tugmasi -->
-  <button
-    v-if="!pagesToShow.includes(lastPage)"
-    :class="{ active: currentPage === lastPage }"
-    @click="changePage(lastPage)"
-  >
-    {{ lastPage }}
-  </button>
-
-  <button :disabled="currentPage === lastPage" @click="changePage(currentPage + 1)">
-    Keyingi &gt;
-  </button>
-</div>
-
+      <button :disabled="currentPage === lastPage" @click="changePage(currentPage + 1)">
+        Keyingi &gt;
+      </button>
+    </div>
   </div>
 </template>
 
