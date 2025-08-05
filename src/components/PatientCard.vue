@@ -8,16 +8,36 @@
       <div class="info-item"><strong>Ism:</strong> {{ patient.ism }}</div>
       <div class="info-item"><strong>Yoshi:</strong> {{ hisoblaYosh(patient.tugulgan_sana) }}</div>
       <div class="info-item"><strong>Jinsi:</strong> {{ patient.jinsi || 'Nomaʼlum' }}</div>
-      <div class="info-item"><strong>Kelgan:</strong> {{ latestStay.kelish_sanasi }}</div>
-      <div class="info-item"><strong>Ketish:</strong> {{ latestStay.ketish_sanasi }}</div>
+      <div class="info-item"><strong>Kelgan:</strong> {{ formatDate(latestStay?.from_date) || '-' }}</div>
+      <div class="info-item"><strong>Ketish:</strong> {{ formatDate(latestStay?.to_date) || '-' }}</div>
     </div>
 
     <!-- === Tablar === -->
     <div class="tab-header">
-      <div :class="['tab-title', { active: activeTab === 'xizmatlar' }]" @click="activeTab = 'xizmatlar'">Xizmatlar</div>
-      <div :class="['tab-title', { active: activeTab === 'kasalliklar' }]" @click="activeTab = 'kasalliklar'">Kasalliklar</div>
-      <div :class="['tab-title', { active: activeTab === 'natijalar' }]" @click="activeTab = 'natijalar'">Natijalar</div>
-      <div :class="['tab-title', { active: activeTab === 'xonalar' }]" @click="activeTab = 'xonalar'">Xonalar</div>
+      <div
+        :class="['tab-title', { active: activeTab === 'xizmatlar' }]"
+        @click="activeTab = 'xizmatlar'"
+      >
+        Xizmatlar
+      </div>
+      <div
+        :class="['tab-title', { active: activeTab === 'kasalliklar' }]"
+        @click="activeTab = 'kasalliklar'"
+      >
+        Kasalliklar
+      </div>
+      <div
+        :class="['tab-title', { active: activeTab === 'natijalar' }]"
+        @click="activeTab = 'natijalar'"
+      >
+        Natijalar
+      </div>
+      <div
+        :class="['tab-title', { active: activeTab === 'xonalar' }]"
+        @click="activeTab = 'xonalar'"
+      >
+        Xonalar
+      </div>
     </div>
 
     <!-- === Maʼlumot jadvali === -->
@@ -36,47 +56,55 @@
             <th>Narxi</th>
             <th>Kirgan</th>
             <th>Chiqgan</th>
-            <th>Amal</th> <!-- Add a column for the action button -->
+            <th>Amal</th>
           </template>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(item, i) in filteredData" :key="i">
+        <tr v-for="(item, i) in filteredData" :key="item.id || i">
           <td>{{ i + 1 }}</td>
 
           <!-- Xizmatlar -->
           <template v-if="activeTab === 'xizmatlar'">
-            <td>{{ item.service.name }}</td>
+            <td>{{ item.nomi || (item.service && item.service.name) || '-' }}</td>
             <td>{{ formatPrice(item.narxi) }}</td>
           </template>
 
           <!-- Kasalliklar -->
-          <td v-if="activeTab === 'kasalliklar'">{{ item.nomi }}</td>
+          <td v-if="activeTab === 'kasalliklar'">{{ item.nomi || '-' }}</td>
 
           <!-- Natijalar -->
-          <td v-if="activeTab === 'natijalar'">{{ item.natija }}</td>
+          <td v-if="activeTab === 'natijalar'">{{ item.natija || '-' }}</td>
 
           <!-- Xonalar -->
           <template v-if="activeTab === 'xonalar'">
-            <td>{{ item.roomName }}</td>
+            <td>{{ item.roomName || item.roomNumber || '-' }}</td>
             <td>{{ formatPrice(item.price) }}</td>
-            <td>{{ formatDate(item.kirish_sanasi) }}</td>
+            <td>{{ formatDate(item.kirish_sanasi || item.from_date) }}</td>
             <td>
-              <input type="date" v-model="item.chiqish_sanasi" @change="updateExitDate(item)" />
-              <button @click="updateExitDate(item)">Yangilash</button> <!-- Button to update exit date -->
+              <input
+                type="date"
+                v-model="item.chiqish_sanasi"
+                @change="updateExitDate(item)"
+              />
+              <button @click="updateExitDate(item)">Yangilash</button>
             </td>
           </template>
 
           <td v-if="activeTab !== 'xonalar'">{{ formatDate(item.sana) }}</td>
         </tr>
 
-        <!-- ➕ Yangi xona satri -->
+        <!-- ➕ Yangi xona qo'shish -->
         <tr v-if="activeTab === 'xonalar'" class="input-row">
           <td>*</td>
           <td>
             <select v-model="rr.xona_id">
               <option disabled value="">Tanlang</option>
-              <option v-for="r in availableRooms" :key="r.id" :value="r.id">{{ r.room_type.name }} [{{ r.xona }}]</option>
+              <option
+                v-for="r in availableRooms"
+                :key="r.id"
+                :value="r.id"
+              >{{ r.room_type?.name || 'Nomaʼlum turi' }} [{{ r.xona }}]</option>
             </select>
           </td>
           <td>{{ rrPrice ? formatPrice(rrPrice) : '-' }}</td>
@@ -116,7 +144,7 @@ export default {
       activeTab: 'xizmatlar',
       rr: { kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [] },
       role: localStorage.getItem('role') || 'mini',
-      currentUser: JSON.parse(localStorage.getItem('currentUser') || '{}')
+      currentUser: JSON.parse(localStorage.getItem('currentUser') || '{}'),
     };
   },
 
@@ -134,7 +162,12 @@ export default {
     },
 
     latestStay() {
-      return this.stays.sort((a, b) => new Date(b.from_date) - new Date(a.from_date))[0] || null;
+      if (!Array.isArray(this.stays)) return null;
+      if (this.stays.length === 0) return null;
+
+      return this.stays
+        .slice()
+        .sort((a, b) => new Date(b.from_date) - new Date(a.from_date))[0];
     },
 
     roomData() {
@@ -143,34 +176,38 @@ export default {
         const pricePerDay = Number(a.price_per_day || this.roomTypePriceMap[room.room_type_id] || 0);
         const days = Math.max(Math.ceil((new Date(a.to_date) - new Date(a.from_date)) / 864e5) + 1, 0);
 
-
         return {
-          id: a.id, // kerakli identifikator
+          id: a.id,
           roomNumber: room.xona || '-',
           roomName: room.nomi || room.xona || '-',
           price: pricePerDay * days,
           kirish_sanasi: a.from_date,
           chiqish_sanasi: a.to_date,
-          sana: a.from_date
+          sana: a.from_date,
         };
       });
     },
 
     filteredData() {
       switch (this.activeTab) {
-        case 'xizmatlar': return this.xizmatlar;
-        case 'kasalliklar': return this.kasalliklar;
-        case 'natijalar': return this.natijalar;
-        case 'xonalar': return this.roomData;
-        default: return [];
+        case 'xizmatlar':
+          return this.xizmatlar;
+        case 'kasalliklar':
+          return this.kasalliklar;
+        case 'natijalar':
+          return this.natijalar;
+        case 'xonalar':
+          return this.roomData;
+        default:
+          return [];
       }
     },
 
     rrPrice() {
       const r = this.availableRooms.find(x => x.id === this.rr.xona_id);
-      return r && r.room_type ? Number(r.room_type.Narxi) : 0;
+      return r && r.room_type ? Number(r.room_type.Narxi || r.room_type.price) : 0;
     },
-
+    
     total() {
       return this.xizmatlar.reduce((sum, x) => sum + (x.narxi || 0), 0);
     },
@@ -181,16 +218,20 @@ export default {
 
     totalUnpaid() {
       return this.total - this.totalPaid;
-    }
+    },
   },
 
   methods: {
     formatDate(d) {
-      return d ? new Date(d).toLocaleDateString('uz-UZ') : '-';
+      if (!d) return '-';
+      const dt = new Date(d);
+      if (isNaN(dt)) return '-';
+      return dt.toLocaleDateString('uz-UZ');
     },
 
     formatPrice(p) {
-      return p ? `${Number(p).toLocaleString()} soʻm` : '0 soʻm';
+      if (!p && p !== 0) return '0 soʻm';
+      return `${Number(p).toLocaleString()} soʻm`;
     },
 
     hisoblaYosh(d) {
@@ -209,45 +250,75 @@ export default {
 
     async fetchAll() {
       this.loading = true;
+      const id = this.$route.params.id;
+
       try {
-        const id = this.$route.params.id;
-
-        const [
-          p,
-          st,
-          rooms,
-          services,
-          roomTypes,
-          roomAssigns
-        ] = await Promise.all([
-          api.get(`/api/v1/clients/${id}`),
-          api.get(`/api/v1/davolanish?client_id=${id}`),
-          api.get('/api/v1/room'),
-          api.get('/api/v1/services'),
-          api.get('/api/v1/room-types'),
-          api.get(`/api/v1/xona-joylashuv?client_id=${id}`)
-        ]);
-
+        const p = await api.get(`/api/v1/clients/${id}`);
         this.patient = p.data;
-        this.stays = st.data;
-        this.availableRooms = rooms.data;
-        this.allServices = services.data;
-        this.availableRoomTypes = roomTypes.data || [];
-        this.roomAssignments = roomAssigns.data || [];
         this.kasalliklar = this.patient.kasalliklar || [];
         this.natijalar = this.patient.natijalar || [];
+      } catch (err) {
+        console.error("Client ma'lumotlarini olishda xatolik:", err);
+        alert("Foydalanuvchi ma'lumotlarini olishda xatolik yuz berdi");
+        this.loading = false;
+        return;
+      }
 
+      try {
+        const st = await api.get(`/api/v1/davolanish?client_id=${id}`);
+        this.stays = Array.isArray(st.data) ? st.data : [];
+      } catch (err) {
+        console.error("Davolanish ma'lumotlarini olishda xatolik:", err);
+        alert("Davolanish ma'lumotlarini olishda xatolik yuz berdi");
+      }
+
+      try {
+        const rooms = await api.get('/api/v1/room');
+        this.availableRooms = rooms.data;
+      } catch (err) {
+        console.error("Xonalar roʻyxatini olishda xatolik:", err);
+        alert("Xonalar maʼlumotlarini olishda xatolik yuz berdi");
+      }
+
+      try {
+        const services = await api.get('/api/v1/services');
+        this.allServices = services.data;
+      } catch (err) {
+        console.error("Xizmatlar ro'yxatini olishda xatolik:", err);
+        alert("Xizmatlar maʼlumotlarini olishda xatolik yuz berdi");
+      }
+
+      try {
+        const roomTypes = await api.get('/api/v1/room-types');
+        this.availableRoomTypes = roomTypes.data || [];
+      } catch (err) {
+        console.error("Xona turlari ma'lumotlarini olishda xatolik:", err);
+        alert("Xona turlari maʼlumotlarini olishda xatolik yuz berdi");
+      }
+
+      try {
+        const roomAssigns = await api.get(`/api/v1/xona-joylashuv?client_id=${id}`);
+        this.roomAssignments = roomAssigns.data || [];
+      } catch (err) {
+        console.error("Xona joylashuvi maʼlumotlarini olishda xatolik:", err);
+        alert("Xona joylashuvi maʼlumotlarini olishda xatolik yuz berdi");
+      }
+
+      try {
         if (this.latestStay) {
           const { data: clientSrv } = await api.get(`/api/v1/client-services?davolanish_id=${this.latestStay.id}`);
           this.xizmatlar = clientSrv.map(srv => ({
             ...srv,
-            nomi: this.allServices.find(a => a.id === srv.service_id)?.nomi || srv.nomi,
-            narxi: srv.narxi ?? srv.price ?? 0
+            nomi: this.allServices.find(a => a.id === srv.service_id)?.nomi || srv.nomi || 'Nomaʼlum xizmat',
+            narxi: srv.narxi ?? srv.price ?? 0,
+            tolangan: srv.tolangan || false
           }));
+        } else {
+          this.xizmatlar = [];
         }
       } catch (err) {
-        console.error(err);
-        alert('Maʼlumotlarni olishda xatolik yuz berdi');
+        console.error("Xizmatlar yuklashda xatolik:", err);
+        alert("Xizmatlar yuklashda xatolik yuz berdi");
       } finally {
         this.loading = false;
       }
@@ -261,11 +332,11 @@ export default {
 
       try {
         await api.put(`/api/v1/xona-joylashuv/${item.id}`, {
-          to_date: item.chiqish_sanasi
+          to_date: item.chiqish_sanasi,
         });
 
         alert('✅ Chiqish sanasi muvaffaqiyatli yangilandi');
-        this.fetchAll(); // ⬅ ma'lumotlarni yangilash
+        this.fetchAll();
       } catch (err) {
         console.error('Xatolik:', err);
         alert('❌ Chiqish sanasini yangilab bo‘lmadi');
@@ -281,17 +352,18 @@ export default {
       try {
         let currentStay = this.latestStay;
 
-        if (!currentStay || currentStay.chiqish_sanasi) {
+        // Agar hozirgi davolanish mavjud emas yoki chiqish sanasi belgilangan bo'lsa, yangi davolanish yaratamiz
+        if (!currentStay || currentStay.to_date) {
           const { data: newStay } = await api.post('/api/v1/davolanish', {
             client_id: this.patient.id,
-            room_id: r.xona_id,
             from_date: r.kirish_sanasi,
             to_date: r.chiqish_sanasi,
-            create_user_id: this.currentUser.id
+            create_user_id: this.currentUser.id,
           });
           currentStay = newStay;
         }
 
+        // Oldingi xona joylashuvini yangi kirish sanasigacha qisqartirish
         const lastPlacement = this.roomAssignments
           .filter(x => x.davolanish_id === currentStay.id)
           .sort((a, b) => new Date(b.from_date) - new Date(a.from_date))[0];
@@ -299,25 +371,27 @@ export default {
         if (lastPlacement) {
           await api.put(`/api/v1/xona-joylashuv/${lastPlacement.id}`, {
             ...lastPlacement,
-            to_date: r.kirish_sanasi
+            to_date: r.kirish_sanasi,
           });
         }
 
+        // Yangi xona joylashuvini yaratish
         await api.post('/api/v1/xona-joylashuv', {
           davolanish_id: currentStay.id,
           room_id: r.xona_id,
           from_date: r.kirish_sanasi,
           to_date: r.chiqish_sanasi,
-          price_per_day: this.rrPrice
+          price_per_day: this.rrPrice,
         });
 
+        // Xizmatlarni qo'shish
         for (const sid of r.xizmatlar) {
           await api.post('/api/v1/client-services', {
             client_id: this.patient.id,
             davolanish_id: currentStay.id,
             service_id: sid,
             start_date: r.kirish_sanasi,
-            price: this.allServices.find(s => s.id === sid)?.narxi || 0
+            price: this.allServices.find(s => s.id === sid)?.narxi || 0,
           });
         }
 
@@ -328,14 +402,15 @@ export default {
         console.error(err);
         alert('❌ Xona o‘zgartirishda xatolik yuz berdi');
       }
-    }
+    },
   },
 
   mounted() {
     this.fetchAll();
-  }
+  },
 };
 </script>
+
 <style scoped>
 .patient-card {
   background: #fff;
@@ -359,10 +434,10 @@ export default {
 }
 
 .info-item {
-  background: #F5F9FC;
+  background: #f5f9fc;
   padding: 12px 16px;
   border-radius: 10px;
-  border-left: 5px solid #1A6291;
+  border-left: 5px solid #1a6291;
 }
 
 /* Tablar */
@@ -385,7 +460,7 @@ export default {
 
 .tab-title.active,
 .tab-title:hover {
-  background: #1A6291;
+  background: #1a6291;
   color: white;
   transform: scale(1.05);
   box-shadow: 0 4px 12px rgba(26, 98, 145, 0.3);
@@ -407,7 +482,7 @@ export default {
 }
 
 .data-table thead {
-  background: #F5F9FC;
+  background: #f5f9fc;
   font-weight: 600;
 }
 
@@ -420,29 +495,10 @@ export default {
   font-size: 14px;
 }
 
-/* Belgilar */
-.badge {
-  padding: 5px 10px;
-  border-radius: 8px;
-  font-weight: bold;
-  font-size: 13px;
-  display: inline-block;
-}
-
-.badge.paid {
-  background: #daf5e8;
-  color: #1a7350;
-}
-
-.badge.unpaid {
-  background: #fddcdc;
-  color: #a93535;
-}
-
 /* Yangi xona tugmasi */
 .input-row button {
   padding: 6px 14px;
-  background: #1A6291;
+  background: #1a6291;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -459,7 +515,7 @@ export default {
 .btn-back {
   display: inline-block;
   margin-top: 24px;
-  background: #1A6291;
+  background: #1a6291;
   color: white;
   padding: 10px 16px;
   border-radius: 12px;
@@ -478,24 +534,8 @@ export default {
   padding: 40px;
   text-align: center;
   font-size: 18px;
-  color: #1A6291;
+  color: #1a6291;
   animation: pulse 1.5s infinite;
-}
-
-/* Footer - pastda doim ko‘rinib turadi */
-.fixed-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: #1A6291;
-  color: white;
-  padding: 14px 20px;
-  font-weight: 600;
-  font-size: 14px;
-  text-align: center;
-  box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.15);
-  z-index: 9999;
 }
 
 /* Animatsiyalar */
@@ -512,7 +552,6 @@ export default {
 }
 
 @keyframes pulse {
-
   0%,
   100% {
     opacity: 0.7;

@@ -2,9 +2,7 @@
   <div class="patients-container">
     <div class="header-section">
       <h2 class="page-title">🩺 Bemorlar Ro'yxati</h2>
-      <router-link :to="`/${role}/RegisterPage`">
-        <button class="add-button">+ Qo'shish</button>
-      </router-link>
+      
     </div>
 
     <div class="top-controls">

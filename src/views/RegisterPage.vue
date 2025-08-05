@@ -178,6 +178,7 @@ export default {
   try {
     const res = await api.post('/api/v1/clients', this.form);
     const client = res.data?.data;
+
     if (!client?.id) {
       alert('Ro‘yxatdan o‘tishda mijoz ID topilmadi!');
       return;
@@ -185,16 +186,10 @@ export default {
 
     alert("✅ Mijoz muvaffaqiyatli qo‘shildi.");
 
-    // localStorage dan role oling (trim bilan)
-    const role = (localStorage.getItem('role') || 'admin'||'kassa').trim();
+    const role = (localStorage.getItem('role') || 'admin').trim();
 
-    if (role === 'kassa') {
-      this.$router.push({ name: 'miniTakliflar', params: { clientId: client.id } });
-    } else if (role === 'admin') {
-      this.$router.push({ name: 'adminTakliflar', params: { clientId: client.id } });
-    } else {
-      this.$router.push({ name: 'ClientListPage' });
-    }
+    // 🟢 To'g'ridan-to'g'ri BemorCard sahifasiga yo'naltiramiz
+    this.$router.push({ path: `/${role}/BemorCard/${client.id}` });
 
   } catch (err) {
     console.error('API xatosi:', err.response || err);
@@ -212,6 +207,7 @@ export default {
     }
   }
 }
+
 ,
   },
 };
