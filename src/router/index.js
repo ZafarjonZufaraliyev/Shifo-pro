@@ -60,6 +60,7 @@ import TaxlilPDFlab from "@/components/TaxlilPDFlab.vue";
 import taxlilLab from "../components/taxlilLab.vue";
 import LabKassa from "@/components/LabKassa.vue";
 import LabKassaTolov from "@/components/LabKassaTolov.vue";
+
 const routes = [
   { path: "/", redirect: "/login" },
   { path: "/TaklifDetelis", name: "TaklifDetelis", component: TaklifDetelis },
@@ -72,8 +73,9 @@ const routes = [
     meta: { role: "admin" },
     children: [
       { path: "", name: "adminDashboard", component: SuperDashboard },
-      { path: "BemorCard/:id", name: "adminBemor_card", component: Bemor_card,meta: { role: "admin" }, },
+      { path: "BemorCard/:id", name: "adminBemor_card", component: Bemor_card,meta: { role: "admin" },},
       { path: "xodimlar", name: "adminXodimlar", component: Xodimlar },
+
       { path: "bemorSpiska", name: "BemorSpiska", component: BemorSpiska },
       { path: "room/:id", name: "adminRoomDetails", component: RoomDetels },
       { path: "bemorlar", name: "adminBemorlar", component: Bemorlar },
@@ -145,7 +147,8 @@ const routes = [
     meta: { role: "kassa" },
     children: [
       { path: "", name: "MiniDashboard", component: MiniDashboard },
-      { path: "BemorCard/:id", name: "miniBemor_card", component: Bemor_card,  },
+      { path: "BemorCard/:id", name: "miniBemor_card", component: Bemor_card, },
+
       { path: "kassaSahifa", name: "minikassaSahifa", component: KassaSahifa },
       { path: "kasaFilter", name: "minikasaFilter", component: KasaFilter },
       { path: "bemorSpiska", name: "miniBemorSpiska", component: BemorSpiska },
