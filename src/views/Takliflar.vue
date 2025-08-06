@@ -40,10 +40,18 @@
             <td>{{ r.sigim }}</td>
             <td>{{ r.price.toLocaleString('ru-RU') }}</td>
             <td>
-              <span v-if="isCurrentRoom(r.id)" style="color: #d97706; font-weight: 700;">Joriy yotmoqda</span>
-              <span v-else-if="r.busy" style="color: red">Band</span>
-              <span v-else style="color: green">Bo'sh</span>
-            </td>
+  <span v-if="isCurrentRoom(r.id)" style="color: #d97706; font-weight: 700;">
+    Joriy yotmoqda ({{ r.currentPeople }}/{{ r.sigim }})
+  </span>
+  <span v-else-if="r.busy" style="color: red">
+    Band ({{ r.currentPeople }}/{{ r.sigim }})
+  </span>
+  <span v-else style="color: green">
+    Bo'sh <span v-if="r.currentPeople">({{ r.currentPeople }}/{{ r.sigim }})</span>
+  </span>
+</td>
+
+            
           </tr>
           <tr v-if="filteredRooms.length === 0">
             <td class="no-rooms" colspan="5">Xonalar topilmadi</td>
@@ -207,58 +215,58 @@ export default {
       try {
         const res = await api.get('/api/v1/bron');
         this.bronlar = Array.isArray(res.data) ? res.data : res.data.data || [];
-        console.log('Bronlar:', this.bronlar);
       } catch (error) {
         console.error('Bron load error:', error);
         this.bronlar = [];
       }
     },
-    markBusyRooms() {
-      const today = new Date(this.today);
-      console.log('Bugungi sana:', this.today);
+   markBusyRooms() {
+  const today = new Date(this.today);
+  const roomOccupancy = {}; // { roomId: odam soni }
 
-      // Avval hamma xonalarni bo'sh deb belgilaymiz
-      this.rooms = this.rooms.map(r => ({ ...r, busy: false }));
+  // Davolanishlar asosida odam sonini hisoblash
+  this.davolanishlar.forEach(dav => {
+    if (!dav.kelish_sanasi || !dav.ketish_sanasi) return;
 
-      const busyRoomIds = new Set();
+    const kelish = new Date(dav.kelish_sanasi);
+    const ketish = new Date(dav.ketish_sanasi);
 
-      // Davolanishdagi band xonalarni belgilash
-      this.davolanishlar.forEach(dav => {
-        if (!dav.kelish_sanasi || !dav.ketish_sanasi) return;
-        const kelish = new Date(dav.kelish_sanasi);
-        const ketish = new Date(dav.ketish_sanasi);
-        if (today >= kelish && today <= ketish) {
-          busyRoomIds.add(dav.xona_id.toString());
-          console.log('Davolanish band qildi: xona_id', dav.xona_id);
-        }
-      });
+    if (today >= kelish && today <= ketish) {
+      const roomId = dav.xona_id.toString();
+      roomOccupancy[roomId] = (roomOccupancy[roomId] || 0) + 1;
+    }
+  });
 
-      // Bronlar bo'yicha band xonalarni belgilash
-      this.bronlar.forEach(bron => {
-        if (bron.status !== 'faol') return;
-        if (!bron.start || !bron.end) return;
-        const start = new Date(bron.start);
-        const end = new Date(bron.end);
-        if (today >= start && today <= end) {
-          const bronRoomId = bron.xona?.id?.toString() || bron.xona_id.toString();
-          busyRoomIds.add(bronRoomId);
-          console.log('Bron band qildi: xona_id', bronRoomId);
-        }
-      });
+  // Bronlar asosida qo‘shimcha hisob
+  this.bronlar.forEach(bron => {
+    if (bron.status !== 'faol') return;
+    if (!bron.start || !bron.end) return;
 
-      // Rooms massivida band bo'lgan xonalarni belgilash
-      this.rooms = this.rooms.map(r => {
-        const roomId = (r.id ?? r.xona).toString();
-        const isBusy = busyRoomIds.has(roomId);
-        if (isBusy) console.log(`Xona ${roomId} band deb belgilandi`);
-        return {
-          ...r,
-          busy: isBusy
-        };
-      });
+    const start = new Date(bron.start);
+    const end = new Date(bron.end);
 
-      console.log('Band xonalar:', Array.from(busyRoomIds));
-    },
+    if (today >= start && today <= end) {
+      const roomId = (bron.xona?.id || bron.xona_id).toString();
+      roomOccupancy[roomId] = (roomOccupancy[roomId] || 0) + 1;
+    }
+  });
+
+  // Har bir xonani tekshiramiz: odam soni sig'imga tengmi?
+  this.rooms = this.rooms.map(r => {
+    const roomId = (r.id ?? r.xona).toString();
+    const odamlarSoni = roomOccupancy[roomId] || 0;
+    const isBusy = odamlarSoni >= r.sigim;
+
+    return {
+      ...r,
+      busy: isBusy,
+      currentPeople: odamlarSoni // ← bu keyin ko‘rsatish uchun
+    };
+  });
+
+
+}
+,
     isCurrentRoom(roomId) {
       const today = new Date(this.today);
       return this.davolanishlar.some(dav => {
@@ -388,8 +396,8 @@ export default {
 
 <style scoped>
 .taklif-container {
-  max-width: 900px;
-  margin: 0 auto;
+  max-width: 1200px;
+  margin: 20 auto;
   padding: 20px;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
