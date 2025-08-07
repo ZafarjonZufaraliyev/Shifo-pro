@@ -1,5 +1,5 @@
 <template>
-  <div class="container">
+  <div class="containerrr">
     <h2>Tahlil varog‘i to‘ldirish va PDF olish</h2>
 
     <!-- Bemorni tanlash -->
@@ -55,12 +55,33 @@
       ></textarea>
     </div>
 
-    <!-- Natijalar -->
+    <!-- Yangi parametr tanlash va qo'shish -->
+    <div
+      v-if="selectedTestType && selectedTestType.parameters && selectedTestType.parameters.length > 0"
+      class="form-group"
+    >
+      <label for="paramSelect">Parametr qo‘shish:</label>
+      <select v-model="selectedParamToAdd" id="paramSelect">
+        <option disabled value="">-- Parametr tanlang --</option>
+        <option
+          v-for="param in filteredAvailableParams"
+          :key="param.name"
+          :value="param.name"
+        >
+          {{ param.name }} ({{ param.norma || '-' }})
+        </option>
+      </select>
+      <button @click="addSelectedParam" type="button" :disabled="!selectedParamToAdd">
+        Qo'shish
+      </button>
+    </div>
+
+    <!-- Natijalar (tanlangan parametrlar) -->
     <div class="results-section" v-if="labTestData.results.length > 0">
       <h3>Tahlil natijalari</h3>
       <div
         v-for="(result, index) in labTestData.results"
-        :key="index"
+        :key="result.parametr_name"
         class="result-row"
       >
         <!-- Parametr nomi (readonly) -->
@@ -71,11 +92,7 @@
           style="background-color:#eee; cursor:not-allowed;"
         />
         <!-- Natija (foydalanuvchi kiritadi) -->
-        <input
-          v-model="result.parametr_value"
-          placeholder="Natija"
-          class="result-input"
-        />
+        <input v-model="result.parametr_value" placeholder="Natija" class="result-input" />
         <!-- Norma (readonly) -->
         <input
           v-model="result.parametr_norma"
@@ -94,17 +111,11 @@
           &times;
         </button>
       </div>
-      <!-- Parametr qo'shish tugmasi -->
-      <button @click="addResult" type="button" class="btn-add">
-        + Parametr qo‘shish
-      </button>
     </div>
 
     <!-- Tugmalar -->
     <div class="actions">
-      <button @click="saveLabTest" type="button" class="btn-save">
-        Saqlash
-      </button>
+      <button @click="saveLabTest" type="button" class="btn-save">Saqlash</button>
       <button
         @click="generatePDF"
         type="button"
@@ -132,18 +143,13 @@ export default {
       selectedClientId: "",
       selectedClient: null,
       selectedTestType: null,
+      selectedParamToAdd: "",
       labTestData: {
         client_id: null,
         test_type_id: null,
         test_date: "",
         doctor_comment: "",
-        results: [
-          {
-            parametr_name: "",
-            parametr_value: "",
-            parametr_norma: "",
-          },
-        ],
+        results: [],
       },
     };
   },
@@ -156,11 +162,9 @@ export default {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get("/api/v1/clients", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
-        this.clients = res.data;
+        this.clients = res.data || [];
       } catch (error) {
         console.error("❌ Bemorlar ro'yxatini olishda xatolik:", error);
       }
@@ -169,54 +173,48 @@ export default {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get("/api/v1/lab-test-types", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
-        // Serverdan kelayotgan testTypes ichida parameters bo'lishi kerak!
-        // Misol: [{id, name, description, parameters: [{name, norma}, ...]}]
-        this.testTypes = res.data;
+        this.testTypes = res.data || [];
       } catch (error) {
         console.error("❌ Tahlil turlarini olishda xatolik:", error);
       }
     },
     onClientSelect() {
-      const clientIdNum = Number(this.selectedClientId);
-      this.selectedClient = this.clients.find((c) => c.id === clientIdNum) || null;
-      this.labTestData.client_id = clientIdNum;
+      const id = Number(this.selectedClientId);
+      this.selectedClient = this.clients.find((c) => c.id === id) || null;
+      this.labTestData.client_id = id;
     },
     onTestTypeSelect() {
-      const testTypeIdNum = Number(this.labTestData.test_type_id);
-      this.selectedTestType = this.testTypes.find((t) => t.id === testTypeIdNum) || null;
+      const id = Number(this.labTestData.test_type_id);
+      this.selectedTestType = this.testTypes.find((t) => t.id === id) || null;
+      this.labTestData.test_type_id = id;
 
-      if (
-        this.selectedTestType &&
-        Array.isArray(this.selectedTestType.parameters) &&
-        this.selectedTestType.parameters.length > 0
-      ) {
-        // Tanlangan test turining parametrlarini avto to'ldirish
-        this.labTestData.results = this.selectedTestType.parameters.map((p) => ({
-          parametr_name: p.name,
-          parametr_value: "",
-          parametr_norma: p.norma || "",
-        }));
-      } else {
-        // Agar parametrlar yo'q bo'lsa, bitta bo'sh qatordan boshlash
-        this.labTestData.results = [
-          {
-            parametr_name: "",
-            parametr_value: "",
-            parametr_norma: "",
-          },
-        ];
-      }
+      // Natijalar tozalansin
+      this.labTestData.results = [];
+      this.selectedParamToAdd = "";
     },
-    addResult() {
+    addSelectedParam() {
+      if (!this.selectedParamToAdd) return;
+
+      // Parametr allaqachon qo‘shilganligini tekshirish
+      if (this.labTestData.results.some((r) => r.parametr_name === this.selectedParamToAdd)) {
+        alert("Ushbu parametr allaqachon qo‘shilgan!");
+        return;
+      }
+
+      const paramObj = this.selectedTestType.parameters.find(
+        (p) => p.name === this.selectedParamToAdd
+      );
+      if (!paramObj) return;
+
       this.labTestData.results.push({
-        parametr_name: "",
+        parametr_name: paramObj.name,
         parametr_value: "",
-        parametr_norma: "",
+        parametr_norma: paramObj.norma || "",
       });
+
+      this.selectedParamToAdd = "";
     },
     removeResult(index) {
       if (this.labTestData.results.length > 1) {
@@ -271,7 +269,7 @@ export default {
         alert("❌ Ma'lumotlarni saqlashda xatolik yuz berdi");
       }
     },
-    async generatePDF() {
+    generatePDF() {
       if (!this.selectedClient || !this.selectedTestType || !this.labTestData.test_date) {
         alert("Iltimos, barcha maydonlarni to‘ldiring!");
         return;
@@ -281,58 +279,61 @@ export default {
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
       });
 
       const htmlContent = `
-        <div style="max-width: 800px; margin: 20px auto; padding: 20px; font-family: Arial, sans-serif; background-color: #fdfdfd;">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+        <div style="max-width: 800px; margin: 20px auto; font-family: Arial, sans-serif;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
             <div style="font-size: 24px; font-weight: bold; color: #004c97; display: flex; align-items: center;">
               <img src="${logo}" alt="Logo" style="height:40px; margin-right:8px;" />
               Koinot Kavsari
             </div>
-            <div style="font-size: 14px; text-align: right; line-height: 1.4;">
+            <div style="font-size: 14px; text-align: right;">
               <strong>Manzil:</strong><br />
               Farg‘ona tuman, Chimyon,<br />
               Yangi zamon ko‘chasi 1-uy<br />
-              <strong>Telefon:</strong>
-              <span style="color:green;">+998 73 240 00 03</span>, 
-              <span style="color:green;">+998 99 240 00 03</span>
+              <strong>Telefon:</strong> <span style="color:green;">+998 73 240 00 03</span>, <span style="color:green;">+998 99 240 00 03</span>
             </div>
           </div>
+          <table style="border-collapse: collapse; width: 100%; margin-bottom: 20px;">
+            <tr>
+              <th style="border: 1px solid #ccc; padding: 8px; background: #f0f0f0;">Bemor</th>
+              <td style="border: 1px solid #ccc; padding: 8px;">${this.selectedClient.familiya} ${this.selectedClient.ism}</td>
+            </tr>
+            <tr>
+              <th style="border: 1px solid #ccc; padding: 8px; background: #f0f0f0;">Tahlil olingan sana</th>
+              <td style="border: 1px solid #ccc; padding: 8px;">${testDateTime}</td>
+            </tr>
+            <tr>
+              <th style="border: 1px solid #ccc; padding: 8px; background: #f0f0f0;">Shifokor</th>
+              <td style="border: 1px solid #ccc; padding: 8px;">Qodirov Anzabek</td>
+            </tr>
+          </table>
+
           <table style="border-collapse: collapse; width: 100%;">
-            <tr>
-              <th style="padding: 10px; background-color: #f0f0f0;">Bemor</th>
-              <td>${this.selectedClient.familiya} ${this.selectedClient.ism}</td>
-            </tr>
-            <tr>
-              <th style="padding: 10px; background-color: #f0f0f0;">Tahlil olingan sana</th>
-              <td>${testDateTime}</td>
-            </tr>
-            <tr>
-              <th style="padding: 10px; background-color: #f0f0f0;">Shifokor</th>
-              <td>Qodirov Anzabek</td>
-            </tr>
-          </table>
-          <table style="border-collapse: collapse; width: 100%; margin-top: 20px;">
-            <caption>${this.selectedTestType.name.toUpperCase()}</caption>
-            <tr>
-              <th style="padding: 10px;">Tahlil turi</th>
-              <th style="padding: 10px;">Natija</th>
-              <th style="padding: 10px;">Norma</th>
-            </tr>
-            ${this.labTestData.results
-              .map(
-                (r) => `
+            <caption style="font-weight: bold; margin-bottom: 10px;">${this.selectedTestType.name.toUpperCase()}</caption>
+            <thead>
+              <tr>
+                <th style="border: 1px solid #ccc; padding: 8px; background: #f9f9f9;">Tahlil turi</th>
+                <th style="border: 1px solid #ccc; padding: 8px; background: #f9f9f9;">Natija</th>
+                <th style="border: 1px solid #ccc; padding: 8px; background: #f9f9f9;">Norma</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${this.labTestData.results
+                .map(
+                  (r) => `
                   <tr>
-                    <td style="padding: 10px;">${r.parametr_name}</td>
-                    <td style="padding: 10px;">${r.parametr_value}</td>
-                    <td style="padding: 10px;">${r.parametr_norma || "-"}</td>
+                    <td style="border: 1px solid #ccc; padding: 8px;">${r.parametr_name}</td>
+                    <td style="border: 1px solid #ccc; padding: 8px;">${r.parametr_value}</td>
+                    <td style="border: 1px solid #ccc; padding: 8px;">${r.parametr_norma || "-"}</td>
                   </tr>`
-              )
-              .join("")}
+                )
+                .join("")}
+            </tbody>
           </table>
+
+          <p style="margin-top: 20px;"><strong>Shifokor kommentariyasi:</strong> ${this.labTestData.doctor_comment || "-"}</p>
         </div>
       `;
 
@@ -348,26 +349,27 @@ export default {
         x: 10,
         y: 10,
         html2canvas: {
-          scale: 0.2,
+          scale: 0.6,
         },
       });
+    },
+  },
+  computed: {
+    filteredAvailableParams() {
+      if (!this.selectedTestType || !Array.isArray(this.selectedTestType.parameters)) return [];
+      const addedNames = this.labTestData.results.map((r) => r.parametr_name);
+      return this.selectedTestType.parameters.filter((p) => !addedNames.includes(p.name));
     },
   },
 };
 </script>
 
 <style scoped>
-.container {
+.containerrr {
   max-width: 1200px;
   margin: 20px auto;
-  padding: 20px;
+  padding:20px;
   font-family: Arial, sans-serif;
-  color: #333;
-}
-
-h2 {
-  text-align: center;
-  margin-bottom: 20px;
 }
 
 .form-group {
@@ -375,35 +377,19 @@ h2 {
 }
 
 label {
-  font-weight: bold;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 5px;
 }
 
 select,
-input[type="text"],
 input[type="date"],
-textarea {
+textarea,
+input.result-input {
   width: 100%;
-  padding: 10px;
-  font-size: 15px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-}
-
-textarea {
-  resize: vertical;
-}
-
-.btn-add,
-.btn-remove,
-.btn-save,
-.btn-pdf {
-  padding: 10px 15px;
-  font-size: 15px;
-  cursor: pointer;
-  border-radius: 5px;
-  border: none;
-  background-color: #007bff;
-  color: white;
+  padding: 8px;
+  font-size: 14px;
+  box-sizing: border-box;
 }
 
 .results-section {
@@ -413,16 +399,63 @@ textarea {
 .result-row {
   display: flex;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .result-input {
   flex: 1;
 }
 
-@media (max-width: 480px) {
-  .result-row {
-    flex-direction: column;
-  }
+.btn-remove {
+  background-color: #ff4d4f;
+  border: none;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0 8px;
+  border-radius: 3px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.btn-remove:hover {
+  background-color: #d9363e;
+}
+
+.actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 15px;
+}
+
+.btn-save,
+.btn-pdf {
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 5px;
+  border: none;
+  color: white;
+}
+
+.btn-save {
+  background-color: #1890ff;
+}
+
+.btn-save:hover {
+  background-color: #1070d3;
+}
+
+.btn-pdf {
+  background-color: #52c41a;
+}
+
+.btn-pdf:disabled {
+  background-color: #a0d911;
+  cursor: not-allowed;
+}
+
+.btn-pdf:hover:not(:disabled) {
+  background-color: #389e0d;
 }
 </style>

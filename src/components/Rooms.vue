@@ -43,7 +43,9 @@
       >
         <thead style="background-color: #f0f0f0;">
           <tr>
-            <th style="position: sticky; left: 0; background: #f0f0f0; z-index: 2; white-space: nowrap;">Xona</th>
+            <th style="position: sticky; left: 0; background: #f0f0f0; z-index: 2; white-space: nowrap;">
+              Xona
+            </th>
             <th
               v-for="day in dateRange"
               :key="day.toISOString()"
@@ -67,34 +69,34 @@
               v-for="date in dateRange"
               :key="date"
               :class="getCellClass(room, date)"
-              @click="handleCellClick(room, date)"
-              style="cursor: pointer; vertical-align: middle; min-width: 45px; position: relative; padding: 6px 4px;"
-              :title="generateTooltip(room, date)"
+              style="cursor: pointer; vertical-align: middle; min-width: 70px; position: relative; padding: 6px 4px;"
             >
-              <template v-if="getCellClass(room, date) === 'locked'">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  
-                  <span style="font-weight: bold; color: green;">+</span>
-                </div>
-              </template>
+              <!-- Odamlar soni -->
+              <div
+                style="font-weight: bold; text-align: center;"
+                :style="{ color: getGuestsCountByRoomAndDate(room, date) >= room.kishilik ? 'red' : 'green' }"
+              >
+                👤 {{ getGuestsCountByRoomAndDate(room, date) }}/{{ room.kishilik }}
+              </div>
 
-              <template v-else-if="getCellClass(room, date) === 'partially-booked'">
-                <span style="font-weight: bold; color: green;">+</span>
+              <!-- Tugmalar: 🖊️ va ➕ -->
+              <div style="display: flex; justify-content: center; gap: 10px; margin-top: 4px;">
                 <span
-  @click.stop="openServiceInfo(room, date)"
-  style="cursor: pointer;"
-  title="Xizmat tafsilotlari"
->
-  🖊️
-</span>
-
-              </template>
-
-              <template v-else>
-                <span style="color: #777;">
-                  {{ getGuestsCountByRoomAndDate(room, date) }}/{{ room.kishilik }}
+                  @click.stop="openServiceInfo(room, date)"
+                  title="Bronni tahrirlash"
+                  style="cursor: pointer;"
+                >
+                  🖊️
                 </span>
-              </template>
+
+                <span
+                  @click.stop="openNewBooking(room, date)"
+                  title="Yangi bron qo‘shish"
+                  style="cursor: pointer; color: green;"
+                >
+                  ➕
+                </span>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -292,7 +294,6 @@
   </div>
 </template>
 
-
 <script>
 import api from "@/api";
 
@@ -348,7 +349,7 @@ export default {
         guestsCount: 1,
       },
 
-      // Hozirgi foydalanuvchi (API dan olish mumkin)
+      // Hozirgi foydalanuvchi (demo uchun)
       currentUser: {
         id: null,
         name: "",
@@ -357,7 +358,7 @@ export default {
   },
 
   computed: {
-    // Kalendar sanalari oralig'i
+    // Kalendar sanalari oralig'i (start dan end gacha va bron oxirigacha)
     dateRange() {
       const maxBookingEnd = this.bookings.reduce((max, b) => {
         const endDate = new Date(b.end);
@@ -375,22 +376,22 @@ export default {
       return range;
     },
 
-    // Unikal qavatlar ro'yxati (filter uchun)
+    // Unikal qavatlar ro'yxati
     uniqueFloors() {
-      return [...new Set(this.rooms.map((r) => r.qavat))].sort((a, b) => a - b);
+      return [...new Set(this.rooms.map(r => r.qavat))].sort((a,b) => a-b);
     },
 
-    // Xonalarni nomi va qavatga qarab filtrlash
+    // Filtrlash: xona nomi va qavatga qarab
     filteredRooms() {
       const term = this.roomFilter.trim().toLowerCase();
-      return this.rooms.filter((r) => {
+      return this.rooms.filter(r => {
         const matchesName = r.display.toLowerCase().includes(term);
         const matchesFloor = this.floorFilter ? String(r.qavat) === String(this.floorFilter) : true;
         return matchesName && matchesFloor;
       });
     },
 
-    // Bron saqlash uchun tekshiruv
+    // Yangi bron saqlash mumkinligi
     canSaveNewBooking() {
       const b = this.newBooking;
       if (
@@ -400,8 +401,7 @@ export default {
         !b.end ||
         b.guestsCount <= 0 ||
         b.guestsCount > (this.selectedRoom?.kishilik || 1)
-      )
-        return false;
+      ) return false;
 
       const bookedGuestsCount = this.getGuestsCountByRoomAndDate(this.selectedRoom, new Date(b.start));
       if (bookedGuestsCount + b.guestsCount > (this.selectedRoom?.kishilik || 1)) return false;
@@ -409,7 +409,7 @@ export default {
       return true;
     },
 
-    // Yangi xona qo'shish buttoni faolligi uchun
+    // Yangi xona qoʻshish formasi toʻldirilganmi
     canAddRoom() {
       const { xona, name, kishilik, narxi, qavat } = this.newRoom;
       return (
@@ -423,27 +423,28 @@ export default {
   },
 
   watch: {
-    // Days count yoki start sanasi o'zgarganda end sanani yangilash
-    "newBooking.daysCount"(newVal) {
+    // daysCount yoki start o'zgarganda end sanani yangilash
+    "newBooking.daysCount"() {
       this.updateEndDate();
     },
-    "newBooking.start"(newVal) {
+    "newBooking.start"() {
       this.updateEndDate();
     },
   },
 
   methods: {
-    // Maksimal odam sonini olish (booking tahrirlashda kerak)
+    // Ma'lum booking uchun xona sig‘imini olish (tahrirlashda kerak)
     getMaxGuestsForEdit(booking) {
       if (!booking) return 1;
-      const room = this.rooms.find((r) => String(r.id) === String(booking.xona_id));
+      const room = this.rooms.find(r => String(r.id) === String(booking.xona_id));
       return room ? room.kishilik : 1;
     },
 
+    // Berilgan xona va sanaga tegishli bronlarni olish
     getBookingsByRoomAndDate(room, date) {
       if (!room || !date) return [];
       const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-      return this.bookings.filter((b) => {
+      return this.bookings.filter(b => {
         if (!["faol", "bajarildi"].includes(b.status)) return false;
         if (String(b.xona_id) !== String(room.id)) return false;
 
@@ -456,44 +457,61 @@ export default {
       });
     },
 
+    // Berilgan xona va sanada qancha odam band qilinganini olish
     getGuestsCountByRoomAndDate(room, date) {
       const bookings = this.getBookingsByRoomAndDate(room, date);
       return bookings.reduce((sum, b) => sum + (b.guestsCount || 1), 0);
     },
+    openNewBooking(room, date) {
+    if (!room || !date) return;
 
+    this.selectedRoom = room;
+    this.selectedDate = date;
+
+    const isoDate = date.toISOString().split("T")[0];
+    this.newBooking = {
+      client_name: "",
+      tel1: "",
+      tel2: "",
+      start: isoDate,
+      daysCount: 1,
+      end: isoDate,
+      status: "faol",
+      guestsCount: 1,
+    };
+
+    this.showBronModal = true;
+  },
+    // Sanada va xona bo'yicha birinchi bookingni olish (tahrirlash uchun)
     getBooking(room, date) {
       const bookings = this.getBookingsByRoomAndDate(room, date);
       return bookings.length ? bookings[0] : null;
     },
 
+    // Bronni tahrirlash modalini ochish
     openServiceInfo(room, date) {
       if (!room || !date) {
         alert("Xona yoki sana tanlanmagan.");
         return;
       }
-
       const dateStr = date.toISOString().split("T")[0];
-
       const booking = this.bookings.find(
-        (b) =>
-          String(b.xona_id) === String(room.id) &&
-          b.start <= dateStr &&
-          dateStr <= b.end
+        b => String(b.xona_id) === String(room.id) && b.start <= dateStr && dateStr <= b.end
       );
-
       if (!booking) {
         alert("Bu sanada bron topilmadi.");
         return;
       }
-
       this.editingBooking = { ...booking };
       this.editBronModal = true;
     },
 
+    // Jadval katakchasiga tooltip yaratish
     generateTooltip(room, date) {
       return `Xona: ${room.display}\nSana: ${date.toLocaleDateString()}`;
     },
 
+    // Katakchaga class berish (bandlik holati uchun)
     getCellClass(room, date) {
       if (!room || !date) return "";
 
@@ -502,10 +520,7 @@ export default {
       const dateStr = date.toISOString().split("T")[0];
 
       const isLocked = this.clientServices.some(
-        (s) =>
-          String(s.room_id) === String(room.id) &&
-          s.start_date <= dateStr &&
-          dateStr <= s.end_date
+        s => String(s.room_id) === String(room.id) && s.start_date <= dateStr && dateStr <= s.end_date
       );
 
       if (isLocked) return "locked";
@@ -514,6 +529,7 @@ export default {
       return "partially-booked";
     },
 
+    // Jadval katakchasiga click qilganda
     handleCellClick(room, date) {
       if (!room || !date) return;
 
@@ -522,10 +538,7 @@ export default {
       const dateStr = date.toISOString().split("T")[0];
 
       const isLocked = this.clientServices.some(
-        (s) =>
-          String(s.room_id) === String(room.id) &&
-          s.start_date <= dateStr &&
-          dateStr <= s.end_date
+        s => String(s.room_id) === String(room.id) && s.start_date <= dateStr && dateStr <= s.end_date
       );
 
       if (isLocked) {
@@ -544,6 +557,7 @@ export default {
         return;
       }
 
+      // Yangi bron modalini ochish uchun tayyorlash
       this.selectedRoom = room;
       this.selectedDate = date;
       const isoDate = dateStr;
@@ -562,6 +576,7 @@ export default {
       this.showBronModal = true;
     },
 
+    // Yangi bron uchun end sanani yangilash
     updateEndDate() {
       const start = new Date(this.newBooking.start);
       if (isNaN(start.getTime()) || !this.newBooking.daysCount) {
@@ -573,11 +588,13 @@ export default {
       this.newBooking.end = end.toISOString().split("T")[0];
     },
 
+    // Sanani qisqaroq formatda chiqarish
     formatShortDate(d) {
       if (!d) return "";
       return d.toLocaleDateString("uz-UZ", { day: "2-digit", month: "short" });
     },
 
+    // Filtrni qo'llash
     applyFilters() {
       const s = new Date(this.startInput);
       const e = new Date(this.endInput);
@@ -589,6 +606,7 @@ export default {
       }
     },
 
+    // Yangi bron saqlash
     async saveBooking() {
       const { client_name, tel1, start, end, status, guestsCount } = this.newBooking;
 
@@ -596,12 +614,10 @@ export default {
         alert("❗ Barcha majburiy maydonlar to‘ldirilishi kerak!");
         return;
       }
-
       if (new Date(end) < new Date(start)) {
         alert("❗ Tugash sanasi boshlanish sanasidan oldin bo‘la olmaydi!");
         return;
       }
-
       if (guestsCount <= 0) {
         alert("❗ Nechta kishi band qilinishini to‘g‘ri kiriting!");
         return;
@@ -638,11 +654,12 @@ export default {
       }
     },
 
+    // Bronni yangilash
     async updateBooking() {
       if (!this.editingBooking) return;
 
       const editing = this.editingBooking;
-      const room = this.rooms.find((r) => r.id === editing.xona_id);
+      const room = this.rooms.find(r => r.id === editing.xona_id);
       if (!room) return alert("Xona topilmadi!");
 
       const othersGuestsCount = this.getGuestsCountByRoomAndDate(room, new Date(editing.start)) - (editing.guestsCount || 1);
@@ -653,7 +670,7 @@ export default {
 
       try {
         const res = await api.put(`/api/v1/bron/${editing.id}`, editing);
-        const idx = this.bookings.findIndex((b) => b.id === editing.id);
+        const idx = this.bookings.findIndex(b => b.id === editing.id);
         if (idx !== -1) {
           this.bookings.splice(idx, 1, res.data);
         }
@@ -666,13 +683,14 @@ export default {
       }
     },
 
+    // Bronni o'chirish
     async deleteBooking() {
       if (!this.editingBooking) return;
       if (!confirm("⚠️ Bronni o'chirishni xohlaysizmi?")) return;
 
       try {
         await api.delete(`/api/v1/bron/${this.editingBooking.id}`);
-        this.bookings = this.bookings.filter((b) => b.id !== this.editingBooking.id);
+        this.bookings = this.bookings.filter(b => b.id !== this.editingBooking.id);
         this.editBronModal = false;
         this.editingBooking = null;
         alert("✅ Bron o'chirildi!");
@@ -682,6 +700,7 @@ export default {
       }
     },
 
+    // Yangi xona qo'shish
     async addRoom() {
       const { xona, name, kishilik, narxi, qavat } = this.newRoom;
       if (!xona.trim() || !name.trim() || kishilik <= 0 || narxi < 0 || qavat < 0) {
@@ -729,7 +748,7 @@ export default {
 
       // Xonalarni yuklash
       const { data: roomData } = await api.get("/api/v1/room");
-      this.rooms = roomData.map((r) => ({
+      this.rooms = roomData.map(r => ({
         id: Number(r.id),
         display: `${r.room_type?.name || "Noma'lum"} – xona ${r.xona}, ${r.sigim} kishilik, qavat ${r.qavat}`,
         qavat: Number(r.qavat),
@@ -741,8 +760,8 @@ export default {
       this.bookings = bookingData;
 
       // ClientServices ni yuklash (agar kerak bo'lsa)
-      const { data: clientServiceData } = await api.get("/api/v1/client-services");
-      this.clientServices = clientServiceData;
+     const { data: clientServiceData } = await api.get("/api/v1/client-services");
+this.clientServices = Array.isArray(clientServiceData) ? clientServiceData : [];
 
       console.log("Bronlar yuklandi:", this.bookings);
     } catch (err) {

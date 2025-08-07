@@ -11,7 +11,7 @@
       </select>
     </div>
 
-    <!-- Kimdan: Bemor yoki Tashqi -->
+    <!-- Kimdan -->
     <div class="form-group">
       <label class="label">Kimdan:</label>
       <select v-model="form.from" class="input">
@@ -20,11 +20,10 @@
       </select>
     </div>
 
-    <!-- Tashqi uchun joy qo'shish va ro'yxat -->
+    <!-- Tashqi joy -->
     <div v-if="form.from === 'tashqi'" class="form-group">
       <label class="label">Qayerga (tashqi joylar):</label>
 
-      <!-- Input va + tugma -->
       <div class="input-add-row">
         <input
           v-model="newTashqi"
@@ -36,7 +35,6 @@
         <button type="button" class="btn-add" @click="addTashqi">+</button>
       </div>
 
-      <!-- Qo'shilgan tashqi joylar ro'yxati (filterlangan) -->
       <ul class="tashqi-list" v-if="filteredTashqiOptions.length > 0">
         <li v-for="(item, idx) in filteredTashqiOptions" :key="idx">
           {{ item }}
@@ -45,7 +43,6 @@
       </ul>
       <p v-else class="no-results">Joylar topilmadi</p>
 
-      <!-- Select tashqi joylar orasidan tanlash -->
       <select v-model="form.fromDetail" class="input">
         <option value="">-- Tanlang --</option>
         <option v-for="(item, idx) in tashqiOptions" :key="'select-'+idx" :value="item">{{ item }}</option>
@@ -55,10 +52,15 @@
     <!-- Bemor tanlash -->
     <div class="form-group" v-if="form.from === 'bemor-kassa'">
       <label class="label">Bemor:</label>
-      <select v-model="selectedClientId" @change="onClientChange" class="input">
+      <select v-model="selectedDavolanishId" @change="onClientChange" class="input">
         <option value="" disabled>-- Bemorni tanlang --</option>
-        <option v-for="client in clients" :key="client.id" :value="client.id">
-          {{ client.familiya }} {{ client.ism }} {{ client.sharif }}
+        <option
+          v-for="item in davolanishlar"
+          :key="item.id"
+          :value="item.id"
+        >
+          {{ item.client.familiya }} {{ item.client.ism }} {{ item.client.sharif }}
+          ({{ item.kelish_sanasi }} - {{ item.ketish_sanasi }})
         </option>
       </select>
     </div>
@@ -72,24 +74,31 @@
     <!-- To‘lov summasi -->
     <form @submit.prevent="submitPayment">
       <div class="form-row">
-        <input v-model.number="form.cash" type="number" placeholder="Naqd" class="input" />
-        <input v-model.number="form.card" type="number" placeholder="Karta" class="input" />
+        <label class="label">Naqd:</label>
+        <input v-model.number="form.cash" type="number" class="input" min="0" />
+
+        <label class="label">Karta:</label>
+        <input v-model.number="form.card" type="number" class="input" min="0" />
       </div>
       <div class="form-row">
-        <input v-model.number="form.click" type="number" placeholder="Click" class="input" />
-        <input v-model.number="form.humo" type="number" placeholder="Humo" class="input" />
+        <label class="label">Click:</label>
+        <input v-model.number="form.click" type="number" class="input" min="0" />
+
+        <label class="label">Humo:</label>
+        <input v-model.number="form.humo" type="number" class="input" min="0" />
       </div>
 
-      <!-- Izoh (Avtomatik) -->
+      <!-- Umumiy summa -->
+      <p class="total">Umumiy summa: <strong>{{ totalAmount.toLocaleString() }}</strong> so‘m</p>
+
       <textarea v-model="form.note" class="textarea" readonly></textarea>
 
       <button
         type="submit"
         class="btn"
-        :disabled="
-          (form.from === 'bemor-kassa' && !selectedClientId) ||
-          (form.from === 'tashqi' && !form.fromDetail)
-        "
+        :disabled="(form.from === 'bemor-kassa' && !selectedDavolanishId) ||
+                   (form.from === 'tashqi' && !form.fromDetail) ||
+                   totalAmount === 0"
       >
         Saqlash
       </button>
@@ -104,10 +113,9 @@ import api from "@/api";
 
 const router = useRouter();
 
-const clients = ref([]);
-const selectedClientId = ref("");
+const davolanishlar = ref([]);
+const selectedDavolanishId = ref("");
 const client = ref(null);
-const davolanishId = ref(null);
 
 const form = ref({
   cash: 0,
@@ -117,36 +125,29 @@ const form = ref({
   note: "",
   type: "kirim",
   from: "bemor-kassa",
-  fromDetail: "", // tashqi joy nomi
+  fromDetail: "",
   is_patient_payment: 1,
   user_id: null,
   cashier: "",
 });
 
-// LocalStorage uchun tashqi joylar
+// Umumiy summa hisoblash
+const totalAmount = computed(() => {
+  const { cash, card, click, humo } = form.value;
+  return (cash || 0) + (card || 0) + (click || 0) + (humo || 0);
+});
+
 const tashqiOptions = ref([]);
 const newTashqi = ref("");
 
-// LocalStorage'dan o'qish
+// LocalStorage dan tashqi joylarni yuklash
 const loadTashqiOptions = () => {
   const data = localStorage.getItem("tashqiOptions");
-  if (data) {
-    try {
-      tashqiOptions.value = JSON.parse(data);
-    } catch {
-      tashqiOptions.value = [];
-    }
-  } else {
-    tashqiOptions.value = [];
-  }
+  tashqiOptions.value = data ? JSON.parse(data) : [];
 };
-
-// LocalStorage'ga yozish
 const saveTashqiOptions = () => {
   localStorage.setItem("tashqiOptions", JSON.stringify(tashqiOptions.value));
 };
-
-// Qo'shish funksiyasi
 const addTashqi = () => {
   const val = newTashqi.value.trim();
   if (val && !tashqiOptions.value.includes(val)) {
@@ -155,100 +156,85 @@ const addTashqi = () => {
     newTashqi.value = "";
   }
 };
-
-// O'chirish funksiyasi
 const removeTashqi = (index) => {
   tashqiOptions.value.splice(index, 1);
   saveTashqiOptions();
 };
-
-// Yangi joy inputiga mos keladiganlarni filterlash (faqat inputga mos kelgan joylar ko‘rsin)
 const filteredTashqiOptions = computed(() => {
   const search = newTashqi.value.trim().toLowerCase();
-  if (!search) {
-    return [];
-  }
-  return tashqiOptions.value.filter((item) =>
-    item.toLowerCase().includes(search)
-  );
+  if (!search) return [];
+  return tashqiOptions.value.filter(item => item.toLowerCase().includes(search));
 });
 
+// API orqali davolanishlar ro‘yxatini olish
 const fetchClients = async () => {
   try {
-    const res = await api.get("/api/v1/clients");
-    clients.value = res.data || [];
+    const res = await api.get("/api/v1/davolanish");
+    davolanishlar.value = res.data?.data || [];
   } catch (e) {
     console.error("Bemorlar ro‘yxatini olishda xatolik:", e);
   }
 };
 
-const fetchClientById = async (id) => {
-  try {
-    const res = await api.get(`/api/v1/clients/${id}`);
-    client.value = res.data;
-  } catch (e) {
+// Bemor tanlanganda ma’lumotlarni olish va note yangilash
+const onClientChange = () => {
+  const tanlangan = davolanishlar.value.find(d => d.id === selectedDavolanishId.value);
+  if (!tanlangan) {
     client.value = null;
-  }
-};
-
-const fetchDavolanishId = async (clientId) => {
-  try {
-    const res = await api.get(`/api/v1/davolanish?client_id=${clientId}`);
-    davolanishId.value = res.data.length ? res.data[0].id : null;
-  } catch {
-    davolanishId.value = null;
-  }
-};
-
-const onClientChange = async () => {
-  if (!selectedClientId.value) {
-    client.value = null;
-    davolanishId.value = null;
     return;
   }
-
-  await fetchClientById(selectedClientId.value);
-  await fetchDavolanishId(selectedClientId.value);
-
-  form.value.user_id = client.value?.create_user_id || null;
-  form.value.cashier = "";
-  form.value.note = `Bemor to'lovi: ${client.value.familiya} ${client.value.ism} ${client.value.sharif}`;
+  client.value = tanlangan.client;
+  form.value.user_id = tanlangan.client?.create_user_id || null;
+  form.value.note = `Bemor to'lovi: ${tanlangan.client.familiya} ${tanlangan.client.ism} ${tanlangan.client.sharif} - ${totalAmount.value.toLocaleString()} so‘m`;
 };
 
-// Formdagi izohni avtomatik yangilash
+// note maydonini umumiy summa va tanlovga qarab avtomatik yangilash
 watch(
-  () => [form.value.type, form.value.from, form.value.fromDetail, selectedClientId.value],
+  () => [form.value.type, form.value.from, form.value.fromDetail, selectedDavolanishId.value, totalAmount.value],
   () => {
     if (form.value.from === "bemor-kassa" && client.value) {
-      form.value.note = `Bemor to'lovi: ${client.value.familiya} ${client.value.ism} ${client.value.sharif}`;
+      form.value.note = `Bemor to'lovi: ${client.value.familiya} ${client.value.ism} ${client.value.sharif} - ${totalAmount.value.toLocaleString()} so‘m`;
     } else if (form.value.from === "tashqi" && form.value.fromDetail) {
-      form.value.note = `Tashqi to'lov: ${form.value.fromDetail}`;
+      form.value.note = `Tashqi to'lov: ${form.value.fromDetail} - ${totalAmount.value.toLocaleString()} so‘m`;
     } else {
       form.value.note = "";
     }
   }
 );
 
+// To‘lovni yuborish
 const submitPayment = async () => {
   try {
+    const tanlangan = davolanishlar.value.find(d => d.id === selectedDavolanishId.value);
     form.value.is_patient_payment = form.value.from === "bemor-kassa" ? 1 : 0;
+
+    // To'lov summalarini chiqim bo'lsa minusga aylantirish
+    const sign = form.value.type === "chiqim" ? -1 : 1;
 
     const payload = {
       ...form.value,
-      client_id: form.value.from === "bemor-kassa" ? selectedClientId.value : null,
-      davolanish_id: form.value.from === "bemor-kassa" ? davolanishId.value : null,
+      cash: (form.value.cash || 0) * sign,
+      card: (form.value.card || 0) * sign,
+      click: (form.value.click || 0) * sign,
+      humo: (form.value.humo || 0) * sign,
+
+      client_id: form.value.from === "bemor-kassa" ? tanlangan?.client?.id : null,
+      davolanish_id: form.value.from === "bemor-kassa" ? tanlangan?.id : null,
       from: form.value.from === "tashqi" ? form.value.fromDetail : form.value.from,
       datetime: new Date().toISOString().slice(0, 19).replace("T", " "),
     };
 
     await api.post("/api/v1/payments", payload);
     alert("To‘lov muvaffaqiyatli qo‘shildi");
-    router.push("/admin/kassaFilter");
+
+    router.back();  // yoki router.go(-1);
   } catch (e) {
     alert("Xatolik: to‘lov yuborilmadi");
     console.error(e);
   }
 };
+
+
 
 onMounted(() => {
   fetchClients();
@@ -258,105 +244,72 @@ onMounted(() => {
 
 <style scoped>
 .containerr {
-  max-width: 1200px;
-  margin: 20px auto;
+  max-width: 600px;
+  margin: 0 auto;
   padding: 20px;
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-}
-.title {
-  font-size: 20px;
-  margin-bottom: 16px;
-  font-weight: bold;
-}
-.label {
-  font-weight: bold;
-  margin-bottom: 6px;
-  display: block;
-}
-.input {
-  padding: 8px;
-  width: 100%;
-  margin-top: 4px;
-  margin-bottom: 12px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-.textarea {
-  width: 100%;
-  min-height: 80px;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  margin-top: 4px;
-  margin-bottom: 16px;
-  resize: none;
 }
 .form-group {
-  margin-bottom: 16px;
+  margin-bottom: 15px;
 }
-.form-row {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 16px;
+.label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
 }
-.btn {
-  background-color: #28a745;
-  color: white;
-  padding: 10px 24px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+.input {
+  width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
 }
-.btn:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-.info {
-  background: #f9f9f9;
-  padding: 12px;
-  border-radius: 4px;
-  margin-bottom: 16px;
-}
-
-/* Tashqi joy qo'shish qismi */
 .input-add-row {
   display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 .btn-add,
 .btn-remove {
-  background-color: #007bff;
-  border: none;
-  color: white;
-  font-weight: bold;
-  padding: 6px 12px;
-  border-radius: 4px;
   cursor: pointer;
-  user-select: none;
-}
-.btn-remove {
-  background-color: #dc3545;
-  margin-left: 8px;
+  padding: 5px 10px;
+  font-weight: bold;
 }
 .tashqi-list {
-  list-style-type: none;
-  padding-left: 0;
-  margin-bottom: 12px;
-}
-.tashqi-list li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #eee;
-  padding: 6px 12px;
-  border-radius: 4px;
-  margin-bottom: 4px;
+  margin: 0;
+  padding-left: 20px;
 }
 .no-results {
   font-style: italic;
-  color: #666;
+  color: #999;
+}
+.form-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 15px;
+  align-items: center;
+}
+.textarea {
+  width: 100%;
+  height: 70px;
+  margin-bottom: 15px;
+  resize: none;
+  padding: 8px;
+  box-sizing: border-box;
+}
+.btn {
+  padding: 10px 20px;
+  background-color: #007bff;
+  border: none;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.btn:disabled {
+  background-color: #aaa;
+  cursor: not-allowed;
+}
+.total {
+  font-weight: 700;
+  margin-bottom: 10px;
+  font-size: 1.1em;
 }
 </style>
