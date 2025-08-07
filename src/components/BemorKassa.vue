@@ -121,7 +121,7 @@ const fetchPatientPayments = async (page = 1) => {
 
     const res = await api.get('public/api/v1/patient_payments', { params })
     const data = res.data
-
+    console.log(data  )
     payments.value = (data.data || []).filter(p => {
       if (davolanishStatus.value === '1') {
         // Davolanmoqda bo'lsa, barcha yozuvlar

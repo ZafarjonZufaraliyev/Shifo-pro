@@ -40,18 +40,16 @@
             <td>{{ r.sigim }}</td>
             <td>{{ r.price.toLocaleString('ru-RU') }}</td>
             <td>
-  <span v-if="isCurrentRoom(r.id)" style="color: #d97706; font-weight: 700;">
-    Joriy yotmoqda ({{ r.currentPeople }}/{{ r.sigim }})
-  </span>
-  <span v-else-if="r.busy" style="color: red">
-    Band ({{ r.currentPeople }}/{{ r.sigim }})
-  </span>
-  <span v-else style="color: green">
-    Bo'sh <span v-if="r.currentPeople">({{ r.currentPeople }}/{{ r.sigim }})</span>
-  </span>
-</td>
-
-            
+              <span v-if="isCurrentRoom(r.id)" style="color: #d97706; font-weight: 700;">
+                Joriy yotmoqda ({{ r.currentPeople }}/{{ r.sigim }})
+              </span>
+              <span v-else-if="r.busy" style="color: red">
+                Band ({{ r.currentPeople }}/{{ r.sigim }})
+              </span>
+              <span v-else style="color: green">
+                Bo'sh <span v-if="r.currentPeople">({{ r.currentPeople }}/{{ r.sigim }})</span>
+              </span>
+            </td>
           </tr>
           <tr v-if="filteredRooms.length === 0">
             <td class="no-rooms" colspan="5">Xonalar topilmadi</td>
@@ -96,12 +94,10 @@
           v-for="(s, i) in mandatoryServices"
           :key="'m' + i"
           class="service-item"
-          @click="handleMandatoryClick(s)"
         >
-          <input type="checkbox" :checked="s.selected" readonly />
+          <!-- Checkbox olib tashlandi, barcha majburiy xizmatlar doimo tanlangan deb hisoblanadi -->
           {{ s.name }} —
           <input type="number" v-model.number="s.price" style="width:80px" /> so'm
-          <small>({{ s.clickCount }})</small>
         </div>
 
         <h4>Qo‘shimcha xizmatlar</h4>
@@ -129,31 +125,29 @@ export default {
   props: ['clientId'],
   data() {
     return {
-      today: new Date().toISOString().slice(0, 10), // Bugungi sana YYYY-MM-DD formatda
+      today: new Date().toISOString().slice(0, 10),
       client: null,
       selectedRoom: null,
       rooms: [],
       mandatoryServices: [],
       additionalServices: [],
-      arrivalDate: new Date().toISOString().slice(0, 10), // kelish sanasi
-      stayDays: 7, // qolish kunlari soni
+      arrivalDate: new Date().toISOString().slice(0, 10),
+      stayDays: 7,
       roomFilterNumber: '',
       roomFilterName: '',
       roomFilterSigim: null,
       has_child: false,
-      davolanishlar: [], // davolanishlar ro'yxati (xonalar bandligi uchun)
-      bronlar: []        // bronlar ro'yxati (xonalar bandligi uchun)
+      davolanishlar: [],
+      bronlar: []
     };
   },
   computed: {
     leaveDate() {
-      // ketish sanasi = kelish sanasi + qolish kunlari - 1
       const d = new Date(this.arrivalDate);
       d.setDate(d.getDate() + this.stayDays - 1);
       return d.toISOString().slice(0, 10);
     },
     filteredRooms() {
-      // xonalarni filterlash (raqam, xona turi, sig'im bo'yicha)
       return this.rooms.filter(r => {
         const matchNumber = this.roomFilterNumber ? r.xona.toString().includes(this.roomFilterNumber) : true;
         const matchName = this.roomFilterName ? r.room_type.toLowerCase().includes(this.roomFilterName.toLowerCase()) : true;
@@ -162,9 +156,9 @@ export default {
       });
     },
     totalSum() {
-      // jami summa: xona narxi * kunlar + barcha tanlangan xizmatlar narxlari
       const roomCost = this.selectedRoom ? this.selectedRoom.price * this.stayDays : 0;
-      const mandCost = this.mandatoryServices.reduce((sum, svc) => sum + (svc.selected ? svc.price : 0), 0);
+      // Majburiy xizmatlar har doim tanlangan, checkbox yo'q, shuning uchun selectedga qaralmaydi
+      const mandCost = this.mandatoryServices.reduce((sum, svc) => sum + svc.price, 0);
       const addCost = this.additionalServices.filter(svc => svc.selected).reduce((sum, svc) => sum + svc.price, 0);
       return roomCost + mandCost + addCost;
     }
@@ -187,7 +181,7 @@ export default {
           room_type: r.room_type?.name || 'Nomaʼlum',
           price: +r.room_type?.Narxi || 0,
           display: `${r.room_type?.name} (xona №${r.xona})`,
-          busy: false // bosh joy holati dastlab false
+          busy: false
         }));
       } catch (error) {
         console.error('Rooms load error:', error);
@@ -196,8 +190,12 @@ export default {
     async loadServices() {
       try {
         const res = await api.get('/api/v1/services');
-        this.mandatoryServices = res.data.filter(s => s.required == 1).map(s => ({ ...s, selected: true, price: +s.price, clickCount: 0 }));
-        this.additionalServices = res.data.filter(s => s.required != 1).map(s => ({ ...s, selected: false, price: +s.price }));
+        this.mandatoryServices = res.data
+          .filter(s => s.required == 1)
+          .map(s => ({ ...s, selected: true, price: +s.price, clickCount: 0 }));
+        this.additionalServices = res.data
+          .filter(s => s.required != 1)
+          .map(s => ({ ...s, selected: false, price: +s.price }));
       } catch (error) {
         console.error('Services load error:', error);
       }
@@ -220,53 +218,42 @@ export default {
         this.bronlar = [];
       }
     },
-   markBusyRooms() {
-  const today = new Date(this.today);
-  const roomOccupancy = {}; // { roomId: odam soni }
+    markBusyRooms() {
+      const today = new Date(this.today);
+      const roomOccupancy = {};
 
-  // Davolanishlar asosida odam sonini hisoblash
-  this.davolanishlar.forEach(dav => {
-    if (!dav.kelish_sanasi || !dav.ketish_sanasi) return;
+      this.davolanishlar.forEach(dav => {
+        if (!dav.kelish_sanasi || !dav.ketish_sanasi) return;
+        const kelish = new Date(dav.kelish_sanasi);
+        const ketish = new Date(dav.ketish_sanasi);
+        if (today >= kelish && today <= ketish) {
+          const roomId = dav.xona_id.toString();
+          roomOccupancy[roomId] = (roomOccupancy[roomId] || 0) + 1;
+        }
+      });
 
-    const kelish = new Date(dav.kelish_sanasi);
-    const ketish = new Date(dav.ketish_sanasi);
+      this.bronlar.forEach(bron => {
+        if (bron.status !== 'faol') return;
+        if (!bron.start || !bron.end) return;
+        const start = new Date(bron.start);
+        const end = new Date(bron.end);
+        if (today >= start && today <= end) {
+          const roomId = (bron.xona?.id || bron.xona_id).toString();
+          roomOccupancy[roomId] = (roomOccupancy[roomId] || 0) + 1;
+        }
+      });
 
-    if (today >= kelish && today <= ketish) {
-      const roomId = dav.xona_id.toString();
-      roomOccupancy[roomId] = (roomOccupancy[roomId] || 0) + 1;
-    }
-  });
-
-  // Bronlar asosida qo‘shimcha hisob
-  this.bronlar.forEach(bron => {
-    if (bron.status !== 'faol') return;
-    if (!bron.start || !bron.end) return;
-
-    const start = new Date(bron.start);
-    const end = new Date(bron.end);
-
-    if (today >= start && today <= end) {
-      const roomId = (bron.xona?.id || bron.xona_id).toString();
-      roomOccupancy[roomId] = (roomOccupancy[roomId] || 0) + 1;
-    }
-  });
-
-  // Har bir xonani tekshiramiz: odam soni sig'imga tengmi?
-  this.rooms = this.rooms.map(r => {
-    const roomId = (r.id ?? r.xona).toString();
-    const odamlarSoni = roomOccupancy[roomId] || 0;
-    const isBusy = odamlarSoni >= r.sigim;
-
-    return {
-      ...r,
-      busy: isBusy,
-      currentPeople: odamlarSoni // ← bu keyin ko‘rsatish uchun
-    };
-  });
-
-
-}
-,
+      this.rooms = this.rooms.map(r => {
+        const roomId = (r.id ?? r.xona).toString();
+        const odamlarSoni = roomOccupancy[roomId] || 0;
+        const isBusy = odamlarSoni >= r.sigim;
+        return {
+          ...r,
+          busy: isBusy,
+          currentPeople: odamlarSoni
+        };
+      });
+    },
     isCurrentRoom(roomId) {
       const today = new Date(this.today);
       return this.davolanishlar.some(dav => {
@@ -291,13 +278,6 @@ export default {
     cancelSelection() {
       this.selectedRoom = null;
       this.loadServices();
-    },
-    handleMandatoryClick(service) {
-      service.clickCount++;
-      if (service.clickCount >= 5) {
-        service.selected = false;
-        service.clickCount = 0;
-      }
     },
     async submitDavolanish() {
       if (!this.selectedRoom) return alert('Xona tanlang!');
@@ -331,10 +311,13 @@ export default {
         return alert('Joylashuv saqlanmadi');
       }
 
+      // Majburiy xizmatlar - barchasi doim tanlangan
+      // Qo'shimcha xizmatlar - faqat selected = true bo'lganlar
       const selectedServices = [
-        ...this.mandatoryServices.filter(s => s.selected),
+        ...this.mandatoryServices,
         ...this.additionalServices.filter(s => s.selected)
       ];
+
       try {
         await api.post('/api/v1/client-services', {
           client_id: this.client.id,
@@ -356,7 +339,6 @@ export default {
 
       this.cancelSelection();
 
-      // Ma'lumotlarni qayta yuklash va band xonalarni yangilash
       await Promise.all([
         this.loadRooms(),
         this.loadDavolanishlar(),
@@ -380,9 +362,7 @@ export default {
       alert('Client ID topilmadi!');
       return;
     }
-
     await this.loadClient(id);
-
     await Promise.all([
       this.loadRooms(),
       this.loadServices(),
@@ -393,6 +373,7 @@ export default {
   }
 };
 </script>
+
 
 <style scoped>
 .taklif-container {
