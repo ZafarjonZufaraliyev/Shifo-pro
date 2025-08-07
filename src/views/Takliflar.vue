@@ -82,7 +82,6 @@
         </div>
       </div>
 
-      <!-- Bolalik belgilovchi -->
       <div class="form-group" style="margin:10px 0">
         <label><input type="checkbox" v-model="has_child" /> Bolalik (has_child)</label>
       </div>
@@ -95,7 +94,6 @@
           :key="'m' + i"
           class="service-item"
         >
-          <!-- Checkbox olib tashlandi, barcha majburiy xizmatlar doimo tanlangan deb hisoblanadi -->
           {{ s.name }} —
           <input type="number" v-model.number="s.price" style="width:80px" /> so'm
         </div>
@@ -104,12 +102,36 @@
         <div v-for="(s, i) in additionalServices" :key="'a' + i" class="service-item">
           <input type="checkbox" v-model="s.selected" />
           {{ s.name }} —
-          <input type="number" v-model.number="s.price" style="width:80px" /> so'm
+          <input type="number" v-model.number="s.price" style="width:80px" />
+          <button
+            @click="removeAdditionalService(i)"
+            class="remove-btn"
+            title="Xizmatni o'chirish"
+          >❌</button>
         </div>
       </div>
 
-      <div class="total-sum">
-        Jami: <strong>{{ totalSum.toLocaleString('ru-RU') }} so'm</strong>
+      <!-- Qo'shimcha to'lovlar -->
+      <div class="extra-payments" style="margin-top: 20px;">
+        <h4>Qo'shimcha to'lovlar</h4>
+        <div class="payment-item">
+          <label>Naqd to'lov:</label>
+          <input type="number" min="0" v-model.number="extraPayments.cash" />
+        </div>
+        <div class="payment-item">
+          <label>Karta to'lov:</label>
+          <input type="number" min="0" v-model.number="extraPayments.card" />
+        </div>
+        <div class="payment-item">
+          <label>Click to'lov:</label>
+          <input type="number" min="0" v-model.number="extraPayments.click" />
+        </div>
+      </div>
+
+      <div class="total-sum" style="margin: 15px 0;">
+        Jami: <strong>{{ totalSum.toLocaleString('ru-RU') }} so'm</strong><br />
+        To‘lovlar jami: <strong>{{ totalPaid.toLocaleString('ru-RU') }} so'm</strong><br />
+        Qoldiq: <strong :style="{ color: balance < 0 ? 'red' : 'green' }">{{ balance.toLocaleString('ru-RU') }} so'm</strong>
       </div>
 
       <button class="submit-btn" @click="submitDavolanish">📥 Bron qilish</button>
@@ -138,7 +160,12 @@ export default {
       roomFilterSigim: null,
       has_child: false,
       davolanishlar: [],
-      bronlar: []
+      bronlar: [],
+      extraPayments: {
+        cash: 0,
+        card: 0,
+        click: 0,
+      },
     };
   },
   computed: {
@@ -157,22 +184,34 @@ export default {
     },
     totalSum() {
       const roomCost = this.selectedRoom ? this.selectedRoom.price * this.stayDays : 0;
-      // Majburiy xizmatlar har doim tanlangan, checkbox yo'q, shuning uchun selectedga qaralmaydi
       const mandCost = this.mandatoryServices.reduce((sum, svc) => sum + svc.price, 0);
       const addCost = this.additionalServices.filter(svc => svc.selected).reduce((sum, svc) => sum + svc.price, 0);
       return roomCost + mandCost + addCost;
+    },
+    totalPaid() {
+      return (
+        (this.extraPayments.cash || 0) +
+        (this.extraPayments.card || 0) +
+        (this.extraPayments.click || 0)
+      );
+    },
+    balance() {
+      return this.totalSum - this.totalPaid;
     }
   },
   methods: {
     async loadClient(id) {
+      console.log('loadClient called with id:', id);
       try {
         const res = await api.get(`/api/v1/clients/${id}`);
+        console.log('Client data loaded:', res.data);
         this.client = res.data;
       } catch (error) {
         console.error('Client load error:', error);
       }
     },
     async loadRooms() {
+      console.log('Loading rooms...');
       try {
         const res = await api.get('/api/v1/room');
         this.rooms = res.data.map(r => ({
@@ -181,38 +220,49 @@ export default {
           room_type: r.room_type?.name || 'Nomaʼlum',
           price: +r.room_type?.Narxi || 0,
           display: `${r.room_type?.name} (xona №${r.xona})`,
-          busy: false
+          busy: false,
+          currentPeople: 0,
         }));
+        console.log('Rooms loaded:', this.rooms);
       } catch (error) {
         console.error('Rooms load error:', error);
       }
     },
     async loadServices() {
+      console.log('Loading services...');
       try {
         const res = await api.get('/api/v1/services');
         this.mandatoryServices = res.data
           .filter(s => s.required == 1)
-          .map(s => ({ ...s, selected: true, price: +s.price, clickCount: 0 }));
+          .map(s => ({ ...s, selected: true, price: +s.price }));
         this.additionalServices = res.data
           .filter(s => s.required != 1)
           .map(s => ({ ...s, selected: false, price: +s.price }));
+        console.log('Services loaded:', {
+          mandatory: this.mandatoryServices,
+          additional: this.additionalServices,
+        });
       } catch (error) {
         console.error('Services load error:', error);
       }
     },
     async loadDavolanishlar() {
+      console.log('Loading davolanishlar...');
       try {
         const res = await api.get('/api/v1/davolanish');
         this.davolanishlar = Array.isArray(res.data) ? res.data : res.data.data || [];
+        console.log('Davolanishlar loaded:', this.davolanishlar);
       } catch (error) {
         console.error('Davolanish load error:', error);
         this.davolanishlar = [];
       }
     },
     async loadBronlar() {
+      console.log('Loading bronlar...');
       try {
         const res = await api.get('/api/v1/bron');
         this.bronlar = Array.isArray(res.data) ? res.data : res.data.data || [];
+        console.log('Bronlar loaded:', this.bronlar);
       } catch (error) {
         console.error('Bron load error:', error);
         this.bronlar = [];
@@ -253,6 +303,7 @@ export default {
           currentPeople: odamlarSoni
         };
       });
+      console.log('Rooms updated with busy status:', this.rooms);
     },
     isCurrentRoom(roomId) {
       const today = new Date(this.today);
@@ -265,6 +316,7 @@ export default {
     },
     selectRoom(room) {
       if (!room.busy) {
+        console.log('Room selected:', room);
         this.selectedRoom = { ...room };
       } else {
         alert('Bu xona band!');
@@ -276,11 +328,31 @@ export default {
       this.roomFilterSigim = null;
     },
     cancelSelection() {
+      console.log('Selection cancelled');
       this.selectedRoom = null;
       this.loadServices();
+      this.extraPayments = { cash: 0, card: 0, click: 0 };
+      this.has_child = false;
+    },
+    removeAdditionalService(index) {
+      console.log('Removing additional service at index:', index);
+      this.additionalServices.splice(index, 1);
     },
     async submitDavolanish() {
-      if (!this.selectedRoom) return alert('Xona tanlang!');
+      console.log('Submitting davolanish...');
+      if (!this.selectedRoom) {
+        alert('Xona tanlang!');
+        return;
+      }
+      if (!this.client?.id) {
+        alert('Mijoz tanlanmagan!');
+        return;
+      }
+
+      console.log('Client ID:', this.client.id);
+      console.log('Selected Room:', this.selectedRoom);
+      console.log('Arrival Date:', this.arrivalDate);
+      console.log('Leave Date:', this.leaveDate);
 
       let davolanish = null;
       try {
@@ -290,36 +362,43 @@ export default {
           kelish_sanasi: this.arrivalDate,
           ketish_sanasi: this.leaveDate
         });
+        console.log('Davolanish created:', res.data);
         davolanish = res.data.data || res.data;
       } catch (error) {
         console.error('Davolanish saqlash xatosi:', error);
-        return alert('Davolanish saqlanmadi');
+        alert('Davolanish saqlanmadi');
+        return;
       }
-      if (!davolanish?.id) return alert('Davolanish ID topilmadi');
+      if (!davolanish?.id) {
+        alert('Davolanish ID topilmadi');
+        return;
+      }
 
       try {
-        await api.post('/api/v1/xona-joylashuv', {
+        const joylashuvRes = await api.post('/api/v1/xona-joylashuv', {
           davolanish_id: davolanish.id,
+      
           room_id: this.selectedRoom.id,
           from_date: this.arrivalDate,
           to_date: this.leaveDate,
           has_child: this.has_child ? 1 : 0,
           price_per_day: this.selectedRoom.price
         });
+        console.log('Joylashuv saqlandi:', joylashuvRes.data);
       } catch (error) {
         console.error('Joylashuv saqlash xatosi:', error);
-        return alert('Joylashuv saqlanmadi');
+        alert('Joylashuv saqlanmadi');
+        return;
       }
 
-      // Majburiy xizmatlar - barchasi doim tanlangan
-      // Qo'shimcha xizmatlar - faqat selected = true bo'lganlar
       const selectedServices = [
         ...this.mandatoryServices,
         ...this.additionalServices.filter(s => s.selected)
       ];
+      console.log('Selected services:', selectedServices);
 
       try {
-        await api.post('/api/v1/client-services', {
+        const servicesRes = await api.post('/api/v1/client-services', {
           client_id: this.client.id,
           davolanish_id: davolanish.id,
           services: selectedServices.map(s => ({
@@ -331,10 +410,29 @@ export default {
             kunlik_vaqtlari: s.kunlik_vaqtlari || []
           }))
         });
-        alert('✅ Hammasi saqlandi');
+        console.log('Xizmatlar saqlandi:', servicesRes.data);
       } catch (error) {
         console.error('Xizmatlar saqlash xatosi:', error);
         alert('Xizmatlar saqlanmadi');
+      }
+
+      try {
+        const paymentRes = await api.post('/api/v1/payments', {
+          davolanish_id: davolanish.id,
+           client_id: this.client.id,
+          cash: this.extraPayments.cash,
+          card: this.extraPayments.card,
+          click: this.extraPayments.click,
+          total: this.totalSum,
+          type: 'kirim',
+          from: `${this.client.familiya} ${this.client.ism}`,
+          datetime: new Date().toISOString()
+        });
+        console.log('To‘lovlar saqlandi:', paymentRes.data);
+      } catch (error) {
+        console.error('To‘lovlarni saqlashda xatolik:', error.response?.data || error);
+        alert('To‘lov ma\'lumotlari saqlanmadi');
+        return;
       }
 
       this.cancelSelection();
@@ -342,7 +440,8 @@ export default {
       await Promise.all([
         this.loadRooms(),
         this.loadDavolanishlar(),
-        this.loadBronlar()
+        this.loadBronlar(),
+        this.loadServices()
       ]);
       this.markBusyRooms();
     },
@@ -358,131 +457,186 @@ export default {
   },
   async mounted() {
     const id = this.clientId || this.$route.params.clientId;
+    console.log('Mounted, clientId:', id);
     if (!id) {
       alert('Client ID topilmadi!');
       return;
     }
     await this.loadClient(id);
-    await Promise.all([
-      this.loadRooms(),
-      this.loadServices(),
-      this.loadDavolanishlar(),
-      this.loadBronlar()
-    ]);
-    this.markBusyRooms();
+    await this.loadAllData();
   }
 };
 </script>
 
 
+
 <style scoped>
 .taklif-container {
-  max-width: 1200px;
-  margin: 20 auto;
+  max-width: 900px;
+  margin: auto;
   padding: 20px;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: Arial, sans-serif;
 }
+
 .title {
-  margin-bottom: 20px;
-  color: #2c3e50;
   text-align: center;
+  margin-bottom: 20px;
 }
+
+.user-info {
+  margin-bottom: 20px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
 .filter-row {
   display: flex;
   gap: 10px;
   margin-bottom: 15px;
 }
+
 .filter-row input {
   flex: 1;
   padding: 6px 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  font-size: 14px;
 }
+
 .clear-filter-btn {
-  background-color: #ff6b6b;
+  background: #e53e3e;
   color: white;
   border: none;
   padding: 6px 12px;
-  border-radius: 4px;
   cursor: pointer;
 }
+
 .clear-filter-btn:hover {
-  background-color: #ff3b3b;
+  background: #c53030;
 }
+
 .rooms-table {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 20px;
 }
+
 .rooms-table th,
 .rooms-table td {
-  border: 1px solid #ddd;
-  padding: 10px 12px;
+  border: 1px solid #ccc;
+  padding: 8px 12px;
   text-align: center;
 }
+
+.room-row {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.room-row:hover {
+  background-color: #f0f0f0;
+}
+
 .room-row.busy {
-  background-color: #ffcccc;
+  background-color: #ffe6e6;
   cursor: not-allowed;
 }
+
 .room-row.current {
-  background-color: #fff4e5;
-  font-weight: 700;
+  background-color: #fff3cd;
 }
+
 .no-rooms {
   text-align: center;
-  font-style: italic;
   color: #888;
+  font-style: italic;
 }
+
 .selected-room {
-  border: 1px solid #ccc;
-  padding: 15px;
-  border-radius: 8px;
+  border: 1px solid #ddd;
+  padding: 20px;
+  border-radius: 6px;
 }
+
 .date-row {
   display: flex;
   gap: 15px;
   margin-bottom: 15px;
 }
+
 .form-group {
   display: flex;
   flex-direction: column;
 }
-.services-section {
-  margin-bottom: 15px;
+
+.form-group label {
+  margin-bottom: 5px;
+  font-weight: 600;
 }
+
+.services-section {
+  margin-top: 15px;
+}
+
 .service-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 6px;
-  cursor: pointer;
+  gap: 8px;
+  margin-bottom: 8px;
 }
-.total-sum {
-  font-size: 1.2em;
-  margin-bottom: 20px;
-  font-weight: 700;
-}
-.submit-btn {
-  background-color: #4caf50;
-  color: white;
-  padding: 10px 16px;
+
+.remove-btn {
+  background: transparent;
   border: none;
-  border-radius: 6px;
+  cursor: pointer;
+  color: #e53e3e;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.remove-btn:hover {
+  color: #c53030;
+}
+
+.extra-payments .payment-item {
+  margin-bottom: 10px;
+}
+
+.extra-payments label {
+  display: inline-block;
+  width: 120px;
+  font-weight: 600;
+}
+
+.total-sum {
+  font-size: 16px;
+}
+
+.submit-btn {
+  background-color: #38a169;
+  color: white;
+  padding: 10px 20px;
+  border: none;
   cursor: pointer;
   margin-right: 10px;
+  font-size: 16px;
+  border-radius: 4px;
 }
+
 .submit-btn:hover {
-  background-color: #45a049;
+  background-color: #2f855a;
 }
+
 .cancel-btn {
-  background-color: #f44336;
+  background-color: #a0aec0;
   color: white;
-  padding: 10px 16px;
+  padding: 10px 20px;
   border: none;
-  border-radius: 6px;
   cursor: pointer;
+  font-size: 16px;
+  border-radius: 4px;
 }
+
 .cancel-btn:hover {
-  background-color: #d32f2f;
+  background-color: #718096;
 }
 </style>
+
