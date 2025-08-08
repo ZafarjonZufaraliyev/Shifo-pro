@@ -268,8 +268,9 @@ export default {
 /* Container */
 /* Umumiy konteyner */
 .warehouse-outflow {
-  max-width: 1200px;
-  margin: 20px auto;
+  max-width: 1100px;
+  width:100%;
+  margin: 20px 0px 0px 280px;
   padding: 20px;
   background: #fff;
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);

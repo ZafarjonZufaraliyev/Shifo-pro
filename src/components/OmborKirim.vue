@@ -250,8 +250,9 @@ export default {
 
 <style scoped>
 .warehouse-receive {
-  max-width: 1200px;
-  margin: 20px auto;
+  max-width: 1100px;
+  width:100%;
+  margin: 20px 0px 0px 270px;
   padding: 20px;
   background: #f9fafb;
   border-radius: 16px;

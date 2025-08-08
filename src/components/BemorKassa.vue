@@ -43,9 +43,9 @@
           class="clickable-row"
         >
           <td>{{ (currentPage - 1) * perPage + index + 1 }}</td>
-          <td>{{ payment.client || '-' }}</td>
-          <td>{{ payment.phone || '-' }}</td>
-          <td>{{ payment.address || '-' }}</td>
+          <td>{{ payment.client || '0' }}</td>
+          <td>{{ payment.phone || '0' }}</td>
+          <td>{{ payment.address || '0' }}</td>
           <td>{{ formatDate(getPaymentDatetime(payment)) }}</td>
           <td class="amount">{{ formatAmount(getPaymentTotal(payment, 'cash')) }}</td>
           <td class="amount">{{ formatAmount(getPaymentTotal(payment, 'click')) }}</td>
@@ -121,6 +121,7 @@ const fetchPatientPayments = async (page = 1) => {
 
     const res = await api.get('public/api/v1/patient_payments', { params })
     const data = res.data
+    
     console.log(data  )
     payments.value = (data.data || []).filter(p => {
       if (davolanishStatus.value === '1') {

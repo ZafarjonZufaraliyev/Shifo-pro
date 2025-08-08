@@ -97,8 +97,9 @@ onMounted(fetchProducts);
 }
 
 .products-page {
-  max-width: 1200px;
-  margin:20px auto;
+  max-width: 1100px;
+  width:100%;
+  margin:20px 0px 0px 270px;
   padding: 20px;
   font-family: 'Segoe UI', sans-serif;
   color: var(--text-dark);

@@ -297,6 +297,8 @@ export default {
 
     formatDateTime(datetimeStr) {
       if (!datetimeStr) return null;
+      console.log(datetimeStr); // bu yerda qiymatni ko'ring
+
       return dayjs(datetimeStr).format("YYYY-MM-DD HH:mm");
     },
 

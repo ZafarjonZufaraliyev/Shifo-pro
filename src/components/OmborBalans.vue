@@ -95,8 +95,9 @@ export default {
 
 <style scoped>
 .inventory-page {
-     max-width: 1000px;
-     margin: 20px auto;
+     max-width: 1100px;
+     margin: 20px 0px 0px 270px;
+     width:100%;
      padding: 20px;
      background: #f8fbff;
      border-radius: 14px;
