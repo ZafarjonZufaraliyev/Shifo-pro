@@ -395,6 +395,7 @@ export default {
       try {
         await api.post('/api/v1/payments', {
           davolanish_id: davolanish.id,
+          is_patient_payment:1,
           client_id: this.client.id,
           cash: this.extraPayments.cash,
           card: this.extraPayments.card,
