@@ -41,13 +41,9 @@
       <div class="form-row">
         <div class="form-group">
           <label>Pasport seriyasi va raqami</label>
-          <input
-            v-model="form.pasport"
-            type="text"
-            placeholder="AA1234567"
-            pattern="[A-Z]{2}[0-9]{7}"
-            required
-          />
+          <input v-model="form.pasport" type="text" placeholder="AA1234567" pattern="[A-ZА-ЯЁ]{2}[0-9]{7}"
+            title="Ikki harf va yetti raqam kiriting, harflar lotin yoki kiril bo‘lishi mumkin" required />
+
         </div>
         <div class="form-group">
           <label>Tug‘ilgan sana</label>
@@ -85,23 +81,16 @@
         <div class="referral-dropdown">
           <button type="button" @click="toggleReferralList" class="dropdown-btn">
             {{ form.referral || 'Tanlang' }}
-            <span :class="{'arrow-up': referralListOpen, 'arrow-down': !referralListOpen}"></span>
+            <span :class="{ 'arrow-up': referralListOpen, 'arrow-down': !referralListOpen }"></span>
           </button>
 
           <div v-if="referralListOpen" class="referral-list">
             <ul>
-              <li
-                v-for="(item, index) in referrals"
-                :key="index"
-                :class="{'default-referral': isDefaultReferral(item), 'custom-referral': !isDefaultReferral(item)}"
-              >
+              <li v-for="(item, index) in referrals" :key="index"
+                :class="{ 'default-referral': isDefaultReferral(item), 'custom-referral': !isDefaultReferral(item) }">
                 <span @click="selectReferral(item)" class="referral-text">{{ item }}</span>
-                <button
-                  type="button"
-                  @click.stop="removeReferral(index)"
-                  :disabled="isDefaultReferral(item)"
-                  class="remove-btn"
-                >×</button>
+                <button type="button" @click.stop="removeReferral(index)" :disabled="isDefaultReferral(item)"
+                  class="remove-btn">×</button>
               </li>
             </ul>
             <div class="add-referral">
@@ -308,7 +297,7 @@ export default {
 
 <style scoped>
 .register-container {
-  width:100%;
+  width: 100%;
   max-width: 1200px;
   margin: 30px auto;
   padding: 25px 30px;
@@ -440,7 +429,7 @@ button[type="submit"]:hover {
   background: #fff;
   border: 1.8px solid #bdc3c7;
   border-radius: 8px;
-  box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
   z-index: 20;
   padding: 12px 14px;
 }
@@ -529,6 +518,7 @@ button[type="submit"]:hover {
 }
 
 @media (max-width: 768px) {
+
   .form-row,
   .ismfamilya {
     flex-direction: column;

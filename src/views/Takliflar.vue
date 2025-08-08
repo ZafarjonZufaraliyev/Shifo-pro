@@ -94,6 +94,7 @@
           :key="'m' + i"
           class="service-item"
         >
+          <input type="checkbox" v-model="s.selected" />
           {{ s.name }} —
           <input type="number" v-model.number="s.price" style="width:80px" /> so'm
         </div>
@@ -184,8 +185,13 @@ export default {
     },
     totalSum() {
       const roomCost = this.selectedRoom ? this.selectedRoom.price * this.stayDays : 0;
-      const mandCost = this.mandatoryServices.reduce((sum, svc) => sum + svc.price, 0);
-      const addCost = this.additionalServices.filter(svc => svc.selected).reduce((sum, svc) => sum + svc.price, 0);
+      // Majburiy xizmatlar faqat selected=true bo‘lganlarni hisoblaymiz
+      const mandCost = this.mandatoryServices
+        .filter(s => s.selected)
+        .reduce((sum, svc) => sum + svc.price, 0);
+      const addCost = this.additionalServices
+        .filter(svc => svc.selected)
+        .reduce((sum, svc) => sum + svc.price, 0);
       return roomCost + mandCost + addCost;
     },
     totalPaid() {
@@ -201,17 +207,14 @@ export default {
   },
   methods: {
     async loadClient(id) {
-      console.log('loadClient called with id:', id);
       try {
         const res = await api.get(`/api/v1/clients/${id}`);
-        console.log('Client data loaded:', res.data);
         this.client = res.data;
       } catch (error) {
         console.error('Client load error:', error);
       }
     },
     async loadRooms() {
-      console.log('Loading rooms...');
       try {
         const res = await api.get('/api/v1/room');
         this.rooms = res.data.map(r => ({
@@ -223,46 +226,37 @@ export default {
           busy: false,
           currentPeople: 0,
         }));
-        console.log('Rooms loaded:', this.rooms);
       } catch (error) {
         console.error('Rooms load error:', error);
       }
     },
     async loadServices() {
-      console.log('Loading services...');
       try {
         const res = await api.get('/api/v1/services');
+        // Majburiy xizmatlarda selected:true, qolganlarda false bo'ladi default
         this.mandatoryServices = res.data
           .filter(s => s.required == 1)
           .map(s => ({ ...s, selected: true, price: +s.price }));
         this.additionalServices = res.data
           .filter(s => s.required != 1)
           .map(s => ({ ...s, selected: false, price: +s.price }));
-        console.log('Services loaded:', {
-          mandatory: this.mandatoryServices,
-          additional: this.additionalServices,
-        });
       } catch (error) {
         console.error('Services load error:', error);
       }
     },
     async loadDavolanishlar() {
-      console.log('Loading davolanishlar...');
       try {
         const res = await api.get('/api/v1/davolanish');
         this.davolanishlar = Array.isArray(res.data) ? res.data : res.data.data || [];
-        console.log('Davolanishlar loaded:', this.davolanishlar);
       } catch (error) {
         console.error('Davolanish load error:', error);
         this.davolanishlar = [];
       }
     },
     async loadBronlar() {
-      console.log('Loading bronlar...');
       try {
         const res = await api.get('/api/v1/bron');
         this.bronlar = Array.isArray(res.data) ? res.data : res.data.data || [];
-        console.log('Bronlar loaded:', this.bronlar);
       } catch (error) {
         console.error('Bron load error:', error);
         this.bronlar = [];
@@ -303,7 +297,6 @@ export default {
           currentPeople: odamlarSoni
         };
       });
-      console.log('Rooms updated with busy status:', this.rooms);
     },
     isCurrentRoom(roomId) {
       const today = new Date(this.today);
@@ -316,7 +309,6 @@ export default {
     },
     selectRoom(room) {
       if (!room.busy) {
-        console.log('Room selected:', room);
         this.selectedRoom = { ...room };
       } else {
         alert('Bu xona band!');
@@ -328,18 +320,15 @@ export default {
       this.roomFilterSigim = null;
     },
     cancelSelection() {
-      console.log('Selection cancelled');
       this.selectedRoom = null;
       this.loadServices();
       this.extraPayments = { cash: 0, card: 0, click: 0 };
       this.has_child = false;
     },
     removeAdditionalService(index) {
-      console.log('Removing additional service at index:', index);
       this.additionalServices.splice(index, 1);
     },
     async submitDavolanish() {
-      console.log('Submitting davolanish...');
       if (!this.selectedRoom) {
         alert('Xona tanlang!');
         return;
@@ -349,11 +338,6 @@ export default {
         return;
       }
 
-      console.log('Client ID:', this.client.id);
-      console.log('Selected Room:', this.selectedRoom);
-      console.log('Arrival Date:', this.arrivalDate);
-      console.log('Leave Date:', this.leaveDate);
-
       let davolanish = null;
       try {
         const res = await api.post('/api/v1/davolanish', {
@@ -362,10 +346,8 @@ export default {
           kelish_sanasi: this.arrivalDate,
           ketish_sanasi: this.leaveDate
         });
-        console.log('Davolanish created:', res.data);
         davolanish = res.data.data || res.data;
       } catch (error) {
-        console.error('Davolanish saqlash xatosi:', error);
         alert('Davolanish saqlanmadi');
         return;
       }
@@ -375,30 +357,26 @@ export default {
       }
 
       try {
-        const joylashuvRes = await api.post('/api/v1/xona-joylashuv', {
+        await api.post('/api/v1/xona-joylashuv', {
           davolanish_id: davolanish.id,
-      
           room_id: this.selectedRoom.id,
           from_date: this.arrivalDate,
           to_date: this.leaveDate,
           has_child: this.has_child ? 1 : 0,
           price_per_day: this.selectedRoom.price
         });
-        console.log('Joylashuv saqlandi:', joylashuvRes.data);
       } catch (error) {
-        console.error('Joylashuv saqlash xatosi:', error);
         alert('Joylashuv saqlanmadi');
         return;
       }
 
       const selectedServices = [
-        ...this.mandatoryServices,
+        ...this.mandatoryServices.filter(s => s.selected),
         ...this.additionalServices.filter(s => s.selected)
       ];
-      console.log('Selected services:', selectedServices);
 
       try {
-        const servicesRes = await api.post('/api/v1/client-services', {
+        await api.post('/api/v1/client-services', {
           client_id: this.client.id,
           davolanish_id: davolanish.id,
           services: selectedServices.map(s => ({
@@ -410,16 +388,14 @@ export default {
             kunlik_vaqtlari: s.kunlik_vaqtlari || []
           }))
         });
-        console.log('Xizmatlar saqlandi:', servicesRes.data);
       } catch (error) {
-        console.error('Xizmatlar saqlash xatosi:', error);
         alert('Xizmatlar saqlanmadi');
       }
 
       try {
-        const paymentRes = await api.post('/api/v1/payments', {
+        await api.post('/api/v1/payments', {
           davolanish_id: davolanish.id,
-           client_id: this.client.id,
+          client_id: this.client.id,
           cash: this.extraPayments.cash,
           card: this.extraPayments.card,
           click: this.extraPayments.click,
@@ -428,9 +404,7 @@ export default {
           from: `${this.client.familiya} ${this.client.ism}`,
           datetime: new Date().toISOString()
         });
-        console.log('To‘lovlar saqlandi:', paymentRes.data);
       } catch (error) {
-        console.error('To‘lovlarni saqlashda xatolik:', error.response?.data || error);
         alert('To‘lov ma\'lumotlari saqlanmadi');
         return;
       }
@@ -457,7 +431,6 @@ export default {
   },
   async mounted() {
     const id = this.clientId || this.$route.params.clientId;
-    console.log('Mounted, clientId:', id);
     if (!id) {
       alert('Client ID topilmadi!');
       return;
@@ -467,6 +440,7 @@ export default {
   }
 };
 </script>
+
 
 
 

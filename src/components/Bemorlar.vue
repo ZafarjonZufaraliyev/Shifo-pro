@@ -79,7 +79,16 @@
           <li v-for="patient in patientsList" :key="patient.id">
             {{ patient.client.ism }} {{ patient.client.familiya }},
             {{ calculateAge(patient.client.tugulgan_sana) }} yosh,
-            {{ patient.client.jinsi }}
+            {{ patient.client.jinsi }},
+            Ketdi: {{ formatDateTime(patient.ketish_sanasi) || '—' }}
+            <button
+              v-if="patient.status === '1'"
+              @click="markAsLeft(patient)"
+              class="btn-ketdi"
+              aria-label="Bemor ketdi deb belgilash"
+            >
+              Ketdi
+            </button>
           </li>
         </ul>
       </div>
@@ -108,8 +117,18 @@
             </router-link>
             <div class="card__body">
               <p><strong>📞 Telefon:</strong> {{ patient.client.tel1 || '—' }}</p>
-              <p><strong>Keldi:</strong> {{ patient.kelish_sanasi || '—' }}</p>
-              <p><strong>Ketdi:</strong> {{ patient.ketish_sanasi || '—' }}</p>
+              <p><strong>Keldi:</strong> {{ formatDateTime(patient.kelish_sanasi) || '—' }}</p>
+              <p>
+                <strong>Ketdi:</strong> {{ formatDateTime(patient.ketish_sanasi) || '—' }}
+                <button
+                  v-if="patient.status === '1'"
+                  @click="markAsLeft(patient)"
+                  class="btn-ketdi"
+                  aria-label="Bemor ketdi deb belgilash"
+                >
+                  Ketdi
+                </button>
+              </p>
             </div>
           </div>
         </div>
@@ -173,8 +192,8 @@ export default {
     return {
       isCardView: true,
       search: "",
-      startDate: "", // Boshlanish sanasi
-      endDate: "", // Tugash sanasi
+      startDate: "",
+      endDate: "",
       patients: [],
       loading: false,
       currentPage: 1,
@@ -205,16 +224,17 @@ export default {
         if (this.startDate) params.kelish_sanasi_from = this.startDate;
         if (this.endDate) params.kelish_sanasi_to = this.endDate;
 
-        const davolanishRes = await api.get("/api/v1/davolanish", { params });
-        const davolanishData = davolanishRes.data.data || [];
+        const res = await api.get("/api/v1/davolanish", { params });
+        const data = res.data.data || [];
 
         const today = dayjs().format("YYYY-MM-DD");
-        const activeDavolanish = davolanishData.filter(
+        // faqat status=1 va ketish sanasi hali o'tmagan yoki bo'sh bo'lgan bemorlar
+        const active = data.filter(
           (item) => item.status === "1" && (!item.ketish_sanasi || item.ketish_sanasi >= today)
         );
 
-        this.patients = activeDavolanish;
-        this.lastPage = davolanishRes.data.last_page || 1;
+        this.patients = active;
+        this.lastPage = res.data.last_page || 1;
       } catch (error) {
         console.error("Ma'lumot olishda xatolik:", error);
       } finally {
@@ -235,7 +255,7 @@ export default {
       let age = today.year() - birth.year();
       if (
         today.month() < birth.month() ||
-        (today.month() === birth.month() && today.date() < birth.date())
+        (today.month() === birth.month && today.date() < birth.date())
       ) {
         age--;
       }
@@ -247,7 +267,6 @@ export default {
       this.fetchPatients();
     },
 
-    // Sana oralig‘ini yaratish
     getDateRange(startDate, endDate) {
       const dates = [];
       let current = dayjs(startDate);
@@ -259,7 +278,6 @@ export default {
       return dates;
     },
 
-    // Bemorlarni kelish sanasiga ko‘ra guruhlash
     groupPatientsByDate() {
       const grouped = {};
       const dates = this.getDateRange(this.startDate, this.endDate);
@@ -275,6 +293,27 @@ export default {
       });
 
       return grouped;
+    },
+
+    formatDateTime(datetimeStr) {
+      if (!datetimeStr) return null;
+      return dayjs(datetimeStr).format("YYYY-MM-DD HH:mm");
+    },
+
+    async markAsLeft(patient) {
+      try {
+        this.loading = true;
+        await api.put(`/api/v1/davolanish/${patient.id}`, {
+          status: "0",
+        });
+        await this.fetchPatients();
+        alert(`${patient.client.ism} ${patient.client.familiya} ketdi deb belgilandi.`);
+      } catch (error) {
+        console.error("Statusni o'zgartirishda xatolik:", error);
+        alert("Xatolik yuz berdi. Iltimos, qayta urinib ko‘ring.");
+      } finally {
+        this.loading = false;
+      }
     },
   },
   computed: {
@@ -298,7 +337,6 @@ export default {
       return pages;
     },
 
-    // Sanalar bo‘yicha guruhlangan bemorlar
     groupedPatients() {
       if (!this.startDate || !this.endDate) return {};
       return this.groupPatientsByDate();
@@ -309,36 +347,28 @@ export default {
   },
 };
 </script>
+
 <style scoped>
 .patients-container {
-  width:100%;
-  max-width: 1200px;
-  margin: 20px auto;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: #333;
-  background: #f9f9f9;
-  padding: 20px 25px;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgb(0 0 0 / 0.05);
+  padding: 20px;
+  max-width: 1000px;
+  margin: auto;
+  font-family: Arial, sans-serif;
 }
 
 .header-section {
-  text-align: center;
   margin-bottom: 15px;
 }
 
 .page-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: #2c3e50;
+  font-weight: bold;
+  font-size: 24px;
 }
 
 .top-controls {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 15px;
   margin-bottom: 15px;
 }
 
@@ -346,232 +376,124 @@ export default {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-grow: 1;
-  max-width: 350px;
 }
 
-.search-box img {
-  width: 20px;
-  height: 20px;
-  opacity: 0.6;
-}
-
-.search-box input[type="search"] {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1.5px solid #ccc;
-  border-radius: 6px;
-  font-size: 14px;
-  transition: border-color 0.3s;
-}
-
-.search-box input[type="search"]:focus {
-  outline: none;
-  border-color: #3498db;
-  box-shadow: 0 0 5px #3498dbaa;
+.search-box input {
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
 }
 
 .view-toggle button {
-  background: #e0e0e0;
-  border: none;
-  border-radius: 6px;
-  font-size: 22px;
-  padding: 6px 14px;
+  padding: 6px 10px;
+  margin-left: 5px;
   cursor: pointer;
-  transition: background-color 0.3s, color 0.3s;
+  background: #eee;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 18px;
 }
 
-.view-toggle button.active,
-.view-toggle button:hover {
-  background: #3498db;
+.view-toggle button.active {
+  background: #4caf50;
   color: white;
+  border-color: #4caf50;
 }
 
 .date-range-filter label {
   font-weight: 600;
-  font-size: 14px;
-  color: #444;
 }
 
-.date-range-filter input[type="date"] {
-  margin-left: 8px;
-  padding: 6px 10px;
-  border: 1.5px solid #ccc;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: border-color 0.3s;
-}
-
-.date-range-filter input[type="date"]:focus {
-  outline: none;
-  border-color: #3498db;
-  box-shadow: 0 0 5px #3498dbaa;
-}
-
-.date-range-filter button {
-  background-color: #3498db;
+.btn-ketdi {
+  margin-left: 10px;
+  padding: 3px 8px;
+  background-color: #f44336;
   border: none;
   color: white;
-  padding: 7px 15px;
-  font-weight: 600;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  font-size: 0.85em;
 }
 
-.date-range-filter button:hover {
-  background-color: #2980b9;
+.btn-ketdi:hover {
+  background-color: #d32f2f;
 }
 
-p {
-  font-size: 15px;
-  margin: 12px 0 20px 0;
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-/* Loading spinner */
-.loading-container {
-  display: flex;
-  justify-content: center;
-  padding: 30px 0;
-}
-
-.spinner {
-  width: 36px;
-  height: 36px;
-  border: 4px solid #ddd;
-  border-top-color: #3498db;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Daily patients block */
-.daily-patients-block h3 {
-  font-size: 20px;
-  font-weight: 700;
-  color: #34495e;
-  margin-bottom: 6px;
-  border-bottom: 2px solid #3498db;
-  padding-bottom: 4px;
-}
-
-.daily-patients-block ul {
-  list-style-type: disc;
-  padding-left: 20px;
-  color: #555;
-  font-size: 15px;
-}
-
-.daily-patients-block ul li {
-  margin-bottom: 6px;
-}
-
-/* Cards grid */
 .cards-wrapper {
-  margin-top: 10px;
+  margin-top: 20px;
 }
 
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 15px;
 }
 
 .patient1-card {
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 1px 5px rgb(0 0 0 / 0.1);
-  padding: 16px;
-  transition: box-shadow 0.3s;
-}
-
-.patient1-card:hover {
-  box-shadow: 0 6px 12px rgb(0 0 0 / 0.15);
-}
-
-.card-link {
-  text-decoration: none;
-  color: inherit;
+  background: #f8f8f8;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 0 6px rgba(0,0,0,0.1);
 }
 
 .card__header h3 {
-  margin: 0 0 5px 0;
-  font-size: 18px;
-  font-weight: 700;
+  margin: 0;
+  font-size: 1.25rem;
 }
 
 .card__header span {
-  font-size: 14px;
   color: #666;
+  font-size: 0.9rem;
 }
 
 .card__body p {
   margin: 6px 0;
-  font-size: 14px;
-  color: #444;
-  font-weight: 500;
 }
 
-/* Pagination */
 .pagination-wrapper {
+  margin-top: 20px;
   display: flex;
   justify-content: center;
-  margin-top: 25px;
   gap: 8px;
-  flex-wrap: wrap;
 }
 
 .page-btn {
-  background: #e0e0e0;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 6px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid #aaa;
   cursor: pointer;
-  font-weight: 600;
-  transition: background-color 0.3s;
-}
-
-.page-btn:hover:not(:disabled) {
-  background-color: #3498db;
-  color: white;
+  background-color: white;
 }
 
 .page-btn.active {
-  background-color: #2980b9;
+  background-color: #4caf50;
+  border-color: #4caf50;
   color: white;
-  cursor: default;
+  font-weight: bold;
 }
 
 .page-btn:disabled {
-  background-color: #bbb;
+  opacity: 0.5;
   cursor: not-allowed;
-  color: #eee;
 }
 
-.nav-btn {
-  font-weight: 700;
-  font-size: 16px;
+.loading-container {
+  text-align: center;
+  margin-top: 20px;
 }
 
-/* Responsive adjustments */
-@media (max-width: 600px) {
-  .top-controls {
-    flex-direction: column;
-    align-items: stretch;
-  }
+.spinner {
+  border: 4px solid #eee;
+  border-top: 4px solid #4caf50;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  animation: spin 1s linear infinite;
+  margin: auto;
+}
 
-  .search-box {
-    max-width: 100%;
-  }
-
-  .view-toggle {
-    justify-content: flex-start;
-  }
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>

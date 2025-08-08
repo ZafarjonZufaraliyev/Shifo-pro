@@ -319,10 +319,44 @@ export default {
     },
 
     async updateExitDate(item) {
-      if (!item.chiqish_sanasi) return alert('❌ Chiqish sanasi kiritilmagan');
-      await api.put(`/api/v1/xona-joylashuv/${item.id}`, { to_date: item.chiqish_sanasi });
-      this.fetchAll();
-    },
+  if (!item.chiqish_sanasi) return alert('❌ Chiqish sanasi kiritilmagan');
+  try {
+    await api.put(`/api/v1/xona-joylashuv/${item.id}`, { to_date: item.chiqish_sanasi });
+    console.log('Xona joylashuvi chiqish sanasi yangilandi.');
+
+    // Agar davolanish_id mavjud bo'lmasa, uni topamiz
+    let davolanishId = item.davolanish_id;
+
+    if (!davolanishId) {
+      // Misol uchun, client_id va kelish_sanasi bilan qidirish (bu sizning APIga bog'liq)
+      const res = await api.get('/api/v1/davolanish', {
+        params: {
+          client_id: this.patient.id,
+          kelish_sanasi: item.kirish_sanasi || item.from_date
+        }
+      });
+      const data = res.data.data || [];
+      if (data.length > 0) {
+        davolanishId = data[0].id;
+        console.log('Davolanish ID topildi:', davolanishId);
+      }
+    }
+
+    if (davolanishId) {
+      const resUpdate = await api.put(`/api/v1/davolanish/${davolanishId}`, { ketish_sanasi: item.chiqish_sanasi });
+      console.log('Davolanish ketish sanasi yangilandi:', resUpdate.data);
+    } else {
+      console.warn('Davolanish ID topilmadi, ketish_sanasi yangilanmadi.');
+    }
+
+    this.fetchAll();
+  } catch (error) {
+    console.error('Chiqish sanasini yangilashda xatolik:', error);
+    alert('Xatolik yuz berdi, iltimos qayta urinib ko‘ring.');
+  }
+},
+
+
 
     async submitReRegister() {
       const r = this.rr;
