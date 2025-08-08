@@ -11,13 +11,19 @@
         </div>
       </div>
 
+      <!-- Uy manzili -->
+      <div class="form-group">
+        <label>Uy manzili</label>
+        <input v-model="form.manzil" type="text" placeholder="To‘liq manzilingizni kiriting" required />
+      </div>
+
       <!-- Jins -->
       <div class="form-group">
         <label>Jins</label>
         <select v-model="form.jins" required>
           <option disabled value="">Tanlang</option>
-          <option>Erkak</option>
-          <option>Ayol</option>
+          <option value="Erkak">Erkak</option>
+          <option value="Ayol">Ayol</option>
         </select>
       </div>
 
@@ -26,8 +32,8 @@
         <label>Fuqaroligi</label>
         <select v-model="form.davlat" required>
           <option disabled value="">Tanlang</option>
-          <option>O‘zbekiston</option>
-          <option>Xorijiy</option>
+          <option value="O‘zbekiston">O‘zbekiston</option>
+          <option value="Xorijiy">Xorijiy</option>
         </select>
       </div>
 
@@ -76,7 +82,6 @@
       <!-- Biz haqimizda qayerdan eshitdingiz? -->
       <div class="form-group">
         <label>Biz haqimizda qayerdan eshitdingiz?</label>
-
         <div class="referral-dropdown">
           <button type="button" @click="toggleReferralList" class="dropdown-btn">
             {{ form.referral || 'Tanlang' }}
@@ -91,28 +96,17 @@
                 :class="{'default-referral': isDefaultReferral(item), 'custom-referral': !isDefaultReferral(item)}"
               >
                 <span @click="selectReferral(item)" class="referral-text">{{ item }}</span>
-
                 <button
                   type="button"
                   @click.stop="removeReferral(index)"
                   :disabled="isDefaultReferral(item)"
-                  :title="isDefaultReferral(item) ? 'Standart variantni o‘chirib bo‘lmaydi!' : 'O‘chirish'"
                   class="remove-btn"
-                >
-                  ×
-                </button>
+                >×</button>
               </li>
             </ul>
-
-            <!-- Qo'shish uchun input va tugma -->
             <div class="add-referral">
-              <input
-                v-model="newReferral"
-                type="text"
-                placeholder="Yangi variantni kiriting"
-                @keyup.enter="addReferral"
-              />
-              <button type="button" @click="addReferral">Qo'shish</button>
+              <input v-model="newReferral" type="text" placeholder="Yangi variant..." @keyup.enter="addReferral" />
+              <button type="button" @click="addReferral">Qo‘shish</button>
             </div>
           </div>
         </div>
@@ -123,9 +117,9 @@
         <label>Parhez (ixtiyoriy)</label>
         <select v-model="form.parhez">
           <option disabled value="">Tanlang</option>
-          <option>Diabetik</option>
-          <option>Allergik</option>
-          <option>Davleniya</option>
+          <option value="Diabetik">Diabetik</option>
+          <option value="Allergik">Allergik</option>
+          <option value="Davleniya">Davleniya</option>
         </select>
       </div>
 
@@ -143,29 +137,17 @@ export default {
   data() {
     return {
       viloyatlar: [
-        'Toshkent',
-        'Andijon',
-        'Farg‘ona',
-        'Namangan',
-        'Samarqand',
-        'Buxoro',
-        'Xorazm',
-        'Qashqadaryo',
-        'Surxondaryo',
-        'Jizzax',
-        'Sirdaryo',
-        'Navoiy',
+        'Toshkent', 'Andijon', 'Farg‘ona', 'Namangan',
+        'Samarqand', 'Buxoro', 'Xorazm', 'Qashqadaryo',
+        'Surxondaryo', 'Jizzax', 'Sirdaryo', 'Navoiy',
         'Qoraqalpog‘iston Respublikasi'
       ],
       defaultReferrals: [
-        "Do‘stdan",
-        "Reklama",
-        "Ijtimoiy tarmoq",
-        "Vrach tavsiyasi",
-        "Boshqa"
+        "Do‘stdan", "Reklama", "Ijtimoiy tarmoq",
+        "Vrach tavsiyasi", "Boshqa"
       ],
-      referrals: [],          // Barcha referral variantlari (default + custom)
-      referralListOpen: false, // Dropdown holati
+      referrals: [],
+      referralListOpen: false,
       newReferral: '',
       form: {
         familiya: '',
@@ -179,24 +161,26 @@ export default {
         tel2: '',
         referral: '',
         parhez: '',
+        manzil: '',
         create_user_id: null,
         create_user_name: '',
       },
     };
   },
+
   watch: {
     referrals: {
       handler(newVal) {
         localStorage.setItem('referrals', JSON.stringify(newVal));
       },
-      deep: true
+      deep: true,
     },
     'form.referral'(newVal) {
       localStorage.setItem('referral', newVal);
-    }
+    },
   },
+
   mounted() {
-    // Rol tekshirish
     const role = (localStorage.getItem('role') || '').trim();
     const allowedRoles = ['admin', 'kassa'];
     if (!allowedRoles.includes(role)) {
@@ -207,12 +191,10 @@ export default {
 
     this.fetchCurrentUser();
 
-    // Referrallarni yuklash (localStorage’dan yoki default)
     const storedReferrals = localStorage.getItem('referrals');
     if (storedReferrals) {
       try {
         const parsed = JSON.parse(storedReferrals);
-        // Default variantlarni qo‘shish agar yo‘q bo‘lsa va takrorlanmaslik uchun Set
         this.referrals = [...new Set([...this.defaultReferrals, ...parsed])];
       } catch {
         this.referrals = [...this.defaultReferrals];
@@ -221,12 +203,12 @@ export default {
       this.referrals = [...this.defaultReferrals];
     }
 
-    // Tanlangan referralni localStorage’dan olish
     const storedSelectedReferral = localStorage.getItem('referral');
     if (storedSelectedReferral && this.referrals.includes(storedSelectedReferral)) {
       this.form.referral = storedSelectedReferral;
     }
   },
+
   methods: {
     fetchCurrentUser() {
       api.get('/api/v1/user_data')
@@ -241,13 +223,16 @@ export default {
           console.error('Foydalanuvchini olishda xatolik:', err);
         });
     },
+
     toggleReferralList() {
       this.referralListOpen = !this.referralListOpen;
     },
+
     selectReferral(item) {
       this.form.referral = item;
       this.referralListOpen = false;
     },
+
     addReferral() {
       const val = this.newReferral.trim();
       if (!val) return;
@@ -260,6 +245,7 @@ export default {
       this.newReferral = '';
       this.referralListOpen = true;
     },
+
     removeReferral(index) {
       const item = this.referrals[index];
       if (this.isDefaultReferral(item)) {
@@ -271,13 +257,18 @@ export default {
         this.form.referral = '';
       }
     },
+
     isDefaultReferral(item) {
       return this.defaultReferrals.includes(item);
     },
+
     async registerClient() {
       try {
+        console.log('Yuborilayotgan form:', this.form); // Debug uchun
+
         const res = await api.post('/api/v1/clients', this.form);
         const client = res.data?.data;
+
         if (!client?.id) {
           alert('Ro‘yxatdan o‘tishda mijoz ID topilmadi!');
           return;
@@ -296,7 +287,6 @@ export default {
         }
 
       } catch (err) {
-        console.error('API xatosi:', err.response || err);
         if (err.response && err.response.status === 422) {
           const errors = err.response.data.errors;
           let msg = '❗ Xatoliklar:\n';
@@ -307,13 +297,15 @@ export default {
         } else if (err.response) {
           alert(`❌ Serverdan xatolik qaytdi: ${err.response.status} ${err.response.statusText}`);
         } else {
+          console.error('API xatosi:', err);
           alert('❌ Ro‘yxatdan o‘tishda nomaʼlum xatolik yuz berdi!');
         }
       }
-    }
-  }
+    },
+  },
 };
 </script>
+
 <style scoped>
 .register-container {
   width:100%;
@@ -543,5 +535,3 @@ button[type="submit"]:hover {
   }
 }
 </style>
-
-
