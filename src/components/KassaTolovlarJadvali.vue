@@ -70,6 +70,18 @@
           <td colspan="11" style="text-align:center;">Ma’lumotlar mavjud emas</td>
         </tr>
       </tbody>
+
+      <!-- Umumiy summalar -->
+      <tfoot v-if="filteredPayments.length > 0">
+        <tr>
+          <td colspan="3" style="text-align:right;"><strong>Jami:</strong></td>
+          <td>{{ formatAmount(totals.cash) }}</td>
+          <td>{{ formatAmount(totals.card) }}</td>
+          <td>{{ formatAmount(totals.click) }}</td>
+          <td>{{ formatAmount(totals.humo) }}</td>
+          <td colspan="4"></td>
+        </tr>
+      </tfoot>
     </table>
   </div>
 </template>
@@ -95,7 +107,7 @@ export default {
     filteredPayments() {
       const from = new Date(this.filters.fromDate);
       const to = new Date(this.filters.toDate);
-      to.setDate(to.getDate() + 1); // ertangi 00:00gacha
+      to.setDate(to.getDate() + 1); // ertangi 00:00 gacha
 
       return this.allPayments
         .filter((p) => {
@@ -121,6 +133,18 @@ export default {
         }
       });
       return Array.from(set);
+    },
+    totals() {
+      return this.filteredPayments.reduce(
+        (acc, p) => {
+          acc.cash += Number(p.cash) || 0;
+          acc.card += Number(p.card) || 0;
+          acc.click += Number(p.click) || 0;
+          acc.humo += Number(p.humo) || 0;
+          return acc;
+        },
+        { cash: 0, card: 0, click: 0, humo: 0 }
+      );
     },
   },
   methods: {
@@ -151,7 +175,9 @@ export default {
     },
     formatAmount(amount) {
       const num = Number(amount);
-      return num > 0 ? num.toLocaleString("uz-UZ") + " so'm" : "-";
+      if (isNaN(num)) return "-";
+      const abs = Math.abs(num).toLocaleString("uz-UZ");
+      return (num < 0 ? "-" : "") + abs + " so'm";
     },
     formatDateInput(date) {
       const d = new Date(date);
@@ -163,6 +189,7 @@ export default {
   },
 };
 </script>
+
 
 <style scoped>
 .payments-table {

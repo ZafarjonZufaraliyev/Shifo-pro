@@ -100,20 +100,44 @@
         </tr>
 
         <!-- Yangi xona qo‘shish -->
-        <tr v-if="activeTab === 'xonalar'" class="input-row">
-          <td>*</td>
-          <td>
-            <select v-model="rr.xona_id">
-              <option disabled value="">Tanlang</option>
-              <option v-for="r in availableRooms" :key="r.id" :value="r.id">{{ r.room_type?.name || 'Nomaʼlum' }} {{ r.xona }}</option>
-            </select>
-          </td>
-          <td>{{ rrPrice ? formatPrice(rrPrice) : '-' }}</td>
+ <!-- Yangi xona qo‘shish -->
+<tr v-if="activeTab === 'xonalar'" class="input-row">
+  <td>*</td>
 
-          <td><input type="date" v-model="rr.kirish_sanasi" /></td>
-          <td><input type="date" v-model="rr.chiqish_sanasi" /></td>
-          <td><button @click="submitReRegister">➕</button></td>
-        </tr>
+  <!-- Xona tanlash -->
+  <td>
+   <select v-model="rr.xona_id">
+  <option disabled value="">Tanlang</option>
+  <option v-for="r in availableRooms" :key="r.id" :value="r.id">
+    {{ r.room_type?.name || 'Nomaʼlum' }} {{ r.xona }}
+  </option>
+</select>
+  </td>
+
+  <!-- Narx avtomatik chiqadi, lekin o‘zgartirish mumkin -->
+  <td>
+    <input
+  type="number"
+  v-model.number="rr.price"
+  min="0"
+  placeholder="Narx"
+/>
+  </td>
+
+  <!-- 1 kunlik default sana qo‘yiladi -->
+  <td>
+    <input type="date" v-model="rr.kirish_sanasi" />
+  </td>
+  <td>
+    <input type="date" v-model="rr.chiqish_sanasi" />
+  </td>
+
+  <!-- Qo‘shish tugmasi -->
+  <td>
+    <button @click="submitReRegister">➕</button>
+  </td>
+</tr>
+
       </tbody>
     </table>
 
@@ -124,7 +148,6 @@
     <p>⏳ Yuklanmoqda...</p>
   </div>
 </template>
-
 <script>
 import api from '@/api';
 
@@ -144,7 +167,13 @@ export default {
       allServices: [],
       activeTab: 'xizmatlar',
       newService: { service_id: '', sana: '' },
-      rr: { kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [] },
+      rr: {
+        kirish_sanasi: '',
+        chiqish_sanasi: '',
+        xona_id: '',
+        xizmatlar: [],
+        price: 0, // Narx bu yerda saqlanadi va o'zgartirilishi mumkin
+      },
       role: localStorage.getItem('role') || 'mini',
       currentUser: JSON.parse(localStorage.getItem('currentUser') || '{}'),
     };
@@ -160,6 +189,17 @@ export default {
       });
     },
 
+    rrPrice() {
+      if (!this.rr.xona_id || !this.rr.kirish_sanasi || !this.rr.chiqish_sanasi) return null;
+      const room = this.availableRooms.find(r => String(r.id) === String(this.rr.xona_id));
+      const roomType = this.availableRoomTypes.find(rt => String(rt.id) === String(room?.room_type_id));
+      const pricePerDay = Number(roomType?.Narxi || roomType?.price || 0);
+      const from = new Date(this.rr.kirish_sanasi);
+      const to = new Date(this.rr.chiqish_sanasi);
+      const days = to > from ? Math.floor((to - from) / 86400000) + 1 : 0;
+      return pricePerDay * days;
+    },
+
     selectedServicePrice() {
       const selected = this.allServices.find(s => s.id === this.newService.service_id);
       return selected ? (selected.narxi || selected.price || 0) : null;
@@ -171,7 +211,7 @@ export default {
         .filter(a => stayIds.includes(Number(a.davolanish_id)))
         .map(a => {
           const room = this.availableRooms.find(r => String(r.id) === String(a.room_id)) || {};
-          const roomType = this.availableRoomTypes.find(rt => String(rt.id) === String(room.room_type_id)) || {};
+          const roomType = this.availableRoomTypes.find(rt => String(rt.id) === String(room?.room_type_id)) || {};
           const pricePerDay = Number(a.price_per_day || roomType.Narxi || roomType.price || 0) || 1;
           const from = new Date(a.from_date || a.kirish_sanasi);
           const to = new Date(a.to_date || a.chiqish_sanasi);
@@ -187,36 +227,32 @@ export default {
     },
 
     filteredData() {
-      if (this.activeTab === 'xizmatlar') return this.xizmatlar;
-      if (this.activeTab === 'kasalliklar') return this.kasalliklar;
-      if (this.activeTab === 'natijalar') return this.natijalar;
-      if (this.activeTab === 'xonalar') return this.roomData;
-      if (this.activeTab === 'davolanishlar') return this.stays;
-      return [];
-    },
+      switch (this.activeTab) {
+        case 'xizmatlar': return this.xizmatlar;
+        case 'kasalliklar': return this.kasalliklar;
+        case 'natijalar': return this.natijalar;
+        case 'xonalar': return this.roomData;
+        case 'davolanishlar': return this.stays;
+        default: return [];
+      }
+    }
+  },
 
-    rrPrice() {
-      if (!this.rr.xona_id || !this.rr.kirish_sanasi || !this.rr.chiqish_sanasi) return null;
-
-      const room = this.availableRooms.find(r => String(r.id) === String(this.rr.xona_id));
-      const roomType = this.availableRoomTypes.find(rt => String(rt.id) === String(room?.room_type_id));
+  watch: {
+    // Xona tanlanganda narx avtomatik o'rnatiladi
+    'rr.xona_id'(newVal) {
+      if (!newVal) {
+        this.rr.price = 0;
+        return;
+      }
+      const selectedRoom = this.availableRooms.find(r => String(r.id) === String(newVal));
+      if (!selectedRoom) {
+        this.rr.price = 0;
+        return;
+      }
+      const roomType = this.availableRoomTypes.find(rt => String(rt.id) === String(selectedRoom.room_type_id));
       const pricePerDay = Number(roomType?.Narxi || roomType?.price || 0);
-
-      const from = new Date(this.rr.kirish_sanasi);
-      const to = new Date(this.rr.chiqish_sanasi);
-      const days = to > from ? Math.floor((to - from) / 86400000) + 1 : 0;
-
-      console.log('📊 [rrPrice hisob]', {
-        room,
-        roomType,
-        pricePerDay,
-        from,
-        to,
-        days,
-        total: pricePerDay * days
-      });
-
-      return pricePerDay * days;
+      this.rr.price = pricePerDay;
     }
   },
 
@@ -236,8 +272,11 @@ export default {
       const birth = new Date(d);
       const today = new Date();
       let yosh = today.getFullYear() - birth.getFullYear();
-      if (today.getMonth() < birth.getMonth() ||
-        (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) yosh--;
+      if (
+        today.getMonth() < birth.getMonth() ||
+        (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())
+      )
+        yosh--;
       return yosh;
     },
 
@@ -278,7 +317,7 @@ export default {
               nomi: info?.nomi || info?.name || 'Nomaʼlum',
               narxi: Number(s.price || s.narxi || 0),
               sana: s.start_date || s.sana,
-              id: s.id
+              id: s.id,
             };
           });
       } catch (err) {
@@ -289,8 +328,9 @@ export default {
     },
 
     async addService() {
-      if (!this.newService.service_id || !this.newService.sana)
+      if (!this.newService.service_id || !this.newService.sana) {
         return alert('❗ Xizmat va sana tanlanishi kerak');
+      }
       try {
         const service = this.allServices.find(s => s.id === this.newService.service_id);
         await api.post('/api/v1/client-services', {
@@ -319,44 +359,29 @@ export default {
     },
 
     async updateExitDate(item) {
-  if (!item.chiqish_sanasi) return alert('❌ Chiqish sanasi kiritilmagan');
-  try {
-    await api.put(`/api/v1/xona-joylashuv/${item.id}`, { to_date: item.chiqish_sanasi });
-    console.log('Xona joylashuvi chiqish sanasi yangilandi.');
+      if (!item.chiqish_sanasi) return alert('❌ Chiqish sanasi kiritilmagan');
+      try {
+        await api.put(`/api/v1/xona-joylashuv/${item.id}`, { to_date: item.chiqish_sanasi });
 
-    // Agar davolanish_id mavjud bo'lmasa, uni topamiz
-    let davolanishId = item.davolanish_id;
-
-    if (!davolanishId) {
-      // Misol uchun, client_id va kelish_sanasi bilan qidirish (bu sizning APIga bog'liq)
-      const res = await api.get('/api/v1/davolanish', {
-        params: {
-          client_id: this.patient.id,
-          kelish_sanasi: item.kirish_sanasi || item.from_date
+        let davolanishId = item.davolanish_id;
+        if (!davolanishId) {
+          const res = await api.get('/api/v1/davolanish', {
+            params: { client_id: this.patient.id, kelish_sanasi: item.kirish_sanasi || item.from_date },
+          });
+          const data = res.data.data || [];
+          if (data.length > 0) davolanishId = data[0].id;
         }
-      });
-      const data = res.data.data || [];
-      if (data.length > 0) {
-        davolanishId = data[0].id;
-        console.log('Davolanish ID topildi:', davolanishId);
+
+        if (davolanishId) {
+          await api.put(`/api/v1/davolanish/${davolanishId}`, { ketish_sanasi: item.chiqish_sanasi });
+        }
+
+        this.fetchAll();
+      } catch (error) {
+        console.error('Chiqish sanasini yangilashda xatolik:', error);
+        alert('Xatolik yuz berdi, iltimos qayta urinib ko‘ring.');
       }
-    }
-
-    if (davolanishId) {
-      const resUpdate = await api.put(`/api/v1/davolanish/${davolanishId}`, { ketish_sanasi: item.chiqish_sanasi });
-      console.log('Davolanish ketish sanasi yangilandi:', resUpdate.data);
-    } else {
-      console.warn('Davolanish ID topilmadi, ketish_sanasi yangilanmadi.');
-    }
-
-    this.fetchAll();
-  } catch (error) {
-    console.error('Chiqish sanasini yangilashda xatolik:', error);
-    alert('Xatolik yuz berdi, iltimos qayta urinib ko‘ring.');
-  }
-},
-
-
+    },
 
     async submitReRegister() {
       const r = this.rr;
@@ -376,35 +401,29 @@ export default {
         }
 
         const lastRoom = [...this.roomAssignments]
-          .filter(ra => ra.davolanish_id === stay.id)
+          .filter((ra) => ra.davolanish_id === stay.id)
           .sort((a, b) => new Date(b.from_date) - new Date(a.from_date))[0];
 
         if (lastRoom) {
           await api.put(`/api/v1/xona-joylashuv/${lastRoom.id}`, {
             ...lastRoom,
-            to_date: r.kirish_sanasi
+            to_date: r.kirish_sanasi,
           });
         }
 
-        const room = this.availableRooms.find(room => String(room.id) === String(r.xona_id));
-        const roomType = this.availableRoomTypes.find(rt => String(rt.id) === String(room?.room_type_id));
-        const pricePerDay = Number(roomType?.Narxi || roomType?.price || 0) || 1;
-
+        // Bu yerda price_per_day sifatida foydalanuvchi kiritgan narx yuboriladi
         const payload = {
           davolanish_id: stay.id,
           room_id: r.xona_id,
           from_date: r.kirish_sanasi,
           to_date: r.chiqish_sanasi,
-          price_per_day: pricePerDay,
+          price_per_day: r.price || 0,  // Foydalanuvchi tomonidan o'zgartirilgan yoki avtomatik o'rnatilgan narx
         };
-
-        console.log('📌 [submitReRegister] APIga yuboriladigan payload:', payload);
 
         await api.post('/api/v1/xona-joylashuv', payload);
 
         for (const sid of r.xizmatlar) {
-          const s = this.allServices.find(srv => srv.id === sid);
-          console.log('💰 [Xizmat qo‘shish]', { sid, s, price: s ? (s.narxi || s.price || 0) : 0 });
+          const s = this.allServices.find((srv) => srv.id === sid);
           await api.post('/api/v1/client-services', {
             client_id: this.patient.id,
             davolanish_id: stay.id,
@@ -414,13 +433,12 @@ export default {
           });
         }
 
-        this.rr = { kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [] };
+        this.rr = { kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [], price: 0 };
         this.fetchAll();
       } catch (err) {
         console.error('❌ Xatolik:', err);
-        console.log('📥 Server javobi:', err.response?.data);
       }
-    }
+    },
   },
 
   mounted() {

@@ -351,8 +351,9 @@ export default {
 <style scoped>
 .patients-container {
   padding: 20px;
-  max-width: 1000px;
-  margin: auto;
+  max-width: 1200px;
+  margin: 20px auto;
+  width:100%;
   font-family: Arial, sans-serif;
 }
 
