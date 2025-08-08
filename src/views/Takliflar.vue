@@ -329,106 +329,97 @@ export default {
       this.additionalServices.splice(index, 1);
     },
     async submitDavolanish() {
-  if (!this.selectedRoom) {
-    alert('Xona tanlang!');
-    return;
-  }
-  if (!this.client?.id) {
-    alert('Mijoz tanlanmagan!');
-    return;
-  }
+      if (!this.selectedRoom) {
+        alert('Xona tanlang!');
+        return;
+      }
+      if (!this.client?.id) {
+        alert('Mijoz tanlanmagan!');
+        return;
+      }
 
-  let davolanish = null;
-  try {
-    const res = await api.post('/api/v1/davolanish', {
-      client_id: this.client.id,
-      xona_id: this.selectedRoom.id,
-      kelish_sanasi: this.arrivalDate,
-      ketish_sanasi: this.leaveDate
-    });
-    davolanish = res.data.data || res.data;
-  } catch (error) {
-    alert('Davolanish saqlanmadi');
-    return;
-  }
-  if (!davolanish?.id) {
-    alert('Davolanish ID topilmadi');
-    return;
-  }
+      let davolanish = null;
+      try {
+        const res = await api.post('/api/v1/davolanish', {
+          client_id: this.client.id,
+          xona_id: this.selectedRoom.id,
+          kelish_sanasi: this.arrivalDate,
+          ketish_sanasi: this.leaveDate
+        });
+        davolanish = res.data.data || res.data;
+      } catch (error) {
+        alert('Davolanish saqlanmadi');
+        return;
+      }
+      if (!davolanish?.id) {
+        alert('Davolanish ID topilmadi');
+        return;
+      }
 
-  try {
-    await api.post('/api/v1/xona-joylashuv', {
-      davolanish_id: davolanish.id,
-      room_id: this.selectedRoom.id,
-      from_date: this.arrivalDate,
-      to_date: this.leaveDate,
-      has_child: this.has_child ? 1 : 0,
-      price_per_day: this.selectedRoom.price
-    });
-  } catch (error) {
-    alert('Joylashuv saqlanmadi');
-    return;
-  }
+      try {
+        await api.post('/api/v1/xona-joylashuv', {
+          davolanish_id: davolanish.id,
+          room_id: this.selectedRoom.id,
+          from_date: this.arrivalDate,
+          to_date: this.leaveDate,
+          has_child: this.has_child ? 1 : 0,
+          price_per_day: this.selectedRoom.price
+        });
+      } catch (error) {
+        alert('Joylashuv saqlanmadi');
+        return;
+      }
 
-  const selectedServices = [
-    ...this.mandatoryServices.filter(s => s.selected),
-    ...this.additionalServices.filter(s => s.selected)
-  ];
+      const selectedServices = [
+        ...this.mandatoryServices.filter(s => s.selected),
+        ...this.additionalServices.filter(s => s.selected)
+      ];
 
-  try {
-    await api.post('/api/v1/client-services', {
-      client_id: this.client.id,
-      davolanish_id: davolanish.id,
-      services: selectedServices.map(s => ({
-        service_id: s.id,
-        price: s.price,
-        mahal: s.mahal || 1,
-        total_days: this.stayDays,
-        start_date: this.arrivalDate,
-        kunlik_vaqtlari: s.kunlik_vaqtlari || []
-      }))
-    });
-  } catch (error) {
-    alert('Xizmatlar saqlanmadi');
-  }
+      try {
+        await api.post('/api/v1/client-services', {
+          client_id: this.client.id,
+          davolanish_id: davolanish.id,
+          services: selectedServices.map(s => ({
+            service_id: s.id,
+            price: s.price,
+            mahal: s.mahal || 1,
+            total_days: this.stayDays,
+            start_date: this.arrivalDate,
+            kunlik_vaqtlari: s.kunlik_vaqtlari || []
+          }))
+        });
+      } catch (error) {
+        alert('Xizmatlar saqlanmadi');
+      }
 
-  try {
-    await api.post('/api/v1/payments', {
-      davolanish_id: davolanish.id,
-      is_patient_payment:1,
-      client_id: this.client.id,
-      cash: this.extraPayments.cash,
-      card: this.extraPayments.card,
-      click: this.extraPayments.click,
-      total: this.totalSum,
-      type: 'kirim',
-      from: `${this.client.familiya} ${this.client.ism}`,
-      datetime: new Date().toISOString()
-    });
-  } catch (error) {
-    alert('To‘lov ma\'lumotlari saqlanmadi');
-    return;
-  }
+      try {
+        await api.post('/api/v1/payments', {
+          davolanish_id: davolanish.id,
+          is_patient_payment:1,
+          client_id: this.client.id,
+          cash: this.extraPayments.cash,
+          card: this.extraPayments.card,
+          click: this.extraPayments.click,
+          total: this.totalSum,
+          type: 'kirim',
+          from: `${this.client.familiya} ${this.client.ism}`,
+          datetime: new Date().toISOString()
+        });
+      } catch (error) {
+        alert('To‘lov ma\'lumotlari saqlanmadi');
+        return;
+      }
 
-  this.cancelSelection();
+      this.cancelSelection();
 
-  await Promise.all([
-    this.loadRooms(),
-    this.loadDavolanishlar(),
-    this.loadBronlar(),
-    this.loadServices()
-  ]);
-  this.markBusyRooms();
-
-  // Role ga qarab redirect
-  if (this.role === 'admin') {
-    this.$router.push('/kasaFilterAdmin');
-  } else if (this.role === 'mini') {
-    this.$router.push('/kasaFilterMini');
-  } else {
-    this.$router.push('/kasaFilter');
-  }
-},
+      await Promise.all([
+        this.loadRooms(),
+        this.loadDavolanishlar(),
+        this.loadBronlar(),
+        this.loadServices()
+      ]);
+      this.markBusyRooms();
+    },
     async loadAllData() {
       await Promise.all([
         this.loadRooms(),
