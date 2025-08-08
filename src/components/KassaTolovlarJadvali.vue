@@ -104,31 +104,32 @@ export default {
     };
   },
   computed: {
-    filteredPayments() {
-      const from = new Date(this.filters.fromDate);
-      const to = new Date(this.filters.toDate);
-      to.setDate(to.getDate() + 1); // ertangi 00:00 gacha
+   filteredPayments() {
+  const from = new Date(this.filters.fromDate);
+  const to = new Date(this.filters.toDate);
+  to.setDate(to.getDate() + 1); // ertangi 00:00 gacha
 
-      return this.allPayments
-        .filter((p) => {
-          const created = new Date(p.created_at);
-          const isDateInRange = created >= from && created < to;
-          const isTypeMatch = this.filters.type
-            ? p.type === this.filters.type
-            : true;
-          const isFromMatch = this.filters.from
-            ? p.from === this.filters.from
-            : true;
-          const isNotBemor = !p.from?.toLowerCase().includes("bemor");
+  return this.allPayments
+    .filter((p) => {
+      const created = new Date(p.created_at);
+      const isDateInRange = created >= from && created < to;
+      const isTypeMatch = this.filters.type
+        ? p.type === this.filters.type
+        : true;
+      const isFromMatch = this.filters.from
+        ? p.from === this.filters.from
+        : true;
+      const isNotPatient = p.is_patient_payment === false;
 
-          return isDateInRange && isTypeMatch && isFromMatch && isNotBemor;
-        })
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    },
+      return isDateInRange && isTypeMatch && isFromMatch && isNotPatient;
+    })
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+}
+,
     uniqueFromValues() {
       const set = new Set();
       this.allPayments.forEach((p) => {
-        if (p.from && !p.from.toLowerCase().includes("bemor")) {
+        if (p.from) {
           set.add(p.from);
         }
       });
@@ -149,19 +150,27 @@ export default {
   },
   methods: {
     async fetchPayments() {
-      try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get("/api/v1/payments", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        this.allPayments = Array.isArray(response.data.data)
-          ? response.data.data
-          : [];
-      } catch (error) {
-        console.error("❌ To‘lovlarni olishda xatolik:", error);
-        this.allPayments = [];
-      }
-    },
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axios.get("/api/v1/payments", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    console.log(response)
+    // Konsolga to‘liq javobni chiqaramiz
+    console.log("API javobi:", response);
+
+    // To‘lovlar ro‘yxatini ajratib olamiz
+    this.allPayments = Array.isArray(response.data.data)
+      ? response.data.data
+      : [];
+
+    console.log("AllPayments:", this.allPayments);
+  } catch (error) {
+    console.error("❌ To‘lovlarni olishda xatolik:", error);
+    this.allPayments = [];
+  }
+}
+,
     formatDate(datetime) {
       if (!datetime) return "-";
       const date = new Date(datetime);
@@ -191,11 +200,13 @@ export default {
 </script>
 
 
+
 <style scoped>
 .payments-table {
   margin: 20px auto;
   padding: 10px;
-  max-width: 1200px;
+  max-width: 1800px;
+  width:100%;
   overflow-x: auto;
   background: #fff;
   border-radius: 8px;
@@ -205,8 +216,8 @@ export default {
 .title {
   text-align: center;
   margin-bottom: 15px;
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 25px;
+  font-weight: 700;
   color: #333;
 }
 
@@ -221,14 +232,14 @@ export default {
 .filter-panel label {
   display: flex;
   flex-direction: column;
-  font-size: 14px;
+  font-size: 25px;
   color: #555;
 }
 
 .filter-panel input,
 .filter-panel select {
-  padding: 5px;
-  font-size: 14px;
+  padding: 10px;
+  font-size: 23px;
   border: 1px solid #ccc;
   border-radius: 5px;
   margin-top: 4px;
@@ -237,7 +248,7 @@ export default {
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 25px;
 }
 
 th,
@@ -245,6 +256,7 @@ td {
   padding: 10px;
   border: 1px solid #ddd;
   text-align: center;
+  font-size: 24px;
 }
 
 th {

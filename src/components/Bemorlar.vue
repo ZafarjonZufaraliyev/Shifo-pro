@@ -38,23 +38,20 @@
     </div>
 
     <!-- Sana oralig‘i filtri -->
-    <div
-      class="date-range-filter"
-      style="margin-top: 20px; border-top: 1px solid #ccc; padding-top: 15px;"
-    >
-      <label style="margin-right: 15px;">
+    <div class="date-range-filter">
+      <label>
         Boshlanish sanasi:
         <input type="date" v-model="startDate" />
       </label>
-      <label style="margin-right: 15px;">
+      <label>
         Tugash sanasi:
         <input type="date" v-model="endDate" />
       </label>
-      <button @click="onFilterClick" style="padding: 6px 12px;">Filtrlash</button>
+      <button @click="onFilterClick">Filtrlash</button>
     </div>
 
     <!-- Jami bemorlar soni -->
-    <p style="margin-top: 10px;">
+    <p class="total-count">
       <strong>Jami bemorlar soni:</strong> {{ patients.length }}
     </p>
 
@@ -64,16 +61,15 @@
     </div>
 
     <!-- Sanalar bo'yicha guruhlangan ro'yxat -->
-    <div v-else-if="startDate && endDate">
+    <div v-else-if="startDate && endDate" class="grouped-patients">
       <div
         v-for="(patientsList, date) in groupedPatients"
         :key="date"
         class="daily-patients-block"
-        style="margin-bottom: 25px;"
       >
         <h3>{{ date }} ({{ patientsList.length }} ta bemor)</h3>
         <ul>
-          <li v-if="patientsList.length === 0" style="color: #999;">
+          <li v-if="patientsList.length === 0" class="no-patients">
             Hech kim kelmagan
           </li>
           <li v-for="patient in patientsList" :key="patient.id">
@@ -95,80 +91,78 @@
     </div>
 
     <!-- Card ko‘rinish (sanalar oralig‘i berilmagan bo‘lsa) -->
-    <div v-else-if="isCardView">
-      <div class="cards-wrapper">
-        <div class="cards-grid" role="list">
-          <div
-            v-for="patient in patients"
-            :key="patient.id"
-            class="patient1-card"
-            role="listitem"
+    <div v-else-if="isCardView" class="cards-wrapper">
+      <div class="cards-grid" role="list">
+        <div
+          v-for="patient in patients"
+          :key="patient.id"
+          class="patient1-card"
+          role="listitem"
+        >
+          <router-link
+            :to="`/${role}/BemorCard/${patient.client.id}`"
+            class="card-link"
           >
-            <router-link
-              :to="`/${role}/BemorCard/${patient.client.id}`"
-              class="card-link"
-            >
-              <div class="card__header">
-                <h3>{{ patient.client.ism }} {{ patient.client.familiya }}</h3>
-                <span>
-                  {{ calculateAge(patient.client.tugulgan_sana) }} yosh | {{ patient.client.jinsi }}
-                </span>
-              </div>
-            </router-link>
-            <div class="card__body">
-              <p><strong>📞 Telefon:</strong> {{ patient.client.tel1 || '—' }}</p>
-              <p><strong>Keldi:</strong> {{ formatDateTime(patient.kelish_sanasi) || '—' }}</p>
-              <p>
-                <strong>Ketdi:</strong> {{ formatDateTime(patient.ketish_sanasi) || '—' }}
-                <button
-                  v-if="patient.status === '1'"
-                  @click="markAsLeft(patient)"
-                  class="btn-ketdi"
-                  aria-label="Bemor ketdi deb belgilash"
-                >
-                  Ketdi
-                </button>
-              </p>
+            <div class="card__header">
+              <h3>{{ patient.client.ism }} {{ patient.client.familiya }}</h3>
+              <span>
+                {{ calculateAge(patient.client.tugulgan_sana) }} yosh | {{ patient.client.jinsi }}
+              </span>
             </div>
+          </router-link>
+          <div class="card__body">
+            <p><strong>📞 Telefon:</strong> {{ patient.client.tel1 || '—' }}</p>
+            <p><strong>Keldi:</strong> {{ formatDateTime(patient.kelish_sanasi) || '—' }}</p>
+            <p>
+              <strong>Ketdi:</strong> {{ formatDateTime(patient.ketish_sanasi) || '—' }}
+              <button
+                v-if="patient.status === '1'"
+                @click="markAsLeft(patient)"
+                class="btn-ketdi"
+                aria-label="Bemor ketdi deb belgilash"
+              >
+                Ketdi
+              </button>
+            </p>
           </div>
         </div>
-
-        <!-- Sahifalash -->
-        <nav
-          v-if="lastPage > 1"
-          class="pagination-wrapper"
-          role="navigation"
-          aria-label="Bemorlar sahifalari"
-        >
-          <button
-            @click="changePage(currentPage - 1)"
-            :disabled="currentPage <= 1"
-            class="page-btn nav-btn"
-            aria-label="Oldingi sahifa"
-          >
-            &lt;
-          </button>
-
-          <button
-            v-for="page in pagesToShow"
-            :key="page"
-            :class="['page-btn', { active: currentPage === page }]"
-            @click="changePage(page)"
-            :aria-current="currentPage === page ? 'page' : null"
-          >
-            {{ page }}
-          </button>
-
-          <button
-            @click="changePage(currentPage + 1)"
-            :disabled="currentPage >= lastPage"
-            class="page-btn nav-btn"
-            aria-label="Keyingi sahifa"
-          >
-            &gt;
-          </button>
-        </nav>
       </div>
+
+      <!-- Sahifalash -->
+      <nav
+        v-if="lastPage > 1"
+        class="pagination-wrapper"
+        role="navigation"
+        aria-label="Bemorlar sahifalari"
+      >
+        <button
+          @click="changePage(currentPage - 1)"
+          :disabled="currentPage <= 1"
+          class="page-btn nav-btn"
+          aria-label="Oldingi sahifa"
+        >
+          &lt;
+        </button>
+
+        <button
+          v-for="page in pagesToShow"
+          :key="page"
+          :class="['page-btn', { active: currentPage === page }]"
+          @click="changePage(page)"
+          :aria-current="currentPage === page ? 'page' : null"
+        >
+          {{ page }}
+        </button>
+
+        <button
+          @click="changePage(currentPage + 1)"
+          :disabled="currentPage >= lastPage"
+          class="page-btn nav-btn"
+          aria-label="Keyingi sahifa"
+        >
+          &gt;
+        </button>
+      </nav>
     </div>
 
     <!-- Jadval ko‘rinish -->
@@ -185,9 +179,8 @@ import dayjs from "dayjs";
 import debounce from "lodash.debounce";
 
 export default {
-  components: {
-    PatientTable,
-  },
+  components: { PatientTable },
+
   data() {
     return {
       isCardView: true,
@@ -202,6 +195,7 @@ export default {
       role: localStorage.getItem("role") || "mini",
     };
   },
+
   watch: {
     search: {
       handler: debounce(function () {
@@ -211,6 +205,7 @@ export default {
       immediate: true,
     },
   },
+
   methods: {
     async fetchPatients() {
       this.loading = true;
@@ -228,7 +223,6 @@ export default {
         const data = res.data.data || [];
 
         const today = dayjs().format("YYYY-MM-DD");
-        // faqat status=1 va ketish sanasi hali o'tmagan yoki bo'sh bo'lgan bemorlar
         const active = data.filter(
           (item) => item.status === "1" && (!item.ketish_sanasi || item.ketish_sanasi >= today)
         );
@@ -297,17 +291,13 @@ export default {
 
     formatDateTime(datetimeStr) {
       if (!datetimeStr) return null;
-      console.log(datetimeStr); // bu yerda qiymatni ko'ring
-
       return dayjs(datetimeStr).format("YYYY-MM-DD HH:mm");
     },
 
     async markAsLeft(patient) {
       try {
         this.loading = true;
-        await api.put(`/api/v1/davolanish/${patient.id}`, {
-          status: "0",
-        });
+        await api.put(`/api/v1/davolanish/${patient.id}`, { status: "0" });
         await this.fetchPatients();
         alert(`${patient.client.ism} ${patient.client.familiya} ketdi deb belgilandi.`);
       } catch (error) {
@@ -318,6 +308,7 @@ export default {
       }
     },
   },
+
   computed: {
     pagesToShow() {
       const maxVisiblePages = 7;
@@ -344,6 +335,7 @@ export default {
       return this.groupPatientsByDate();
     },
   },
+
   mounted() {
     this.fetchPatients();
   },
@@ -352,11 +344,10 @@ export default {
 
 <style scoped>
 .patients-container {
+  max-width: 980px;
+  margin: 0 auto;
   padding: 20px;
-  max-width: 1200px;
-  margin: 20px auto;
-  width:100%;
-  font-family: Arial, sans-serif;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .header-section {
@@ -364,62 +355,211 @@ export default {
 }
 
 .page-title {
-  font-weight: bold;
-  font-size: 24px;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #2c3e50;
 }
 
 .top-controls {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  gap: 15px;
+  flex-wrap: wrap;
 }
 
 .search-box {
+  flex: 1;
+  max-width: 320px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  border: 1px solid #ddd;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background-color: #f9f9f9;
+}
+
+.search-box img {
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
 }
 
 .search-box input {
-  padding: 6px 10px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
+  border: none;
+  outline: none;
+  flex: 1;
+  font-size: 1rem;
+  background-color: transparent;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 8px;
 }
 
 .view-toggle button {
-  padding: 6px 10px;
-  margin-left: 5px;
+  font-size: 1.2rem;
+  padding: 6px 12px;
+  border-radius: 5px;
+  border: 1px solid #007bff;
+  background-color: white;
+  color: #007bff;
   cursor: pointer;
-  background: #eee;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 18px;
+  transition: background-color 0.2s ease;
 }
 
-.view-toggle button.active {
-  background: #4caf50;
+.view-toggle button.active,
+.view-toggle button:hover {
+  background-color: #007bff;
   color: white;
-  border-color: #4caf50;
+}
+
+.date-range-filter {
+  margin-top: 20px;
+  border-top: 1px solid #ccc;
+  padding-top: 15px;
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .date-range-filter label {
   font-weight: 600;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.date-range-filter input[type="date"] {
+  padding: 5px 8px;
+  border-radius: 4px;
+  border: 1px solid #aaa;
+  font-size: 1rem;
+}
+
+.date-range-filter button {
+  padding: 6px 15px;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  border-radius: 5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.date-range-filter button:hover {
+  background-color: #0056b3;
+}
+
+.total-count {
+  margin-top: 10px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #2c3e50;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 30px;
+}
+
+.spinner {
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #007bff;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.grouped-patients {
+  margin-top: 25px;
+}
+
+.daily-patients-block {
+  background-color: #f7f9fc;
+  border-radius: 8px;
+  padding: 15px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+}
+
+.daily-patients-block h3 {
+  margin-bottom: 10px;
+  color: #34495e;
+}
+
+.daily-patients-block ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.daily-patients-block li {
+  margin-bottom: 6px;
+  font-size: 0.95rem;
+}
+
+.no-patients {
+  color: #999;
+  font-style: italic;
+}
+
+.patient1-card {
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.05);
+  transition: box-shadow 0.2s ease;
+}
+
+.patient1-card:hover {
+  box-shadow: 0 6px 15px rgb(0 0 0 / 0.12);
+}
+
+.card__header h3 {
+  margin: 0 0 6px 0;
+  font-size: 1.2rem;
+  color: #2c3e50;
+}
+
+.card__header span {
+  font-size: 0.9rem;
+  color: #777;
+}
+
+.card__body p {
+  margin: 6px 0;
+  font-size: 0.95rem;
 }
 
 .btn-ketdi {
   margin-left: 10px;
-  padding: 3px 8px;
-  background-color: #f44336;
+  padding: 3px 9px;
+  font-size: 0.85rem;
+  background-color: #dc3545;
   border: none;
+  border-radius: 5px;
   color: white;
-  border-radius: 4px;
   cursor: pointer;
-  font-size: 0.85em;
+  transition: background-color 0.2s ease;
 }
 
 .btn-ketdi:hover {
-  background-color: #d32f2f;
+  background-color: #b02a37;
 }
 
 .cards-wrapper {
@@ -428,75 +568,48 @@ export default {
 
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill,minmax(260px,1fr));
   gap: 15px;
 }
 
-.patient1-card {
-  background: #f8f8f8;
-  border-radius: 8px;
-  padding: 15px;
-  box-shadow: 0 0 6px rgba(0,0,0,0.1);
-}
-
-.card__header h3 {
-  margin: 0;
-  font-size: 1.25rem;
-}
-
-.card__header span {
-  color: #666;
-  font-size: 0.9rem;
-}
-
-.card__body p {
-  margin: 6px 0;
-}
-
+/* Sahifalash CSS */
 .pagination-wrapper {
   margin-top: 20px;
   display: flex;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
+  user-select: none;
 }
 
 .page-btn {
   padding: 6px 12px;
-  border-radius: 4px;
-  border: 1px solid #aaa;
-  cursor: pointer;
+  border: 1px solid #007bff;
   background-color: white;
+  color: #007bff;
+  cursor: pointer;
+  font-weight: 600;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
 }
 
-.page-btn.active {
-  background-color: #4caf50;
-  border-color: #4caf50;
+.page-btn:hover:not(:disabled) {
+  background-color: #007bff;
   color: white;
-  font-weight: bold;
 }
 
 .page-btn:disabled {
-  opacity: 0.5;
   cursor: not-allowed;
+  opacity: 0.5;
 }
 
-.loading-container {
-  text-align: center;
-  margin-top: 20px;
+.page-btn.active {
+  background-color: #007bff;
+  color: white;
+  cursor: default;
+  pointer-events: none;
 }
 
-.spinner {
-  border: 4px solid #eee;
-  border-top: 4px solid #4caf50;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  animation: spin 1s linear infinite;
-  margin: auto;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.nav-btn {
+  font-weight: bold;
 }
 </style>
