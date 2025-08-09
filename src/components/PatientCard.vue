@@ -172,7 +172,7 @@ export default {
         chiqish_sanasi: '',
         xona_id: '',
         xizmatlar: [],
-        price: 0, // Narx bu yerda saqlanadi va o'zgartirilishi mumkin
+        price: 0,
       },
       role: localStorage.getItem('role') || 'mini',
       currentUser: JSON.parse(localStorage.getItem('currentUser') || '{}'),
@@ -239,7 +239,6 @@ export default {
   },
 
   watch: {
-    // Xona tanlanganda narx avtomatik o'rnatiladi
     'rr.xona_id'(newVal) {
       if (!newVal) {
         this.rr.price = 0;
@@ -320,8 +319,9 @@ export default {
               id: s.id,
             };
           });
+
       } catch (err) {
-        console.error('❌ Xatolik:', err);
+        console.error('❌ Xatolik fetchAll() da:', err);
       } finally {
         this.loading = false;
       }
@@ -340,22 +340,30 @@ export default {
           price: service?.narxi || service?.price || 0,
         });
         this.newService = { service_id: '', sana: '' };
-        this.fetchAll();
+        await this.fetchAll();
       } catch (err) {
-        console.error(err);
+        console.error('Xizmat qo‘shishda xatolik:', err);
       }
     },
 
     async deleteService(item) {
       if (!confirm('🗑️ Ushbu xizmatni o‘chirmoqchimisiz?')) return;
-      await api.delete(`/api/v1/client-services/${item.id}`);
-      this.fetchAll();
+      try {
+        await api.delete(`/api/v1/client-services/${item.id}`);
+        this.fetchAll();
+      } catch (err) {
+        console.error('Xizmat o‘chirishda xatolik:', err);
+      }
     },
 
     async deleteRoomAssignment(item) {
       if (!confirm('🗑️ Ushbu xona joylashuvini o‘chirmoqchimisiz?')) return;
-      await api.delete(`/api/v1/xona-joylashuv/${item.id}`);
-      this.fetchAll();
+      try {
+        await api.delete(`/api/v1/xona-joylashuv/${item.id}`);
+        this.fetchAll();
+      } catch (err) {
+        console.error('Xona joylashuvini o‘chirishda xatolik:', err);
+      }
     },
 
     async updateExitDate(item) {
@@ -378,18 +386,19 @@ export default {
 
         this.fetchAll();
       } catch (error) {
-        console.error('Chiqish sanasini yangilashda xatolik:', error);
         alert('Xatolik yuz berdi, iltimos qayta urinib ko‘ring.');
       }
     },
 
     async submitReRegister() {
       const r = this.rr;
-      if (!r.kirish_sanasi || !r.chiqish_sanasi || !r.xona_id)
+      if (!r.kirish_sanasi || !r.chiqish_sanasi || !r.xona_id) {
         return alert('❗ Barcha maydonlar toʻldirilishi kerak');
+      }
 
       try {
         let stay = this.latestStay;
+
         if (!stay || stay.to_date) {
           const { data: newStay } = await api.post('/api/v1/davolanish', {
             client_id: this.patient.id,
@@ -411,16 +420,13 @@ export default {
           });
         }
 
-        // Bu yerda price_per_day sifatida foydalanuvchi kiritgan narx yuboriladi
-        const payload = {
+        await api.post('/api/v1/xona-joylashuv', {
           davolanish_id: stay.id,
           room_id: r.xona_id,
           from_date: r.kirish_sanasi,
           to_date: r.chiqish_sanasi,
-          price_per_day: r.price || 0,  // Foydalanuvchi tomonidan o'zgartirilgan yoki avtomatik o'rnatilgan narx
-        };
-
-        await api.post('/api/v1/xona-joylashuv', payload);
+          price_per_day: r.price || 0,
+        });
 
         for (const sid of r.xizmatlar) {
           const s = this.allServices.find((srv) => srv.id === sid);
@@ -434,9 +440,9 @@ export default {
         }
 
         this.rr = { kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [], price: 0 };
-        this.fetchAll();
+        await this.fetchAll();
       } catch (err) {
-        console.error('❌ Xatolik:', err);
+        console.error('❌ Qayta ro‘yxatga olishda xatolik:', err);
       }
     },
   },
@@ -446,6 +452,8 @@ export default {
   },
 };
 </script>
+
+
 
 
 

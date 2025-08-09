@@ -75,7 +75,7 @@
           <li v-for="patient in patientsList" :key="patient.id">
             {{ patient.client.ism }} {{ patient.client.familiya }},
             {{ calculateAge(patient.client.tugulgan_sana) }} yosh,
-            {{ patient.client.jinsi }},
+            {{ patient.client.jinsi }} -
             Ketdi: {{ formatDateTime(patient.ketish_sanasi) || '—' }}
             <button
               v-if="patient.status === '1'"
@@ -92,7 +92,7 @@
 
     <!-- Card ko‘rinish (sanalar oralig‘i berilmagan bo‘lsa) -->
     <div v-else-if="isCardView" class="cards-wrapper">
-      <div class="cards-grid" role="list">
+      <div class="cards-grid" role="list" :style="{ gridTemplateColumns: 'repeat(4, 1fr)' }">
         <div
           v-for="patient in patients"
           :key="patient.id"
@@ -191,7 +191,7 @@ export default {
       loading: false,
       currentPage: 1,
       lastPage: 1,
-      perPage: 12,
+      perPage: 5, // 5 ta element per page
       role: localStorage.getItem("role") || "mini",
     };
   },
@@ -344,136 +344,175 @@ export default {
 
 <style scoped>
 .patients-container {
-  max-width: 980px;
-  margin: 0 auto;
-  padding: 20px;
+  padding: 2rem 3rem;
+  background: #f7fafc;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: #222;
+  min-height: 100vh;
+  user-select: none;
 }
 
-.header-section {
-  margin-bottom: 15px;
-}
-
-.page-title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #2c3e50;
+.header-section .page-title {
+  font-size: 2.6rem;
+  font-weight: 800;
+  margin-bottom: 2rem;
+  letter-spacing: 0.08em;
+  color: #1e40af; /* ko‘kroq */
 }
 
 .top-controls {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 15px;
   flex-wrap: wrap;
+  gap: 1.2rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
 }
 
 .search-box {
-  flex: 1;
-  max-width: 320px;
-  display: flex;
-  align-items: center;
-  border: 1px solid #ddd;
-  padding: 6px 12px;
-  border-radius: 6px;
-  background-color: #f9f9f9;
+  flex-grow: 1;
+  max-width: 400px;
+  position: relative;
 }
 
 .search-box img {
-  width: 20px;
-  height: 20px;
-  margin-right: 10px;
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
+  width: 24px;
+  opacity: 0.7;
+  pointer-events: none;
 }
 
 .search-box input {
-  border: none;
+  width: 100%;
+  padding: 0.75rem 0.75rem 0.75rem 44px;
+  font-size: 1.3rem;
+  border: 2.5px solid #cbd5e1;
+  border-radius: 10px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.1);
+}
+
+.search-box input::placeholder {
+  font-size: 1.2rem;
+  color: #64748b;
+}
+
+.search-box input:focus {
   outline: none;
-  flex: 1;
-  font-size: 1rem;
-  background-color: transparent;
+  border-color: #2563eb;
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.4);
+  background: #fff;
 }
 
 .view-toggle {
   display: flex;
-  gap: 8px;
+  gap: 0.8rem;
 }
 
 .view-toggle button {
-  font-size: 1.2rem;
-  padding: 6px 12px;
-  border-radius: 5px;
-  border: 1px solid #007bff;
-  background-color: white;
-  color: #007bff;
+  background: #e0e7ff;
+  border: none;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  font-size: 1.9rem;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.25s ease, color 0.25s ease, transform 0.2s ease;
+  box-shadow: 0 2px 6px rgb(71 85 105 / 0.2);
 }
 
-.view-toggle button.active,
 .view-toggle button:hover {
-  background-color: #007bff;
+  background: #c7d2fe;
+  color: #1e40af;
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgb(30 64 175 / 0.5);
+}
+
+.view-toggle button.active {
+  background: #1e40af;
   color: white;
+  box-shadow: 0 0 16px rgba(30, 64, 175, 0.8);
 }
 
 .date-range-filter {
-  margin-top: 20px;
-  border-top: 1px solid #ccc;
-  padding-top: 15px;
+  margin-bottom: 2rem;
   display: flex;
-  gap: 15px;
+  gap: 2rem;
   align-items: center;
   flex-wrap: wrap;
 }
 
 .date-range-filter label {
-  font-weight: 600;
-  font-size: 1rem;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #334155;
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 170px;
 }
 
 .date-range-filter input[type="date"] {
-  padding: 5px 8px;
-  border-radius: 4px;
-  border: 1px solid #aaa;
-  font-size: 1rem;
+  padding: 0.6rem 0.8rem;
+  font-size: 1.2rem;
+  border: 2px solid #cbd5e1;
+  border-radius: 12px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  background: #fff;
+}
+
+.date-range-filter input[type="date"]:focus {
+  outline: none;
+  border-color: #1e40af;
+  box-shadow: 0 0 12px rgba(30, 64, 175, 0.35);
 }
 
 .date-range-filter button {
-  padding: 6px 15px;
-  border: none;
-  background-color: #007bff;
+  background: #1e40af;
   color: white;
-  border-radius: 5px;
-  font-weight: 600;
+  border: none;
+  padding: 0.75rem 1.8rem;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 1.2rem;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  box-shadow: 0 6px 14px rgb(30 64 175 / 0.4);
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  user-select: none;
 }
 
 .date-range-filter button:hover {
-  background-color: #0056b3;
+  background: #4338ca;
+  box-shadow: 0 8px 20px rgb(67 56 202 / 0.65);
 }
 
 .total-count {
-  margin-top: 10px;
-  font-weight: 600;
-  font-size: 1.1rem;
-  color: #2c3e50;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 1.5rem;
+  user-select: text;
 }
 
 .loading-container {
   display: flex;
   justify-content: center;
-  padding: 30px;
+  margin: 4rem 0;
 }
 
 .spinner {
-  border: 5px solid #f3f3f3;
-  border-top: 5px solid #007bff;
+  border: 7px solid #e0e7ff;
+  border-top: 7px solid #1e40af;
   border-radius: 50%;
-  width: 36px;
-  height: 36px;
+  width: 60px;
+  height: 60px;
   animation: spin 1s linear infinite;
 }
 
@@ -484,132 +523,170 @@ export default {
 }
 
 .grouped-patients {
-  margin-top: 25px;
+  margin-top: 1.5rem;
+  color: #334155;
+  font-size: 1.1rem;
+  font-weight: 600;
 }
 
 .daily-patients-block {
-  background-color: #f7f9fc;
-  border-radius: 8px;
-  padding: 15px 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+  margin-bottom: 2.5rem;
+  background: white;
+  border-radius: 16px;
+  padding: 1.8rem 2rem;
+  box-shadow: 0 3px 15px rgb(0 0 0 / 0.08);
+  user-select: text;
 }
 
 .daily-patients-block h3 {
-  margin-bottom: 10px;
-  color: #34495e;
+  margin-bottom: 1rem;
+  color: #1e3a8a;
+  font-weight: 800;
+  font-size: 1.6rem;
+  border-bottom: 3px solid #1e40af;
+  padding-bottom: 0.5rem;
+  user-select: text;
 }
 
 .daily-patients-block ul {
-  list-style: none;
-  padding-left: 0;
-  margin: 0;
-}
-
-.daily-patients-block li {
-  margin-bottom: 6px;
-  font-size: 0.95rem;
+  list-style: inside disc;
+  line-height: 1.8;
+  padding-left: 1.2rem;
 }
 
 .no-patients {
-  color: #999;
   font-style: italic;
-}
-
-.patient1-card {
-  background-color: white;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 15px;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 0.05);
-  transition: box-shadow 0.2s ease;
-}
-
-.patient1-card:hover {
-  box-shadow: 0 6px 15px rgb(0 0 0 / 0.12);
-}
-
-.card__header h3 {
-  margin: 0 0 6px 0;
-  font-size: 1.2rem;
-  color: #2c3e50;
-}
-
-.card__header span {
-  font-size: 0.9rem;
-  color: #777;
-}
-
-.card__body p {
-  margin: 6px 0;
-  font-size: 0.95rem;
-}
-
-.btn-ketdi {
-  margin-left: 10px;
-  padding: 3px 9px;
-  font-size: 0.85rem;
-  background-color: #dc3545;
-  border: none;
-  border-radius: 5px;
-  color: white;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.btn-ketdi:hover {
-  background-color: #b02a37;
+  color: #64748b;
 }
 
 .cards-wrapper {
-  margin-top: 20px;
+  margin-top: 1.5rem;
 }
 
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill,minmax(260px,1fr));
-  gap: 15px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.8rem;
 }
 
-/* Sahifalash CSS */
+.patient1-card {
+  background: white;
+  border-radius: 18px;
+  box-shadow: 0 6px 18px rgb(30 64 175 / 0.15);
+  transition: transform 0.35s ease, box-shadow 0.35s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  padding: 2rem 1.5rem;
+  user-select: text;
+}
+
+.patient1-card:hover {
+  transform: translateY(-7px);
+  box-shadow: 0 14px 36px rgb(30 64 175 / 0.35);
+}
+
+.card-link {
+  color: inherit;
+  text-decoration: none;
+  flex-grow: 1;
+}
+
+.card__header {
+  margin-bottom: 1rem;
+}
+
+.card__header h3 {
+  font-weight: 800;
+  font-size: 1.6rem;
+  color: #1e40af;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: text;
+}
+
+.card__header span {
+  font-weight: 700;
+  color: #475569;
+  font-size: 1.1rem;
+}
+
+.card__body p {
+  margin: 0.7rem 0;
+  font-size: 1.1rem;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.btn-ketdi {
+  background-color: #dc2626;
+  color: #fff;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  margin-left: 1rem;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 10px rgb(220 38 38 / 0.6);
+  user-select: none;
+  align-self: center;
+}
+
+.btn-ketdi:hover {
+  background-color: #b91c1c;
+  box-shadow: 0 6px 16px rgb(185 28 28 / 0.8);
+}
+
 .pagination-wrapper {
-  margin-top: 20px;
+  margin-top: 2.5rem;
   display: flex;
   justify-content: center;
-  gap: 6px;
+  gap: 0.6rem;
+  flex-wrap: wrap;
   user-select: none;
 }
 
 .page-btn {
-  padding: 6px 12px;
-  border: 1px solid #007bff;
-  background-color: white;
-  color: #007bff;
+  background-color: #e0e7ff;
+  border: 2px solid #c7d2fe;
+  color: #1e40af;
+  padding: 0.65rem 1.3rem;
   cursor: pointer;
-  font-weight: 600;
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1.15rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 6px rgb(30 64 175 / 0.3);
 }
 
 .page-btn:hover:not(:disabled) {
-  background-color: #007bff;
+  background-color: #1e3a8a;
+  border-color: #1e3a8a;
   color: white;
-}
-
-.page-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
+  box-shadow: 0 6px 18px rgb(30 64 175 / 0.8);
 }
 
 .page-btn.active {
-  background-color: #007bff;
+  background-color: #1e40af;
+  border-color: #1e40af;
   color: white;
-  cursor: default;
-  pointer-events: none;
+  box-shadow: 0 8px 22px rgb(30 64 175 / 1);
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .nav-btn {
-  font-weight: bold;
+  font-weight: 800;
+  font-size: 1.4rem;
+  padding: 0.4rem 1.2rem;
 }
+
+
 </style>
