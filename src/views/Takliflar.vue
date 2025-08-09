@@ -82,8 +82,20 @@
         </div>
       </div>
 
-      <div class="form-group" style="margin:10px 0">
-        <label><input type="checkbox" v-model="has_child" /> Bolalik (has_child)</label>
+      <!-- Bolalik checkbox va bola soni input -->
+      <div class="form-group" style="margin:10px 0; display: flex; align-items: center; gap: 10px;">
+        <label style="display: flex; align-items: center; gap: 5px;">
+          <input type="checkbox" v-model="has_child" /> Bolalik (has_child)
+        </label>
+
+        <input
+          v-if="has_child"
+          type="number"
+          min="1"
+          v-model.number="childCount"
+          placeholder="Bola soni"
+          style="width: 100px;"
+        />
       </div>
 
       <!-- Xizmatlar -->
@@ -160,6 +172,7 @@ export default {
       roomFilterName: '',
       roomFilterSigim: null,
       has_child: false,
+      childCount: 0,
       davolanishlar: [],
       bronlar: [],
       extraPayments: {
@@ -185,7 +198,6 @@ export default {
     },
     totalSum() {
       const roomCost = this.selectedRoom ? this.selectedRoom.price * this.stayDays : 0;
-      // Majburiy xizmatlar faqat selected=true bo‘lganlarni hisoblaymiz
       const mandCost = this.mandatoryServices
         .filter(s => s.selected)
         .reduce((sum, svc) => sum + svc.price, 0);
@@ -233,7 +245,6 @@ export default {
     async loadServices() {
       try {
         const res = await api.get('/api/v1/services');
-        // Majburiy xizmatlarda selected:true, qolganlarda false bo'ladi default
         this.mandatoryServices = res.data
           .filter(s => s.required == 1)
           .map(s => ({ ...s, selected: true, price: +s.price }));
@@ -324,6 +335,7 @@ export default {
       this.loadServices();
       this.extraPayments = { cash: 0, card: 0, click: 0 };
       this.has_child = false;
+      this.childCount = 0;
     },
     removeAdditionalService(index) {
       this.additionalServices.splice(index, 1);
@@ -340,6 +352,7 @@ export default {
 
       let davolanish = null;
       try {
+        // Davolanish yaratish
         const res = await api.post('/api/v1/davolanish', {
           client_id: this.client.id,
           xona_id: this.selectedRoom.id,
@@ -357,12 +370,14 @@ export default {
       }
 
       try {
+        // Xona joylashuv yaratish
         await api.post('/api/v1/xona-joylashuv', {
           davolanish_id: davolanish.id,
           room_id: this.selectedRoom.id,
           from_date: this.arrivalDate,
           to_date: this.leaveDate,
           has_child: this.has_child ? 1 : 0,
+          num_child: this.childCount || 0,
           price_per_day: this.selectedRoom.price
         });
       } catch (error) {
@@ -376,6 +391,7 @@ export default {
       ];
 
       try {
+        // Xizmatlarni saqlash
         await api.post('/api/v1/client-services', {
           client_id: this.client.id,
           davolanish_id: davolanish.id,
@@ -393,9 +409,10 @@ export default {
       }
 
       try {
+        // To‘lovlarni saqlash
         await api.post('/api/v1/payments', {
           davolanish_id: davolanish.id,
-          is_patient_payment:1,
+          is_patient_payment: 1,
           client_id: this.client.id,
           cash: this.extraPayments.cash,
           card: this.extraPayments.card,
@@ -410,6 +427,7 @@ export default {
         return;
       }
 
+      // Tozalash va qayta yuklash
       this.cancelSelection();
 
       await Promise.all([
@@ -442,176 +460,112 @@ export default {
 };
 </script>
 
-
-
-
 <style scoped>
 .taklif-container {
   max-width: 900px;
   margin: auto;
-  padding: 20px;
+  padding: 1rem;
   font-family: Arial, sans-serif;
 }
-
 .title {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 1rem;
 }
-
-.user-info {
-  margin-bottom: 20px;
-  font-size: 18px;
-  font-weight: 600;
-}
-
 .filter-row {
   display: flex;
   gap: 10px;
   margin-bottom: 15px;
 }
-
 .filter-row input {
   flex: 1;
-  padding: 6px 8px;
-  font-size: 14px;
+  padding: 5px 10px;
+  font-size: 1rem;
 }
-
 .clear-filter-btn {
-  background: #e53e3e;
+  padding: 5px 10px;
+  background-color: #e3342f;
   color: white;
   border: none;
-  padding: 6px 12px;
   cursor: pointer;
 }
-
-.clear-filter-btn:hover {
-  background: #c53030;
-}
-
 .rooms-table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 20px;
 }
-
 .rooms-table th,
 .rooms-table td {
-  border: 1px solid #ccc;
-  padding: 8px 12px;
+  border: 1px solid #ddd;
+  padding: 8px;
   text-align: center;
 }
-
-.room-row {
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.room-row:hover {
-  background-color: #f0f0f0;
-}
-
 .room-row.busy {
-  background-color: #ffe6e6;
+  background-color: #f8d7da;
   cursor: not-allowed;
 }
-
 .room-row.current {
   background-color: #fff3cd;
 }
-
 .no-rooms {
   text-align: center;
-  color: #888;
   font-style: italic;
+  color: #777;
 }
-
 .selected-room {
-  border: 1px solid #ddd;
-  padding: 20px;
-  border-radius: 6px;
+  border: 1px solid #ccc;
+  padding: 15px;
+  margin-top: 20px;
+  background: #f9f9f9;
 }
-
 .date-row {
   display: flex;
   gap: 15px;
   margin-bottom: 15px;
 }
-
 .form-group {
   display: flex;
   flex-direction: column;
 }
-
-.form-group label {
-  margin-bottom: 5px;
-  font-weight: 600;
-}
-
 .services-section {
-  margin-top: 15px;
+  margin-top: 10px;
 }
-
 .service-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 5px;
 }
-
 .remove-btn {
   background: transparent;
   border: none;
   cursor: pointer;
-  color: #e53e3e;
-  font-size: 18px;
-  line-height: 1;
+  color: #e3342f;
+  font-weight: bold;
+  font-size: 1rem;
 }
-
-.remove-btn:hover {
-  color: #c53030;
+.extra-payments {
+  display: flex;
+  gap: 15px;
 }
-
-.extra-payments .payment-item {
-  margin-bottom: 10px;
+.payment-item {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
-
-.extra-payments label {
-  display: inline-block;
-  width: 120px;
-  font-weight: 600;
-}
-
-.total-sum {
-  font-size: 16px;
-}
-
 .submit-btn {
-  background-color: #38a169;
-  color: white;
-  padding: 10px 20px;
+  background-color: #38c172;
   border: none;
+  padding: 10px 20px;
+  color: white;
+  font-weight: 700;
   cursor: pointer;
   margin-right: 10px;
-  font-size: 16px;
-  border-radius: 4px;
 }
-
-.submit-btn:hover {
-  background-color: #2f855a;
-}
-
 .cancel-btn {
-  background-color: #a0aec0;
-  color: white;
-  padding: 10px 20px;
+  background-color: #6c757d;
   border: none;
+  padding: 10px 20px;
+  color: white;
+  font-weight: 700;
   cursor: pointer;
-  font-size: 16px;
-  border-radius: 4px;
-}
-
-.cancel-btn:hover {
-  background-color: #718096;
 }
 </style>
-
