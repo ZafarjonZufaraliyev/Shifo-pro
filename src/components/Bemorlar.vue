@@ -17,12 +17,11 @@
       </div>
 
       <!-- Ko'rinish toggle -->
-      <div class="view-toggle" role="group" aria-label="Ko‘rinish turini tanlash">
+      <div class="view-toggle">
         <button
           :class="{ active: isCardView }"
           @click="isCardView = true"
           title="Card Ko‘rinish"
-          aria-pressed="isCardView"
         >
           📇
         </button>
@@ -30,7 +29,6 @@
           :class="{ active: !isCardView }"
           @click="isCardView = false"
           title="Jadval Ko‘rinish"
-          aria-pressed="!isCardView"
         >
           📋
         </button>
@@ -50,54 +48,24 @@
       <button @click="onFilterClick">Filtrlash</button>
     </div>
 
+
     <!-- Jami bemorlar soni -->
     <p class="total-count">
-      <strong>Jami bemorlar soni:</strong> {{ patients.length }}
+      <strong>Jami bemorlar soni:</strong> {{ totalPatientsCount }}
     </p>
 
     <!-- Yuklanish spinneri -->
-    <div v-if="loading" class="loading-container" role="status" aria-live="polite">
+    <div v-if="loading" class="loading-container">
       <div class="spinner"></div>
     </div>
 
-    <!-- Sanalar bo'yicha guruhlangan ro'yxat -->
-    <div v-else-if="startDate && endDate" class="grouped-patients">
-      <div
-        v-for="(patientsList, date) in groupedPatients"
-        :key="date"
-        class="daily-patients-block"
-      >
-        <h3>{{ date }} ({{ patientsList.length }} ta bemor)</h3>
-        <ul>
-          <li v-if="patientsList.length === 0" class="no-patients">
-            Hech kim kelmagan
-          </li>
-          <li v-for="patient in patientsList" :key="patient.id">
-            {{ patient.client.ism }} {{ patient.client.familiya }},
-            {{ calculateAge(patient.client.tugulgan_sana) }} yosh,
-            {{ patient.client.jinsi }} -
-            Ketdi: {{ formatDateTime(patient.ketish_sanasi) || '—' }}
-            <button
-              v-if="patient.status === '1'"
-              @click="markAsLeft(patient)"
-              class="btn-ketdi"
-              aria-label="Bemor ketdi deb belgilash"
-            >
-              Ketdi
-            </button>
-          </li>
-        </ul>
-      </div>
-    </div>
-
-    <!-- Card ko‘rinish (sanalar oralig‘i berilmagan bo‘lsa) -->
+    <!-- Card ko‘rinish -->
     <div v-else-if="isCardView" class="cards-wrapper">
-      <div class="cards-grid" role="list" :style="{ gridTemplateColumns: 'repeat(4, 1fr)' }">
+      <div class="cards-grid" :style="{ gridTemplateColumns: 'repeat(4, 1fr)' }">
         <div
           v-for="patient in patients"
           :key="patient.id"
           class="patient1-card"
-          role="listitem"
         >
           <router-link
             :to="`/${role}/BemorCard/${patient.client.id}`"
@@ -119,7 +87,6 @@
                 v-if="patient.status === '1'"
                 @click="markAsLeft(patient)"
                 class="btn-ketdi"
-                aria-label="Bemor ketdi deb belgilash"
               >
                 Ketdi
               </button>
@@ -128,46 +95,64 @@
         </div>
       </div>
 
-      <!-- Sahifalash -->
-      <nav
-        v-if="lastPage > 1"
-        class="pagination-wrapper"
-        role="navigation"
-        aria-label="Bemorlar sahifalari"
-      >
+      <!-- Pagination -->
+      <div class="pagination" v-if="pageCount > 1">
         <button
-          @click="changePage(currentPage - 1)"
-          :disabled="currentPage <= 1"
-          class="page-btn nav-btn"
-          aria-label="Oldingi sahifa"
+          :disabled="currentPage === 1"
+          @click="goToPage(currentPage - 1)"
+          class="pagination-btn"
         >
-          &lt;
+          &lt; Oldingi
         </button>
 
         <button
-          v-for="page in pagesToShow"
+          v-for="page in pageCount"
           :key="page"
-          :class="['page-btn', { active: currentPage === page }]"
-          @click="changePage(page)"
-          :aria-current="currentPage === page ? 'page' : null"
+          @click="goToPage(page)"
+          :class="['pagination-btn', { active: page === currentPage }]"
         >
           {{ page }}
         </button>
 
         <button
-          @click="changePage(currentPage + 1)"
-          :disabled="currentPage >= lastPage"
-          class="page-btn nav-btn"
-          aria-label="Keyingi sahifa"
+          :disabled="currentPage === pageCount"
+          @click="goToPage(currentPage + 1)"
+          class="pagination-btn"
         >
-          &gt;
+          Keyingi &gt;
         </button>
-      </nav>
+      </div>
     </div>
 
     <!-- Jadval ko‘rinish -->
     <div v-else>
       <PatientTable :patients="patients" />
+      <div class="pagination" v-if="pageCount > 1">
+        <button
+          :disabled="currentPage === 1"
+          @click="goToPage(currentPage - 1)"
+          class="pagination-btn"
+        >
+          &lt; Oldingi
+        </button>
+
+        <button
+          v-for="page in pageCount"
+          :key="page"
+          @click="goToPage(page)"
+          :class="['pagination-btn', { active: page === currentPage }]"
+        >
+          {{ page }}
+        </button>
+
+        <button
+          :disabled="currentPage === pageCount"
+          @click="goToPage(currentPage + 1)"
+          class="pagination-btn"
+        >
+          Keyingi &gt;
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -187,12 +172,13 @@ export default {
       search: "",
       startDate: "",
       endDate: "",
-      patients: [],
+      patients: [],          // Faqat hozirgi sahifadagi yozuvlar
+      totalPatientsCount: 0, // Jami bemorlar soni
       loading: false,
-      currentPage: 1,
-      lastPage: 1,
-      perPage: 5, // 5 ta element per page
       role: localStorage.getItem("role") || "mini",
+
+      currentPage: 1,
+      itemsPerPage: 20,
     };
   },
 
@@ -204,6 +190,17 @@ export default {
       }, 500),
       immediate: true,
     },
+    startDate() {
+      this.currentPage = 1;
+      this.fetchPatients();
+    },
+    endDate() {
+      this.currentPage = 1;
+      this.fetchPatients();
+    },
+    currentPage() {
+      this.fetchPatients();
+    },
   },
 
   methods: {
@@ -211,35 +208,27 @@ export default {
       this.loading = true;
       try {
         const params = {
-          search: this.search,
           page: this.currentPage,
-          per_page: this.perPage,
+          per_page: this.itemsPerPage,
+          search: this.search,
         };
-
         if (this.startDate) params.kelish_sanasi_from = this.startDate;
         if (this.endDate) params.kelish_sanasi_to = this.endDate;
 
         const res = await api.get("/api/v1/davolanish", { params });
-        const data = res.data.data || [];
 
-        const today = dayjs().format("YYYY-MM-DD");
-        const active = data.filter(
-          (item) => item.status === "1" && (!item.ketish_sanasi || item.ketish_sanasi >= today)
-        );
+        // API javobidan hozirgi sahifa yozuvlari
+        this.patients = res.data.data || [];
+        // Jami yozuvlar soni (backenddan keladi)
+        this.totalPatientsCount = res.data.total || 0;
 
-        this.patients = active;
-        this.lastPage = res.data.last_page || 1;
+        console.log("Bemorlar (sahifa):", this.patients);
+        console.log("Jami bemorlar soni:", this.totalPatientsCount);
       } catch (error) {
         console.error("Ma'lumot olishda xatolik:", error);
       } finally {
         this.loading = false;
       }
-    },
-
-    changePage(page) {
-      if (page < 1 || page > this.lastPage) return;
-      this.currentPage = page;
-      this.fetchPatients();
     },
 
     calculateAge(birthdate) {
@@ -249,44 +238,11 @@ export default {
       let age = today.year() - birth.year();
       if (
         today.month() < birth.month() ||
-        (today.month() === birth.month && today.date() < birth.date())
+        (today.month() === birth.month() && today.date() < birth.date())
       ) {
         age--;
       }
       return age;
-    },
-
-    onFilterClick() {
-      this.currentPage = 1;
-      this.fetchPatients();
-    },
-
-    getDateRange(startDate, endDate) {
-      const dates = [];
-      let current = dayjs(startDate);
-      const last = dayjs(endDate);
-      while (current.isBefore(last) || current.isSame(last, "day")) {
-        dates.push(current.format("YYYY-MM-DD"));
-        current = current.add(1, "day");
-      }
-      return dates;
-    },
-
-    groupPatientsByDate() {
-      const grouped = {};
-      const dates = this.getDateRange(this.startDate, this.endDate);
-      dates.forEach((date) => {
-        grouped[date] = [];
-      });
-
-      this.patients.forEach((patient) => {
-        const keldi = patient.kelish_sanasi;
-        if (keldi && grouped[keldi]) {
-          grouped[keldi].push(patient);
-        }
-      });
-
-      return grouped;
     },
 
     formatDateTime(datetimeStr) {
@@ -307,32 +263,19 @@ export default {
         this.loading = false;
       }
     },
+
+    goToPage(page) {
+      if (page >= 1 && page <= this.pageCount) {
+        this.currentPage = page;
+        window.scrollTo(0, 0);
+        console.log(`Sahifa: ${page} ga o‘tildi`);
+      }
+    },
   },
 
   computed: {
-    pagesToShow() {
-      const maxVisiblePages = 7;
-      const total = this.lastPage;
-      const current = this.currentPage;
-
-      let start = Math.max(1, current - Math.floor(maxVisiblePages / 2));
-      let end = start + maxVisiblePages - 1;
-
-      if (end > total) {
-        end = total;
-        start = Math.max(1, end - maxVisiblePages + 1);
-      }
-
-      const pages = [];
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
-      return pages;
-    },
-
-    groupedPatients() {
-      if (!this.startDate || !this.endDate) return {};
-      return this.groupPatientsByDate();
+    pageCount() {
+      return Math.ceil(this.totalPatientsCount / this.itemsPerPage);
     },
   },
 
@@ -341,179 +284,91 @@ export default {
   },
 };
 </script>
-
 <style scoped>
 .patients-container {
-  padding: 2rem 3rem;
-  background: #f7fafc;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  color: #222;
-  min-height: 100vh;
-  user-select: none;
+  padding: 20px;
+  font-family: Arial, sans-serif;
 }
 
-.header-section .page-title {
-  font-size: 2.6rem;
-  font-weight: 800;
-  margin-bottom: 2rem;
-  letter-spacing: 0.08em;
-  color: #1e40af; /* ko‘kroq */
+.header-section {
+  margin-bottom: 10px;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: bold;
 }
 
 .top-controls {
   display: flex;
-  flex-wrap: wrap;
-  gap: 1.2rem;
-  align-items: center;
   justify-content: space-between;
-  margin-bottom: 2rem;
+  align-items: center;
+  margin-bottom: 15px;
 }
 
 .search-box {
-  flex-grow: 1;
-  max-width: 400px;
-  position: relative;
-}
-
-.search-box img {
-  position: absolute;
-  top: 50%;
-  left: 14px;
-  transform: translateY(-50%);
-  width: 24px;
-  opacity: 0.7;
-  pointer-events: none;
+  display: flex;
+  align-items: center;
 }
 
 .search-box input {
-  width: 100%;
-  padding: 0.75rem 0.75rem 0.75rem 44px;
-  font-size: 1.3rem;
-  border: 2.5px solid #cbd5e1;
-  border-radius: 10px;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.1);
-}
-
-.search-box input::placeholder {
-  font-size: 1.2rem;
-  color: #64748b;
-}
-
-.search-box input:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 10px rgba(37, 99, 235, 0.4);
-  background: #fff;
-}
-
-.view-toggle {
-  display: flex;
-  gap: 0.8rem;
+  margin-left: 5px;
+  padding: 5px 10px;
+  font-size: 14px;
 }
 
 .view-toggle button {
-  background: #e0e7ff;
+  background: none;
   border: none;
-  border-radius: 50%;
-  width: 50px;
-  height: 50px;
-  font-size: 1.9rem;
+  font-size: 20px;
+  margin-left: 5px;
   cursor: pointer;
-  color: #475569;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 0.25s ease, color 0.25s ease, transform 0.2s ease;
-  box-shadow: 0 2px 6px rgb(71 85 105 / 0.2);
-}
-
-.view-toggle button:hover {
-  background: #c7d2fe;
-  color: #1e40af;
-  transform: scale(1.15);
-  box-shadow: 0 4px 12px rgb(30 64 175 / 0.5);
+  padding: 5px 8px;
+  border-radius: 5px;
 }
 
 .view-toggle button.active {
-  background: #1e40af;
+  background-color: #007bff;
   color: white;
-  box-shadow: 0 0 16px rgba(30, 64, 175, 0.8);
 }
 
 .date-range-filter {
-  margin-bottom: 2rem;
-  display: flex;
-  gap: 2rem;
-  align-items: center;
-  flex-wrap: wrap;
+  margin-bottom: 15px;
 }
 
 .date-range-filter label {
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: #334155;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  min-width: 170px;
+  margin-right: 10px;
+  font-size: 14px;
 }
 
 .date-range-filter input[type="date"] {
-  padding: 0.6rem 0.8rem;
-  font-size: 1.2rem;
-  border: 2px solid #cbd5e1;
-  border-radius: 12px;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  background: #fff;
-}
-
-.date-range-filter input[type="date"]:focus {
-  outline: none;
-  border-color: #1e40af;
-  box-shadow: 0 0 12px rgba(30, 64, 175, 0.35);
+  margin-left: 5px;
+  padding: 3px 6px;
 }
 
 .date-range-filter button {
-  background: #1e40af;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.8rem;
-  border-radius: 14px;
-  font-weight: 700;
-  font-size: 1.2rem;
+  padding: 5px 10px;
   cursor: pointer;
-  box-shadow: 0 6px 14px rgb(30 64 175 / 0.4);
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
-  user-select: none;
-}
-
-.date-range-filter button:hover {
-  background: #4338ca;
-  box-shadow: 0 8px 20px rgb(67 56 202 / 0.65);
 }
 
 .total-count {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 1.5rem;
-  user-select: text;
+  margin-bottom: 10px;
+  font-weight: bold;
 }
 
 .loading-container {
-  display: flex;
-  justify-content: center;
-  margin: 4rem 0;
+  text-align: center;
+  padding: 20px;
 }
 
 .spinner {
-  border: 7px solid #e0e7ff;
-  border-top: 7px solid #1e40af;
+  border: 4px solid #ccc;
+  border-top: 4px solid #007bff;
   border-radius: 50%;
-  width: 60px;
-  height: 60px;
-  animation: spin 1s linear infinite;
+  width: 32px;
+  height: 32px;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto;
 }
 
 @keyframes spin {
@@ -522,171 +377,75 @@ export default {
   }
 }
 
-.grouped-patients {
-  margin-top: 1.5rem;
-  color: #334155;
-  font-size: 1.1rem;
-  font-weight: 600;
-}
-
-.daily-patients-block {
-  margin-bottom: 2.5rem;
-  background: white;
-  border-radius: 16px;
-  padding: 1.8rem 2rem;
-  box-shadow: 0 3px 15px rgb(0 0 0 / 0.08);
-  user-select: text;
-}
-
-.daily-patients-block h3 {
-  margin-bottom: 1rem;
-  color: #1e3a8a;
-  font-weight: 800;
-  font-size: 1.6rem;
-  border-bottom: 3px solid #1e40af;
-  padding-bottom: 0.5rem;
-  user-select: text;
-}
-
-.daily-patients-block ul {
-  list-style: inside disc;
-  line-height: 1.8;
-  padding-left: 1.2rem;
-}
-
-.no-patients {
-  font-style: italic;
-  color: #64748b;
-}
-
 .cards-wrapper {
-  margin-top: 1.5rem;
+  margin-top: 15px;
 }
 
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.8rem;
+  gap: 15px;
 }
 
 .patient1-card {
-  background: white;
-  border-radius: 18px;
-  box-shadow: 0 6px 18px rgb(30 64 175 / 0.15);
-  transition: transform 0.35s ease, box-shadow 0.35s ease;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  padding: 2rem 1.5rem;
-  user-select: text;
-}
-
-.patient1-card:hover {
-  transform: translateY(-7px);
-  box-shadow: 0 14px 36px rgb(30 64 175 / 0.35);
-}
-
-.card-link {
-  color: inherit;
-  text-decoration: none;
-  flex-grow: 1;
-}
-
-.card__header {
-  margin-bottom: 1rem;
+  background-color: #f9f9f9;
+  border-radius: 6px;
+  padding: 15px;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
 }
 
 .card__header h3 {
-  font-weight: 800;
-  font-size: 1.6rem;
-  color: #1e40af;
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  user-select: text;
+  margin: 0 0 5px 0;
+  font-size: 18px;
 }
 
 .card__header span {
-  font-weight: 700;
-  color: #475569;
-  font-size: 1.1rem;
+  font-size: 14px;
+  color: #555;
 }
 
 .card__body p {
-  margin: 0.7rem 0;
-  font-size: 1.1rem;
-  color: #334155;
-  line-height: 1.5;
+  margin: 5px 0;
+  font-size: 14px;
 }
 
 .btn-ketdi {
-  background-color: #dc2626;
-  color: #fff;
+  margin-left: 10px;
+  background-color: #28a745;
   border: none;
-  padding: 0.6rem 1.2rem;
-  margin-left: 1rem;
-  border-radius: 10px;
-  font-weight: 700;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
-  box-shadow: 0 4px 10px rgb(220 38 38 / 0.6);
-  user-select: none;
-  align-self: center;
+  font-size: 12px;
 }
 
-.btn-ketdi:hover {
-  background-color: #b91c1c;
-  box-shadow: 0 6px 16px rgb(185 28 28 / 0.8);
-}
-
-.pagination-wrapper {
-  margin-top: 2.5rem;
+.pagination {
+  margin-top: 15px;
   display: flex;
   justify-content: center;
-  gap: 0.6rem;
+  gap: 5px;
   flex-wrap: wrap;
-  user-select: none;
 }
 
-.page-btn {
-  background-color: #e0e7ff;
-  border: 2px solid #c7d2fe;
-  color: #1e40af;
-  padding: 0.65rem 1.3rem;
+.pagination-btn {
+  border: 1px solid #007bff;
+  background-color: white;
+  color: #007bff;
+  padding: 5px 12px;
+  border-radius: 4px;
   cursor: pointer;
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 1.15rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 3px 6px rgb(30 64 175 / 0.3);
+  user-select: none;
+  font-weight: 600;
 }
 
-.page-btn:hover:not(:disabled) {
-  background-color: #1e3a8a;
-  border-color: #1e3a8a;
-  color: white;
-  box-shadow: 0 6px 18px rgb(30 64 175 / 0.8);
-}
-
-.page-btn.active {
-  background-color: #1e40af;
-  border-color: #1e40af;
-  color: white;
-  box-shadow: 0 8px 22px rgb(30 64 175 / 1);
-}
-
-.page-btn:disabled {
-  opacity: 0.4;
+.pagination-btn:disabled {
+  border-color: #ccc;
+  color: #ccc;
   cursor: not-allowed;
-  box-shadow: none;
 }
 
-.nav-btn {
-  font-weight: 800;
-  font-size: 1.4rem;
-  padding: 0.4rem 1.2rem;
+.pagination-btn.active {
+  background-color: #007bff;
+  color: white;
 }
-
-
 </style>
