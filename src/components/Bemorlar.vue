@@ -18,20 +18,8 @@
 
       <!-- Ko'rinish toggle -->
       <div class="view-toggle">
-        <button
-          :class="{ active: isCardView }"
-          @click="isCardView = true"
-          title="Card Ko‘rinish"
-        >
-          📇
-        </button>
-        <button
-          :class="{ active: !isCardView }"
-          @click="isCardView = false"
-          title="Jadval Ko‘rinish"
-        >
-          📋
-        </button>
+     
+       
       </div>
     </div>
 
@@ -124,36 +112,7 @@
       </div>
     </div>
 
-    <!-- Jadval ko‘rinish -->
-    <div v-else>
-      <PatientTable :patients="patients" />
-      <div class="pagination" v-if="pageCount > 1">
-        <button
-          :disabled="currentPage === 1"
-          @click="goToPage(currentPage - 1)"
-          class="pagination-btn"
-        >
-          &lt; Oldingi
-        </button>
-
-        <button
-          v-for="page in pageCount"
-          :key="page"
-          @click="goToPage(page)"
-          :class="['pagination-btn', { active: page === currentPage }]"
-        >
-          {{ page }}
-        </button>
-
-        <button
-          :disabled="currentPage === pageCount"
-          @click="goToPage(currentPage + 1)"
-          class="pagination-btn"
-        >
-          Keyingi &gt;
-        </button>
-      </div>
-    </div>
+   
   </div>
 </template>
 
@@ -286,89 +245,182 @@ export default {
 </script>
 <style scoped>
 .patients-container {
+  width:100%;
+  margin:20px auto;
+  max-width:1200px;
   padding: 20px;
-  font-family: Arial, sans-serif;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f9fafb;
+  min-height: 100vh;
+  color: #222;
 }
 
+/* Header va sarlavha */
 .header-section {
-  margin-bottom: 10px;
+  margin-bottom: 15px;
+  text-align: center;
 }
 
 .page-title {
-  font-size: 24px;
-  font-weight: bold;
+  font-size: 28px;
+  font-weight: 700;
+  color: #007bff;
+  user-select: none;
 }
 
+/* Yuqori boshqaruvlar */
 .top-controls {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
+/* Qidiruv qutisi */
 .search-box {
   display: flex;
   align-items: center;
+  background: white;
+  border-radius: 8px;
+  padding: 6px 12px;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.1);
+  flex-grow: 1;
+  max-width: 400px;
+}
+
+.search-box img {
+  width: 20px;
+  height: 20px;
+  filter: grayscale(80%) brightness(60%);
 }
 
 .search-box input {
-  margin-left: 5px;
-  padding: 5px 10px;
-  font-size: 14px;
+  border: none;
+  outline: none;
+  margin-left: 8px;
+  font-size: 15px;
+  width: 100%;
+  background: transparent;
+  color: #333;
+  transition: box-shadow 0.3s ease;
+}
+
+.search-box input::placeholder {
+  color: #999;
+}
+
+.search-box input:focus {
+  box-shadow: 0 0 5px #007bff;
+  border-radius: 4px;
+}
+
+/* Ko‘rinish toggle tugmalari */
+.view-toggle {
+  display: flex;
+  gap: 8px;
 }
 
 .view-toggle button {
-  background: none;
-  border: none;
-  font-size: 20px;
-  margin-left: 5px;
+  background: #e9ecef;
+  border: 1.5px solid #ced4da;
+  border-radius: 6px;
+  font-size: 22px;
+  width: 44px;
+  height: 44px;
   cursor: pointer;
-  padding: 5px 8px;
-  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.25s, border-color 0.25s, color 0.25s;
+  user-select: none;
+}
+
+.view-toggle button:hover:not(.active) {
+  background-color: #d1e7ff;
 }
 
 .view-toggle button.active {
   background-color: #007bff;
+  border-color: #0056b3;
   color: white;
+  box-shadow: 0 0 8px #0056b3aa;
 }
 
+/* Sana oralig‘i filtri */
 .date-range-filter {
-  margin-bottom: 15px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .date-range-filter label {
-  margin-right: 10px;
   font-size: 14px;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .date-range-filter input[type="date"] {
-  margin-left: 5px;
-  padding: 3px 6px;
+  padding: 6px 10px;
+  border: 1.5px solid #ced4da;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.25s ease;
+}
+
+.date-range-filter input[type="date"]:focus {
+  border-color: #007bff;
+  outline: none;
 }
 
 .date-range-filter button {
-  padding: 5px 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 18px;
+  font-weight: 600;
+  border-radius: 8px;
   cursor: pointer;
+  user-select: none;
+  transition: background-color 0.25s ease;
 }
 
+.date-range-filter button:hover {
+  background-color: #0056b3;
+}
+
+/* Jami bemorlar soni */
 .total-count {
-  margin-bottom: 10px;
-  font-weight: bold;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 20px;
+  text-align: center;
+  user-select: none;
 }
 
+/* Yuklanish spinner */
 .loading-container {
-  text-align: center;
-  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 150px;
 }
 
 .spinner {
-  border: 4px solid #ccc;
-  border-top: 4px solid #007bff;
+  border: 5px solid #e0e0e0;
+  border-top: 5px solid #007bff;
   border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto;
+  width: 38px;
+  height: 38px;
+  animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
@@ -377,75 +429,157 @@ export default {
   }
 }
 
+/* Card ko‘rinish */
 .cards-wrapper {
-  margin-top: 15px;
+  margin-top: 10px;
 }
 
 .cards-grid {
   display: grid;
-  gap: 15px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
 }
 
 .patient1-card {
-  background-color: #f9f9f9;
-  border-radius: 6px;
-  padding: 15px;
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 6px 12px rgb(0 0 0 / 0.07);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: default;
+  user-select: none;
+}
+
+.patient1-card:hover {
+  box-shadow: 0 12px 20px rgb(0 0 0 / 0.15);
+  transform: translateY(-4px);
+}
+
+.card-link {
+  text-decoration: none;
+  color: inherit;
+  user-select: none;
 }
 
 .card__header h3 {
-  margin: 0 0 5px 0;
-  font-size: 18px;
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #007bff;
 }
 
 .card__header span {
   font-size: 14px;
   color: #555;
+  font-weight: 500;
 }
 
 .card__body p {
-  margin: 5px 0;
+  margin: 7px 0;
   font-size: 14px;
+  color: #444;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
+.card__body strong {
+  color: #222;
+}
+
+/* "Ketdi" tugmasi */
 .btn-ketdi {
-  margin-left: 10px;
   background-color: #28a745;
   border: none;
   color: white;
-  padding: 3px 8px;
-  border-radius: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background-color 0.25s ease;
+  user-select: none;
+  margin-left: 12px;
 }
 
+.btn-ketdi:hover {
+  background-color: #1e7e34;
+}
+
+/* Pagination */
 .pagination {
-  margin-top: 15px;
+  margin-top: 25px;
   display: flex;
   justify-content: center;
-  gap: 5px;
+  gap: 8px;
   flex-wrap: wrap;
+  user-select: none;
 }
 
 .pagination-btn {
-  border: 1px solid #007bff;
+  border: 1.8px solid #007bff;
   background-color: white;
   color: #007bff;
-  padding: 5px 12px;
-  border-radius: 4px;
+  padding: 7px 14px;
+  border-radius: 8px;
   cursor: pointer;
+  font-weight: 700;
+  font-size: 15px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  min-width: 48px;
+  text-align: center;
   user-select: none;
-  font-weight: 600;
 }
 
 .pagination-btn:disabled {
-  border-color: #ccc;
-  color: #ccc;
+  border-color: #cfd4da;
+  color: #cfd4da;
   cursor: not-allowed;
+  background-color: #f8f9fa;
 }
 
 .pagination-btn.active {
   background-color: #007bff;
   color: white;
+  box-shadow: 0 0 10px #007bffaa;
 }
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .cards-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+  .top-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .search-box {
+    max-width: 100%;
+  }
+  .view-toggle {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 600px) {
+  .cards-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+  .page-title {
+    font-size: 22px;
+  }
+  .btn-ketdi {
+    padding: 3px 7px;
+    font-size: 11px;
+  }
+  .pagination-btn {
+    padding: 6px 10px;
+    font-size: 13px;
+    min-width: 40px;
+  }
+}
+
 </style>
