@@ -105,37 +105,58 @@
 
         <!-- Yangi xona qo‘shish -->
         <!-- Yangi xona qo‘shish -->
-        <tr v-if="activeTab === 'xonalar'" class="input-row">
-          <td>*</td>
+<tr v-if="activeTab === 'xonalar'" class="input-row">
+  <td>*</td>
 
-          <!-- Xona tanlash -->
-          <td>
-            <select v-model="rr.xona_id">
-              <option disabled value="">Tanlang</option>
-              <option v-for="r in availableRooms" :key="r.id" :value="r.id">
-                {{ r.room_type?.name || 'Nomaʼlum' }} {{ r.xona }}
-              </option>
-            </select>
-          </td>
+  <!-- Xona tanlash -->
+  <td>
+    <select v-model="rr.xona_id">
+      <option disabled value="">Tanlang</option>
+      <option v-for="r in availableRooms" :key="r.id" :value="r.id">
+        {{ r.room_type?.name || 'Nomaʼlum' }} {{ r.xona }}
+      </option>
+    </select>
+  </td>
 
-          <!-- Narx avtomatik chiqadi, lekin o‘zgartirish mumkin -->
-          <td>
-            <input type="number" v-model.number="rr.price" min="0" placeholder="Narx" />
-          </td>
+  <!-- Narx avtomatik chiqadi, lekin o‘zgartirish mumkin -->
+  <td>
+    <input type="number" v-model.number="rr.price" min="0" placeholder="Narx" />
+  </td>
 
-          <!-- 1 kunlik default sana qo‘yiladi -->
-          <td>
-            <input type="date" v-model="rr.kirish_sanasi" />
-          </td>
-          <td>
-            <input type="date" v-model="rr.chiqish_sanasi" />
-          </td>
+  <!-- 1 kunlik default sana qo‘yiladi -->
+  <td>
+    <input type="date" v-model="rr.kirish_sanasi" />
+  </td>
+  <td>
+    <input type="date" v-model="rr.chiqish_sanasi" />
+  </td>
 
-          <!-- Qo‘shish tugmasi -->
-          <td>
-            <button @click="submitReRegister">➕</button>
-          </td>
-        </tr>
+  <!-- HAS_CHILD checkbox -->
+  <td style="display: flex; align-items: center; gap: 8px;">
+    <label>
+      <input type="checkbox" v-model="rr.has_child" />
+      Bolalik bor
+    </label>
+  </td>
+
+  <!-- NUM_CHILD input -->
+  <td>
+    <input
+      v-if="rr.has_child"
+      type="number"
+      min="1"
+      v-model.number="rr.num_child"
+      placeholder="Bola soni"
+      style="width: 80px;"
+    />
+  </td>
+
+  <!-- Qo‘shish tugmasi -->
+  <td>
+    <button @click="submitReRegister">➕</button>
+  </td>
+</tr>
+
 
       </tbody>
     </table>
@@ -179,6 +200,8 @@ export default {
         xona_id: '',
         xizmatlar: [],
         price: 0,
+        has_child: false,   // bola bor/yo‘qligi
+        num_child: 0,       // bola soni
       },
 
       role: localStorage.getItem('role') || 'mini',
@@ -187,7 +210,6 @@ export default {
   },
 
   computed: {
-    // Oxirgi davolanishni topish
     latestStay() {
       if (!this.stays.length) return null;
       return this.stays.reduce((a, b) => {
@@ -197,7 +219,6 @@ export default {
       });
     },
 
-    // Qayta ro‘yxatga olish narx hisoblash
     rrPrice() {
       if (!this.rr.xona_id || !this.rr.kirish_sanasi || !this.rr.chiqish_sanasi) return null;
       const room = this.availableRooms.find(r => String(r.id) === String(this.rr.xona_id));
@@ -209,13 +230,11 @@ export default {
       return pricePerDay * days;
     },
 
-    // Tanlangan xizmat narxi
     selectedServicePrice() {
       const selected = this.allServices.find(s => s.id === this.newService.service_id);
       return selected ? (selected.narxi || selected.price || 0) : null;
     },
 
-    // Xonalar jadvali ma'lumotlari
     roomData() {
       const stayIds = this.stays.map(s => s.id);
       return this.roomAssignments
@@ -237,7 +256,6 @@ export default {
         });
     },
 
-    // Faol tabdagi ma'lumotlar
     filteredData() {
       switch (this.activeTab) {
         case 'xizmatlar': return this.xizmatlar;
@@ -251,7 +269,6 @@ export default {
   },
 
   watch: {
-    // Xona tanlanganda narxni olish
     'rr.xona_id'(newVal) {
       if (!newVal) {
         this.rr.price = 0;
@@ -295,35 +312,27 @@ export default {
       this.loading = true;
       const clientId = Number(this.$route.params.id);
       try {
-        // Bemor ma'lumotlari
         const { data: patient } = await api.get(`/api/v1/clients/${clientId}`);
         this.patient = patient;
 
-        // Kasalliklar va natijalar
         this.kasalliklar = (patient.kasalliklar || []).filter(k => Number(k.client_id) === clientId);
         this.natijalar = (patient.natijalar || []).filter(n => Number(n.client_id) === clientId);
 
-        // Davolanishlar
         const { data: stayData } = await api.get(`/api/v1/davolanish?client_id=${clientId}`);
         this.stays = Array.isArray(stayData) ? stayData : stayData?.data || [];
 
-        // Xona joylashuvlari
         const { data: roomAssignmentsData } = await api.get(`/api/v1/xona-joylashuv/kassa?client_id=${clientId}`);
         this.roomAssignments = Array.isArray(roomAssignmentsData) ? roomAssignmentsData : roomAssignmentsData?.data || [];
 
-        // Xona turlari
         const { data: roomTypesRaw } = await api.get('/api/v1/room-types');
         this.availableRoomTypes = roomTypesRaw?.data || roomTypesRaw || [];
 
-        // Xonalar
         const { data: rooms } = await api.get('/api/v1/room');
         this.availableRooms = rooms || [];
 
-        // Xizmatlar ro'yxati
         const { data: services } = await api.get('/api/v1/services');
         this.allServices = services || [];
 
-        // Bemor xizmatlari
         const clientServicesRes = await api.get('/api/v1/client-services', {
           params: { client_id: clientId }
         });
@@ -427,19 +436,19 @@ export default {
       try {
         let stay = this.latestStay;
 
+        // Agar oxirgi davolanish yopilgan bo‘lsa, yangi davolanish yaratish
         if (!stay || stay.ketish_sanasi || stay.to_date) {
           const { data: newStayResponse } = await api.post('/api/v1/davolanish', {
-  client_id: this.patient.id,
-  kelish_sanasi: r.kirish_sanasi,
-  ketish_sanasi: r.chiqish_sanasi,
-  xona_id: r.xona_id,
-  create_user_id: this.currentUser.id,
-});
-
-stay = newStayResponse.data; // id shu yerda bo‘ladi
-
+            client_id: this.patient.id,
+            kelish_sanasi: r.kirish_sanasi,
+            ketish_sanasi: r.chiqish_sanasi,
+            xona_id: r.xona_id,
+            create_user_id: this.currentUser.id,
+          });
+          stay = newStayResponse.data || newStayResponse;
         }
 
+        // Oxirgi xona joylashuvini ketish sanasini yangilash
         const lastRoom = [...this.roomAssignments]
           .filter((ra) => ra.davolanish_id === stay.id)
           .sort(
@@ -455,14 +464,18 @@ stay = newStayResponse.data; // id shu yerda bo‘ladi
           });
         }
 
+        // Yangi xona joylashuvini yaratish, HAS_CHILD va NUM_CHILD ham yuboriladi
         await api.post('/api/v1/xona-joylashuv', {
           davolanish_id: stay.id,
-          room_id: r.xona_id, // ✅ to‘g‘ri nom
+          room_id: r.xona_id, // room_id API parametri ekaniga e'tibor bering
           from_date: r.kirish_sanasi,
           to_date: r.chiqish_sanasi,
           price_per_day: r.price || 0,
+          has_child: r.has_child ? 1 : 0,
+          num_child: r.num_child || 0,
         });
 
+        // Xizmatlar qo‘shish
         for (const sid of r.xizmatlar) {
           const s = this.allServices.find((srv) => srv.id === sid);
           await api.post('/api/v1/client-services', {
@@ -474,12 +487,15 @@ stay = newStayResponse.data; // id shu yerda bo‘ladi
           });
         }
 
+        // Forma maydonlarini tozalash
         this.rr = {
           kirish_sanasi: '',
           chiqish_sanasi: '',
           xona_id: '',
           xizmatlar: [],
           price: 0,
+          has_child: false,
+          num_child: 0,
         };
 
         await this.fetchAll();
@@ -488,7 +504,6 @@ stay = newStayResponse.data; // id shu yerda bo‘ladi
         alert('Qayta ro‘yxatga olishda xatolik yuz berdi');
       }
     }
-
   },
 
   mounted() {
@@ -496,6 +511,7 @@ stay = newStayResponse.data; // id shu yerda bo‘ladi
   },
 };
 </script>
+
 
 
 
