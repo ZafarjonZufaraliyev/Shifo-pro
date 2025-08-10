@@ -142,7 +142,7 @@
 
     <router-link :to="`/${role}/bemorlar`" class="btn-back">↩ Orqaga</router-link>
   </div>
-
+  
   <div v-else class="loading-container">
     <p>⏳ Yuklanmoqda...</p>
   </div>

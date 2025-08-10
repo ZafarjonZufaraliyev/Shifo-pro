@@ -4,17 +4,12 @@
 
     <!-- Filtrlar -->
     <div class="filters">
-      <!-- To‘lov turi olib tashlandi -->
-      <!-- Qayerdan bo‘yicha qidiruv olib tashlandi -->
+      <label>Boshlanish sanasi:</label>
+      <input type="date" v-model="fromDate" @change="fetchPatientPayments(1)" />
 
-      <!-- Davolanish statusi -->
-      <select v-model="davolanishStatus" @change="fetchPatientPayments(1)">
-        <option value="">Hammasi</option>
-        <option value="1">Davolanmoqda</option>
-        <option value="0">Tugagan</option>
-      </select>
+      <label>Tugash sanasi:</label>
+      <input type="date" v-model="toDate" @change="fetchPatientPayments(1)" />
 
-      <!-- Qidirish tugmasi -->
       <button class="search-btn" @click="fetchPatientPayments(1)">🔍 Qidirish</button>
     </div>
 
@@ -102,12 +97,12 @@ import api from '@/api'
 
 const payments = ref([])
 const currentPage = ref(1)
-const perPage = ref(50)
+const perPage = ref(20)
 const totalItems = ref(0)
 const lastPage = ref(1)
 
-// Faqat davolanish statusi filtr uchun
-const davolanishStatus = ref('')
+const fromDate = ref('')
+const toDate = ref('')
 
 const router = useRouter()
 
@@ -115,26 +110,24 @@ const fetchPatientPayments = async (page = 1) => {
   try {
     const params = {
       page,
-      // Sana va matnli qidiruv parametrlari olib tashlandi
-      davolanish_status: davolanishStatus.value || null,
+      per_page: perPage.value,
     }
+    if (fromDate.value) params.from_date = fromDate.value
+    if (toDate.value) params.to_date = toDate.value
 
     const res = await api.get('public/api/v1/patient_payments', { params })
     const data = res.data
-    
-    console.log(data  )
-    payments.value = (data.data || []).filter(p => {
-      if (davolanishStatus.value === '1') {
-        // Davolanmoqda bo'lsa, barcha yozuvlar
-        return true
-      } else {
-        // Boshqalari uchun balans 0 bo'lmaganlar
-        return p.balance !== 0 && p.balance !== null && p.balance !== undefined
-      }
-    })
+
+    // Agar sana oralig'i berilgan bo'lsa, statusga qaramay barcha yozuvlar chiqadi
+    if (fromDate.value || toDate.value) {
+      payments.value = data.data || []
+    } else {
+      // Aks holda neytral statusdagilar chiqmasin
+      payments.value = (data.data || []).filter(p => p.status !== 'neytral')
+    }
 
     currentPage.value = data.current_page || 1
-    perPage.value = data.per_page || 50
+    perPage.value = data.per_page || 20
     totalItems.value = data.total || 0
     lastPage.value = data.last_page || 1
   } catch (error) {
@@ -209,172 +202,111 @@ onMounted(() => {
 })
 </script>
 
+
+
+
 <style scoped>
 .container {
+  width:100%;
+  padding:20px;
   max-width: 1200px;
-  margin: 20px auto;
-  padding: 16px;
-  background: #fff;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
-  border-radius: 8px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: #333;
+  margin:20px auto;
+  padding: 10px;
 }
 
 .filters {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 10px;
   align-items: center;
+  margin-bottom: 15px;
 }
 
-.filters input,
-.filters select {
-  padding: 8px 12px;
-  font-size: 15px;
-  border: 1.8px solid #ccc;
-  border-radius: 6px;
-  transition: border-color 0.3s ease;
-  min-width: 160px;
+.filters label {
+  font-weight: 600;
 }
 
-.filters input:focus,
-.filters select:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+.filters select,
+.filters input {
+  padding: 5px 10px;
+  font-size: 14px;
 }
 
 .search-btn {
-  background-color: #007bff;
-  color: white;
-  font-weight: 600;
-  padding: 9px 20px;
-  border: none;
-  border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.25s ease;
-  box-shadow: 0 2px 6px rgb(0 123 255 / 0.4);
-  user-select: none;
-}
-
-.search-btn:hover {
-  background-color: #0056b3;
-  box-shadow: 0 4px 12px rgb(0 86 179 / 0.6);
+  padding: 5px 15px;
+  font-size: 16px;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14.5px;
-  min-width: 900px;
+  margin-top: 10px;
 }
 
-thead tr {
-  background-color: #007bff;
-  color: white;
-  font-weight: 600;
-  user-select: none;
+table th,
+table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
 }
 
-thead th {
-  padding: 12px 14px;
-  text-align: left;
-  border-bottom: 2px solid #0056b3;
+table th {
+  background-color: #f7f7f7;
+  font-weight: bold;
 }
 
-tbody tr {
-  border-bottom: 1px solid #eee;
-  transition: background-color 0.2s ease;
-}
-
-tbody tr:hover {
-  background-color: #f0f7ff;
-}
-
-tbody td {
-  padding: 10px 14px;
-  vertical-align: middle;
-  white-space: nowrap;
+.clickable-row {
+  cursor: pointer;
 }
 
 .amount {
   text-align: right;
-  font-feature-settings: "tnum";
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  color: #444;
 }
 
 .qarz-link {
   cursor: pointer;
-  font-weight: 700;
   user-select: none;
 }
 
 .qarzdor {
-  color: #d32f2f; /* To‘q qizil */
+  color: red;
+  font-weight: bold;
 }
 
 .haqdor {
-  color: #388e3c; /* To‘q yashil */
+  color: green;
+  font-weight: bold;
+}
+
+.no-data {
+  margin-top: 20px;
+  font-style: italic;
+  text-align: center;
+  color: #777;
 }
 
 .pagination {
-  margin-top: 24px;
+  margin-top: 20px;
   display: flex;
   justify-content: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  user-select: none;
+  gap: 5px;
 }
 
 .pagination button {
-  background-color: #f1f3f5;
-  border: 1.5px solid #ddd;
-  padding: 8px 14px;
-  font-weight: 600;
-  color: #555;
+  padding: 5px 10px;
+  border: 1px solid #ccc;
+  background: white;
   cursor: pointer;
-  border-radius: 6px;
-  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-.pagination button:hover:not(:disabled) {
+.pagination button.active {
   background-color: #007bff;
   color: white;
   border-color: #007bff;
-  box-shadow: 0 2px 8px rgb(0 123 255 / 0.5);
 }
 
 .pagination button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
-  background-color: #f9f9f9;
-  color: #999;
-  border-color: #eee;
-}
-
-.pagination button.active {
-  background-color: #0056b3;
-  color: white;
-  border-color: #0056b3;
-  cursor: default;
-  box-shadow: 0 0 8px rgb(0 86 179 / 0.7);
-}
-
-.no-data {
-  text-align: center;
-  margin-top: 40px;
-  font-size: 18px;
-  font-weight: 600;
-  color: #666;
-  user-select: none;
-}
-
-.clickable-row {
-  cursor: pointer;
-  transition: background-color 0.2s ease;
 }
 </style>
