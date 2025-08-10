@@ -53,15 +53,16 @@
         <input v-model="form.viloyat" type="text" placeholder="Viloyatni kiriting" required />
       </div>
   <!-- Pasport va Tug‘ilgan sana -->
-      <div class="form-row">
-        <div class="form-group">
-          <label>Pasport seriyasi va raqami</label>
-          <input v-model="form.pasport" type="text" placeholder="AA1234567" pattern="[A-ZА-ЯЁ]{2}[0-9]{7}"
-            title="Ikki harf va yetti raqam kiriting, harflar lotin yoki kiril bo‘lishi mumkin" required />
+     <input 
+  v-model="form.pasport" 
+  type="text" 
+  placeholder="AA1234567" 
+  pattern="[A-ZА-ЯЁ]{2}[0-9]{7}"
+  title="Ikki harf va yetti raqam kiriting, harflar lotin yoki kiril bo‘lishi mumkin"
+  required
+  @input="form.pasport = form.pasport.toUpperCase()" 
+/>
 
-        </div>
-        
-      </div>
       <!-- Telefon raqamlari -->
       <div class="form-group">
         <label>Telefon raqamlari</label>
