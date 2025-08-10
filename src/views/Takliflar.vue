@@ -146,15 +146,15 @@
         To‘lovlar jami: <strong>{{ totalPaid.toLocaleString('ru-RU') }} so'm</strong><br />
         Qoldiq: <strong :style="{ color: balance < 0 ? 'red' : 'green' }">{{ balance.toLocaleString('ru-RU') }} so'm</strong>
       </div>
-      <div 
-      v-if="loading" 
-      class="overlay"
-    >
-      <div class="spinner"></div>
-      <p>Iltimos kuting...</p>
-    </div>
-      <button class="submit-btn" @click="submitDavolanish">📥 Saqlash</button>
-      <button class="cancel-btn" @click="cancelSelection">Bekor</button>
+
+      <!-- Loading overlay -->
+      <div v-if="loading" class="overlay">
+        <div class="spinner"></div>
+        <p>Iltimos kuting...</p>
+      </div>
+
+      <button class="submit-btn" @click="submitDavolanish" :disabled="loading">📥 Saqlash</button>
+      <button class="cancel-btn" @click="cancelSelection" :disabled="loading">Bekor</button>
     </div>
   </div>
 </template>
@@ -168,7 +168,6 @@ export default {
     return {
       today: new Date().toISOString().slice(0, 10),
       client: null,
-       loading: false,
       selectedRoom: null,
       rooms: [],
       mandatoryServices: [],
@@ -187,6 +186,7 @@ export default {
         card: 0,
         click: 0,
       },
+      loading: false
     };
   },
   computed: {
@@ -271,17 +271,6 @@ export default {
         this.davolanishlar = [];
       }
     },
-    async submitDavolanish() {
-      if (this.loading) return; // double-click oldini olish
-      this.loading = true;
-      try {
-        // ... sizning submit logikangiz ...
-      } catch (error) {
-        console.error(error);
-      } finally {
-        this.loading = false; // qayta yoqish
-      }
-    },
     async loadBronlar() {
       try {
         const res = await api.get('/api/v1/bron');
@@ -359,6 +348,7 @@ export default {
       this.additionalServices.splice(index, 1);
     },
     async submitDavolanish() {
+      if (this.loading) return; // double submitni oldini olish
       if (!this.selectedRoom) {
         alert('Xona tanlang!');
         return;
@@ -368,6 +358,7 @@ export default {
         return;
       }
 
+      this.loading = true;
       let davolanish = null;
       try {
         // Davolanish yaratish
@@ -378,16 +369,13 @@ export default {
           ketish_sanasi: this.leaveDate
         });
         davolanish = res.data.data || res.data;
-      } catch (error) {
-        alert('Davolanish saqlanmadi');
-        return;
-      }
-      if (!davolanish?.id) {
-        alert('Davolanish ID topilmadi');
-        return;
-      }
 
-      try {
+        if (!davolanish?.id) {
+          alert('Davolanish ID topilmadi');
+          this.loading = false;
+          return;
+        }
+
         // Xona joylashuv yaratish
         await api.post('/api/v1/xona-joylashuv', {
           davolanish_id: davolanish.id,
@@ -398,18 +386,13 @@ export default {
           num_child: this.childCount || 0,
           price_per_day: this.selectedRoom.price
         });
-      } catch (error) {
-        alert('Joylashuv saqlanmadi');
-        return;
-      }
 
-      const selectedServices = [
-        ...this.mandatoryServices.filter(s => s.selected),
-        ...this.additionalServices.filter(s => s.selected)
-      ];
-
-      try {
         // Xizmatlarni saqlash
+        const selectedServices = [
+          ...this.mandatoryServices.filter(s => s.selected),
+          ...this.additionalServices.filter(s => s.selected)
+        ];
+
         await api.post('/api/v1/client-services', {
           client_id: this.client.id,
           davolanish_id: davolanish.id,
@@ -422,11 +405,7 @@ export default {
             kunlik_vaqtlari: s.kunlik_vaqtlari || []
           }))
         });
-      } catch (error) {
-        alert('Xizmatlar saqlanmadi');
-      }
 
-      try {
         // To‘lovlarni saqlash
         await api.post('/api/v1/payments', {
           davolanish_id: davolanish.id,
@@ -440,21 +419,21 @@ export default {
           from: `${this.client.familiya} ${this.client.ism}`,
           datetime: new Date().toISOString()
         });
+
+        // Tozalash va qayta yuklash
+        this.cancelSelection();
+        await Promise.all([
+          this.loadRooms(),
+          this.loadDavolanishlar(),
+          this.loadBronlar(),
+          this.loadServices()
+        ]);
+        this.markBusyRooms();
       } catch (error) {
-        alert('To‘lov ma\'lumotlari saqlanmadi');
-        return;
+        alert('Xatolik yuz berdi: ' + (error.message || error));
+      } finally {
+        this.loading = false;
       }
-
-      // Tozalash va qayta yuklash
-      this.cancelSelection();
-
-      await Promise.all([
-        this.loadRooms(),
-        this.loadDavolanishlar(),
-        this.loadBronlar(),
-        this.loadServices()
-      ]);
-      this.markBusyRooms();
     },
     async loadAllData() {
       await Promise.all([
@@ -482,40 +461,156 @@ export default {
 .taklif-container {
   max-width: 900px;
   margin: auto;
-  padding: 1rem;
+  padding: 20px;
   font-family: Arial, sans-serif;
 }
+
 .title {
   text-align: center;
-  margin-bottom: 1rem;
+  margin-bottom: 15px;
 }
+
+.user-info {
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
 .filter-row {
   display: flex;
   gap: 10px;
   margin-bottom: 15px;
 }
+
 .filter-row input {
+  padding: 6px 10px;
   flex: 1;
-  padding: 5px 10px;
-  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
+
 .clear-filter-btn {
-  padding: 5px 10px;
-  background-color: #e3342f;
-  color: white;
-  border: none;
+  padding: 6px 15px;
   cursor: pointer;
+  background-color: #f44336;
+  border: none;
+  color: white;
+  border-radius: 4px;
 }
+
 .rooms-table {
   width: 100%;
   border-collapse: collapse;
+  margin-bottom: 20px;
 }
+
 .rooms-table th,
 .rooms-table td {
   border: 1px solid #ddd;
   padding: 8px;
   text-align: center;
 }
+
+.room-row {
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.room-row:hover {
+  background-color: #f0f0f0;
+}
+
+.room-row.busy {
+  background-color: #ffcccc;
+  cursor: not-allowed;
+}
+
+.room-row.current {
+  font-weight: 700;
+}
+
+.no-rooms {
+  text-align: center;
+  font-style: italic;
+  color: #777;
+}
+
+.selected-room {
+  border: 1px solid #ddd;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.date-row {
+  display: flex;
+  gap: 20px;
+  margin: 15px 0;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.services-section {
+  margin-top: 20px;
+}
+
+.service-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 5px 0;
+}
+
+.remove-btn {
+  background: transparent;
+  border: none;
+  color: red;
+  cursor: pointer;
+}
+
+.extra-payments .payment-item {
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.total-sum {
+  font-size: 16px;
+}
+
+.submit-btn {
+  background-color: #3a86ff;
+  border: none;
+  color: white;
+  padding: 10px 20px;
+  margin-right: 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.submit-btn:disabled {
+  background-color: #aacbff;
+  cursor: not-allowed;
+}
+
+.cancel-btn {
+  background-color: #ccc;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.cancel-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Loading overlay styles */
 .overlay {
   position: fixed;
   top: 0;
@@ -529,6 +624,7 @@ export default {
   align-items: center;
   justify-content: center;
 }
+
 .spinner {
   width: 50px;
   height: 50px;
@@ -536,80 +632,12 @@ export default {
   border-top: 5px solid #3a86ff;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+  margin-bottom: 15px;
 }
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
-}
-.room-row.busy {
-  background-color: #f8d7da;
-  cursor: not-allowed;
-}
-.room-row.current {
-  background-color: #fff3cd;
-}
-.no-rooms {
-  text-align: center;
-  font-style: italic;
-  color: #777;
-}
-.selected-room {
-  border: 1px solid #ccc;
-  padding: 15px;
-  margin-top: 20px;
-  background: #f9f9f9;
-}
-.date-row {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 15px;
-}
-.form-group {
-  display: flex;
-  flex-direction: column;
-}
-.services-section {
-  margin-top: 10px;
-}
-.service-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 5px;
-}
-.remove-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: #e3342f;
-  font-weight: bold;
-  font-size: 1rem;
-}
-.extra-payments {
-  display: flex;
-  gap: 15px;
-}
-.payment-item {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-.submit-btn {
-  background-color: #38c172;
-  border: none;
-  padding: 10px 20px;
-  color: white;
-  font-weight: 700;
-  cursor: pointer;
-  margin-right: 10px;
-}
-.cancel-btn {
-  background-color: #6c757d;
-  border: none;
-  padding: 10px 20px;
-  color: white;
-  font-weight: 700;
-  cursor: pointer;
 }
 </style>
