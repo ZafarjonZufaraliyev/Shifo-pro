@@ -115,6 +115,10 @@
       <!-- Submit -->
       <button type="submit">Yuborish</button>
     </form>
+    <div v-if="loading" class="overlay">
+    <div class="spinner"></div>
+    <p>Iltimos, kuting...</p>
+  </div>
   </div>
 </template>
 
@@ -125,6 +129,7 @@ export default {
   name: 'RegisterPage',
   data() {
     return {
+      loading: false,
       viloyatlar: [
         'Toshkent viloyat', 'Toshkent shaxar', 'Andijon', 'Farg‘ona', 'Namangan',
         'Samarqand', 'Buxoro', 'Xorazm', 'Qashqadaryo',
@@ -252,45 +257,51 @@ export default {
     },
 
     async registerClient() {
-      try {
-        console.log('Yuborilayotgan form:', this.form); // Debug uchun
+  if (this.loading) return; // ikki marta yuborishni oldini olish
+  this.loading = true;
 
-        const res = await api.post('/api/v1/clients', this.form);
-        const client = res.data?.data;
+  try {
+    console.log('Yuborilayotgan form:', this.form); // Debug uchun
 
-        if (!client?.id) {
-          alert('Ro‘yxatdan o‘tishda mijoz ID topilmadi!');
-          return;
-        }
+    const res = await api.post('/api/v1/clients', this.form);
+    const client = res.data?.data;
 
-        alert("✅ Mijoz muvaffaqiyatli qo‘shildi.");
+    if (!client?.id) {
+      alert('Ro‘yxatdan o‘tishda mijoz ID topilmadi!');
+      this.loading = false;
+      return;
+    }
 
-        const role = (localStorage.getItem('role') || '').trim();
+    alert("✅ Mijoz muvaffaqiyatli qo‘shildi.");
 
-        if (role === 'kassa') {
-          this.$router.push({ name: 'miniTakliflar', params: { clientId: client.id } });
-        } else if (role === 'admin') {
-          this.$router.push({ name: 'adminTakliflar', params: { clientId: client.id } });
-        } else {
-          this.$router.push({ name: 'ClientListPage' });
-        }
+    const role = (localStorage.getItem('role') || '').trim();
 
-      } catch (err) {
-        if (err.response && err.response.status === 422) {
-          const errors = err.response.data.errors;
-          let msg = '❗ Xatoliklar:\n';
-          for (let key in errors) {
-            msg += `- ${key}: ${errors[key].join(', ')}\n`;
-          }
-          alert(msg);
-        } else if (err.response) {
-          alert(`❌ Serverdan xatolik qaytdi: ${err.response.status} ${err.response.statusText}`);
-        } else {
-          console.error('API xatosi:', err);
-          alert('❌ Ro‘yxatdan o‘tishda nomaʼlum xatolik yuz berdi!');
-        }
+    if (role === 'kassa') {
+      this.$router.push({ name: 'miniTakliflar', params: { clientId: client.id } });
+    } else if (role === 'admin') {
+      this.$router.push({ name: 'adminTakliflar', params: { clientId: client.id } });
+    } else {
+      this.$router.push({ name: 'ClientListPage' });
+    }
+  } catch (err) {
+    if (err.response && err.response.status === 422) {
+      const errors = err.response.data.errors;
+      let msg = '❗ Xatoliklar:\n';
+      for (let key in errors) {
+        msg += `- ${key}: ${errors[key].join(', ')}\n`;
       }
-    },
+      alert(msg);
+    } else if (err.response) {
+      alert(`❌ Serverdan xatolik qaytdi: ${err.response.status} ${err.response.statusText}`);
+    } else {
+      console.error('API xatosi:', err);
+      alert('❌ Ro‘yxatdan o‘tishda nomaʼlum xatolik yuz berdi!');
+    }
+  } finally {
+    this.loading = false;
+  }
+},
+
   },
 };
 </script>
@@ -305,6 +316,42 @@ export default {
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
   font-family: 'Segoe UI', sans-serif;
+}
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(255, 255, 255, 0.85);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  user-select: none;
+}
+
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 6px solid #ccc;
+  border-top-color: #2980b9;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.overlay p {
+  font-size: 18px;
+  color: #2980b9;
+  font-weight: 600;
 }
 
 h2 {
