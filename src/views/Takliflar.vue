@@ -146,7 +146,13 @@
         To‘lovlar jami: <strong>{{ totalPaid.toLocaleString('ru-RU') }} so'm</strong><br />
         Qoldiq: <strong :style="{ color: balance < 0 ? 'red' : 'green' }">{{ balance.toLocaleString('ru-RU') }} so'm</strong>
       </div>
-
+      <div 
+      v-if="loading" 
+      class="overlay"
+    >
+      <div class="spinner"></div>
+      <p>Iltimos kuting...</p>
+    </div>
       <button class="submit-btn" @click="submitDavolanish">📥 Saqlash</button>
       <button class="cancel-btn" @click="cancelSelection">Bekor</button>
     </div>
@@ -162,6 +168,7 @@ export default {
     return {
       today: new Date().toISOString().slice(0, 10),
       client: null,
+       loading: false,
       selectedRoom: null,
       rooms: [],
       mandatoryServices: [],
@@ -262,6 +269,17 @@ export default {
       } catch (error) {
         console.error('Davolanish load error:', error);
         this.davolanishlar = [];
+      }
+    },
+    async submitDavolanish() {
+      if (this.loading) return; // double-click oldini olish
+      this.loading = true;
+      try {
+        // ... sizning submit logikangiz ...
+      } catch (error) {
+        console.error(error);
+      } finally {
+        this.loading = false; // qayta yoqish
       }
     },
     async loadBronlar() {
@@ -497,6 +515,32 @@ export default {
   border: 1px solid #ddd;
   padding: 8px;
   text-align: center;
+}
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.8);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #ccc;
+  border-top: 5px solid #3a86ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 .room-row.busy {
   background-color: #f8d7da;

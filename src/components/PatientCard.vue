@@ -12,11 +12,15 @@
 
     <!-- Tab menyu -->
     <div class="tab-header">
-      <div :class="['tab-title', { active: activeTab === 'xizmatlar' }]" @click="activeTab = 'xizmatlar'">Xizmatlar</div>
-      <div :class="['tab-title', { active: activeTab === 'kasalliklar' }]" @click="activeTab = 'kasalliklar'">Kasalliklar</div>
-      <div :class="['tab-title', { active: activeTab === 'natijalar' }]" @click="activeTab = 'natijalar'">Natijalar</div>
+      <div :class="['tab-title', { active: activeTab === 'xizmatlar' }]" @click="activeTab = 'xizmatlar'">Xizmatlar
+      </div>
+      <div :class="['tab-title', { active: activeTab === 'kasalliklar' }]" @click="activeTab = 'kasalliklar'">
+        Kasalliklar</div>
+      <div :class="['tab-title', { active: activeTab === 'natijalar' }]" @click="activeTab = 'natijalar'">Natijalar
+      </div>
       <div :class="['tab-title', { active: activeTab === 'xonalar' }]" @click="activeTab = 'xonalar'">Xonalar</div>
-      <div :class="['tab-title', { active: activeTab === 'davolanishlar' }]" @click="activeTab = 'davolanishlar'">Davolanishlar</div>
+      <div :class="['tab-title', { active: activeTab === 'davolanishlar' }]" @click="activeTab = 'davolanishlar'">
+        Davolanishlar</div>
     </div>
 
     <!-- Jadval -->
@@ -100,43 +104,38 @@
         </tr>
 
         <!-- Yangi xona qo‘shish -->
- <!-- Yangi xona qo‘shish -->
-<tr v-if="activeTab === 'xonalar'" class="input-row">
-  <td>*</td>
+        <!-- Yangi xona qo‘shish -->
+        <tr v-if="activeTab === 'xonalar'" class="input-row">
+          <td>*</td>
 
-  <!-- Xona tanlash -->
-  <td>
-   <select v-model="rr.xona_id">
-  <option disabled value="">Tanlang</option>
-  <option v-for="r in availableRooms" :key="r.id" :value="r.id">
-    {{ r.room_type?.name || 'Nomaʼlum' }} {{ r.xona }}
-  </option>
-</select>
-  </td>
+          <!-- Xona tanlash -->
+          <td>
+            <select v-model="rr.xona_id">
+              <option disabled value="">Tanlang</option>
+              <option v-for="r in availableRooms" :key="r.id" :value="r.id">
+                {{ r.room_type?.name || 'Nomaʼlum' }} {{ r.xona }}
+              </option>
+            </select>
+          </td>
 
-  <!-- Narx avtomatik chiqadi, lekin o‘zgartirish mumkin -->
-  <td>
-    <input
-  type="number"
-  v-model.number="rr.price"
-  min="0"
-  placeholder="Narx"
-/>
-  </td>
+          <!-- Narx avtomatik chiqadi, lekin o‘zgartirish mumkin -->
+          <td>
+            <input type="number" v-model.number="rr.price" min="0" placeholder="Narx" />
+          </td>
 
-  <!-- 1 kunlik default sana qo‘yiladi -->
-  <td>
-    <input type="date" v-model="rr.kirish_sanasi" />
-  </td>
-  <td>
-    <input type="date" v-model="rr.chiqish_sanasi" />
-  </td>
+          <!-- 1 kunlik default sana qo‘yiladi -->
+          <td>
+            <input type="date" v-model="rr.kirish_sanasi" />
+          </td>
+          <td>
+            <input type="date" v-model="rr.chiqish_sanasi" />
+          </td>
 
-  <!-- Qo‘shish tugmasi -->
-  <td>
-    <button @click="submitReRegister">➕</button>
-  </td>
-</tr>
+          <!-- Qo‘shish tugmasi -->
+          <td>
+            <button @click="submitReRegister">➕</button>
+          </td>
+        </tr>
 
       </tbody>
     </table>
@@ -178,7 +177,7 @@ export default {
         kirish_sanasi: '',
         chiqish_sanasi: '',
         xona_id: '',
-        xizmatlar: [],  // Bu massivga xizmatlar idlarini qo‘shishingiz mumkin
+        xizmatlar: [],
         price: 0,
       },
 
@@ -198,7 +197,7 @@ export default {
       });
     },
 
-    // Qayta ro‘yxatga olish narx hisoblash (kunlik narx * kunlar soni)
+    // Qayta ro‘yxatga olish narx hisoblash
     rrPrice() {
       if (!this.rr.xona_id || !this.rr.kirish_sanasi || !this.rr.chiqish_sanasi) return null;
       const room = this.availableRooms.find(r => String(r.id) === String(this.rr.xona_id));
@@ -210,13 +209,13 @@ export default {
       return pricePerDay * days;
     },
 
-    // Yangi xizmat tanlanganida narxni ko‘rsatish
+    // Tanlangan xizmat narxi
     selectedServicePrice() {
       const selected = this.allServices.find(s => s.id === this.newService.service_id);
       return selected ? (selected.narxi || selected.price || 0) : null;
     },
 
-    // Xonalar jadvali uchun roomAssignments ma'lumotlarini formatlash
+    // Xonalar jadvali ma'lumotlari
     roomData() {
       const stayIds = this.stays.map(s => s.id);
       return this.roomAssignments
@@ -238,7 +237,7 @@ export default {
         });
     },
 
-    // Joriy faol tabga mos ma'lumotni qaytaradi
+    // Faol tabdagi ma'lumotlar
     filteredData() {
       switch (this.activeTab) {
         case 'xizmatlar': return this.xizmatlar;
@@ -252,7 +251,7 @@ export default {
   },
 
   watch: {
-    // Qayta ro‘yxatga olishda xona tanlanganida kunlik narxni avtomatik olish
+    // Xona tanlanganda narxni olish
     'rr.xona_id'(newVal) {
       if (!newVal) {
         this.rr.price = 0;
@@ -288,8 +287,7 @@ export default {
       if (
         today.getMonth() < birth.getMonth() ||
         (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())
-      )
-        yosh--;
+      ) yosh--;
       return yosh;
     },
 
@@ -325,22 +323,21 @@ export default {
         const { data: services } = await api.get('/api/v1/services');
         this.allServices = services || [];
 
-        // Bemor xizmatlari (filter bilan olish yaxshiroq)
+        // Bemor xizmatlari
         const clientServicesRes = await api.get('/api/v1/client-services', {
           params: { client_id: clientId }
         });
         const clientServices = clientServicesRes?.data?.data || clientServicesRes.data.data || [];
-        this.xizmatlar = clientServices
-          .map(s => {
-            const info = this.allServices.find(a => a.id === Number(s.service_id));
-            return {
-              ...s,
-              nomi: info?.nomi || info?.name || 'Nomaʼlum',
-              narxi: Number(s.price || s.narxi || 0),
-              sana: s.start_date || s.sana,
-              id: s.id,
-            };
-          });
+        this.xizmatlar = clientServices.map(s => {
+          const info = this.allServices.find(a => a.id === Number(s.service_id));
+          return {
+            ...s,
+            nomi: info?.nomi || info?.name || 'Nomaʼlum',
+            narxi: Number(s.price || s.narxi || 0),
+            sana: s.start_date || s.sana,
+            id: s.id,
+          };
+        });
       } catch (err) {
         console.error('❌ Xatolik fetchAll() da:', err);
         alert('Ma\'lumotlarni yuklashda xatolik yuz berdi');
@@ -349,7 +346,6 @@ export default {
       }
     },
 
-    // Yangi xizmat qo‘shish
     async addService() {
       if (!this.newService.service_id || !this.newService.sana) {
         return alert('❗ Xizmat va sana tanlanishi kerak');
@@ -374,7 +370,6 @@ export default {
       }
     },
 
-    // Xizmat o‘chirish
     async deleteService(item) {
       if (!confirm('🗑️ Ushbu xizmatni o‘chirmoqchimisiz?')) return;
       try {
@@ -386,7 +381,6 @@ export default {
       }
     },
 
-    // Xona joylashuvni o‘chirish
     async deleteRoomAssignment(item) {
       if (!confirm('🗑️ Ushbu xona joylashuvini o‘chirmoqchimisiz?')) return;
       try {
@@ -398,7 +392,6 @@ export default {
       }
     },
 
-    // Chiqish sanasini yangilash
     async updateExitDate(item) {
       if (!item.chiqish_sanasi) return alert('❌ Chiqish sanasi kiritilmagan');
       try {
@@ -423,95 +416,79 @@ export default {
       }
     },
 
-   // Qayta ro‘yxatga olish
-async submitReRegister() {
-  const r = this.rr;
+    async submitReRegister() {
+      const r = this.rr;
 
-  // Majburiy maydonlar tekshiruvi
-  if (!r.kirish_sanasi || !r.chiqish_sanasi || !r.xona_id) {
-    alert('❗ Barcha maydonlar toʻldirilishi kerak');
-    return;
-  }
+      if (!r.kirish_sanasi || !r.chiqish_sanasi || !r.xona_id) {
+        alert('❗ Barcha maydonlar toʻldirilishi kerak');
+        return;
+      }
 
-  try {
-    let stay = this.latestStay;
+      try {
+        let stay = this.latestStay;
 
-    // Agar oxirgi davolanish yo‘q yoki chiqqan bo‘lsa, yangi yaratamiz
-    if (!stay || stay.ketish_sanasi || stay.to_date) {
-      const { data: newStay } = await api.post('/api/v1/davolanish', {
-        client_id: this.patient.id,
-        kelish_sanasi: r.kirish_sanasi,
-        ketish_sanasi: r.chiqish_sanasi,
-         xona_id: r.xona_id, 
-        create_user_id: this.currentUser.id,
-      });
-      stay = newStay;
+        if (!stay || stay.ketish_sanasi || stay.to_date) {
+          const { data: newStayResponse } = await api.post('/api/v1/davolanish', {
+  client_id: this.patient.id,
+  kelish_sanasi: r.kirish_sanasi,
+  ketish_sanasi: r.chiqish_sanasi,
+  xona_id: r.xona_id,
+  create_user_id: this.currentUser.id,
+});
+
+stay = newStayResponse.data; // id shu yerda bo‘ladi
+
+        }
+
+        const lastRoom = [...this.roomAssignments]
+          .filter((ra) => ra.davolanish_id === stay.id)
+          .sort(
+            (a, b) =>
+              new Date(b.kirish_sanasi || b.from_date) -
+              new Date(a.kirish_sanasi || a.from_date)
+          )[0];
+
+        if (lastRoom) {
+          await api.put(`/api/v1/xona-joylashuv/${lastRoom.id}`, {
+            ...lastRoom,
+            to_date: r.kirish_sanasi,
+          });
+        }
+
+        await api.post('/api/v1/xona-joylashuv', {
+          davolanish_id: stay.id,
+          room_id: r.xona_id, // ✅ to‘g‘ri nom
+          from_date: r.kirish_sanasi,
+          to_date: r.chiqish_sanasi,
+          price_per_day: r.price || 0,
+        });
+
+        for (const sid of r.xizmatlar) {
+          const s = this.allServices.find((srv) => srv.id === sid);
+          await api.post('/api/v1/client-services', {
+            client_id: this.patient.id,
+            davolanish_id: stay.id,
+            service_id: sid,
+            start_date: r.kirish_sanasi,
+            price: s ? s.narxi || s.price || 0 : 0,
+          });
+        }
+
+        this.rr = {
+          kirish_sanasi: '',
+          chiqish_sanasi: '',
+          xona_id: '',
+          xizmatlar: [],
+          price: 0,
+        };
+
+        await this.fetchAll();
+      } catch (err) {
+        console.error('❌ Qayta ro‘yxatga olishda xatolik:', err.response?.data || err.message);
+        alert('Qayta ro‘yxatga olishda xatolik yuz berdi');
+      }
     }
 
-    // Oxirgi xona joylashuvni yopish
-    const lastRoom = [...this.roomAssignments]
-      .filter((ra) => ra.davolanish_id === stay.id)
-      .sort(
-        (a, b) =>
-          new Date(b.kirish_sanasi || b.from_date) -
-          new Date(a.kirish_sanasi || a.from_date)
-      )[0];
-
-    if (lastRoom) {
-      await api.put(`/api/v1/xona-joylashuv/${lastRoom.id}`, {
-        ...lastRoom,
-        to_date: r.kirish_sanasi,
-      });
-    }
-
-    // Yangi xona joylashuv yaratish
-    console.log('➡ Yuborilayotgan xona joylashuv maʼlumotlari:', {
-      davolanish_id: stay.id,
-      room_id: r.xona_id,
-      from_date: r.kirish_sanasi,
-      to_date: r.chiqish_sanasi,
-      price_per_day: r.price || 0,
-    });
-
-    await api.post('/api/v1/xona-joylashuv', {
-      davolanish_id: stay.id,
-      // ⚠ Backend agar room_id kutsa, shu yerda o'zgartirish kerak
-      xona_id: r.xona_id,
-      from_date: r.kirish_sanasi,
-      to_date: r.chiqish_sanasi,
-      price_per_day: r.price || 0,
-    });
-
-    // Tanlangan xizmatlarni qo‘shish
-    for (const sid of r.xizmatlar) {
-      const s = this.allServices.find((srv) => srv.id === sid);
-      await api.post('/api/v1/client-services', {
-        client_id: this.patient.id,
-        davolanish_id: stay.id,
-        service_id: sid,
-        start_date: r.kirish_sanasi,
-        price: s ? s.narxi || s.price || 0 : 0,
-      });
-    }
-
-    // Forma tozalash va ro‘yxatni yangilash
-    this.rr = {
-      kirish_sanasi: '',
-      chiqish_sanasi: '',
-      xona_id: '',
-      xizmatlar: [],
-      price: 0,
-    };
-
-    await this.fetchAll();
-  } catch (err) {
-    console.error(
-      '❌ Qayta ro‘yxatga olishda xatolik:',
-      err.response?.data || err.message
-    );
-    alert('Qayta ro‘yxatga olishda xatolik yuz berdi');
-  }
-},
   },
 
   mounted() {
@@ -519,6 +496,7 @@ async submitReRegister() {
   },
 };
 </script>
+
 
 
 
