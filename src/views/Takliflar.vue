@@ -28,13 +28,9 @@
           </tr>
         </thead>
         <tbody>
-          <tr
-            v-for="r in filteredRooms"
-            :key="r.id"
-            :class="['room-row', { busy: r.busy }, { current: isCurrentRoom(r.id) }]"
-            @click="selectRoom(r)"
-            :title="r.busy ? 'Band' : 'Tanlash'"
-          >
+          <tr v-for="r in filteredRooms" :key="r.id"
+            :class="['room-row', { busy: r.busy }, { current: isCurrentRoom(r.id) }]" @click="selectRoom(r)"
+            :title="r.busy ? 'Band' : 'Tanlash'">
             <td>{{ r.room_type }}</td>
             <td>{{ r.xona }}</td>
             <td>{{ r.sigim }}</td>
@@ -85,27 +81,18 @@
       <!-- Bolalik checkbox va bola soni input -->
       <div class="form-group" style="margin:10px 0; display: flex; align-items: center; gap: 10px;">
         <label style="display: flex; align-items: center; gap: 5px;">
-          <input type="checkbox" v-model="has_child" /> Bolalik (has_child)
+          <input type="checkbox" v-model="has_child" /> Bolalik 
+          
         </label>
 
-        <input
-          v-if="has_child"
-          type="number"
-          min="1"
-          v-model.number="childCount"
-          placeholder="Bola soni"
-          style="width: 100px;"
-        />
+        <input v-if="has_child" type="number" min="1" v-model.number="childCount" placeholder="Bola soni"
+          style="width: 100px;" />
       </div>
 
       <!-- Xizmatlar -->
       <div class="services-section">
         <h4>Majburiy xizmatlar</h4>
-        <div
-          v-for="(s, i) in mandatoryServices"
-          :key="'m' + i"
-          class="service-item"
-        >
+        <div v-for="(s, i) in mandatoryServices" :key="'m' + i" class="service-item">
           <input type="checkbox" v-model="s.selected" />
           {{ s.name }} —
           <input type="number" v-model.number="s.price" style="width:80px" /> so'm
@@ -116,11 +103,7 @@
           <input type="checkbox" v-model="s.selected" />
           {{ s.name }} —
           <input type="number" v-model.number="s.price" style="width:80px" />
-          <button
-            @click="removeAdditionalService(i)"
-            class="remove-btn"
-            title="Xizmatni o'chirish"
-          >❌</button>
+          <button @click="removeAdditionalService(i)" class="remove-btn" title="Xizmatni o'chirish">❌</button>
         </div>
       </div>
 
@@ -144,19 +127,25 @@
       <div class="total-sum" style="margin: 15px 0;">
         Jami: <strong>{{ totalSum.toLocaleString('ru-RU') }} so'm</strong><br />
         To‘lovlar jami: <strong>{{ totalPaid.toLocaleString('ru-RU') }} so'm</strong><br />
-        Qoldiq: <strong :style="{ color: balance < 0 ? 'red' : 'green' }">{{ balance.toLocaleString('ru-RU') }} so'm</strong>
+        Qoldiq: <strong :style="{ color: balance < 0 ? 'red' : 'green' }">{{ balance.toLocaleString('ru-RU') }}
+          so'm</strong>
       </div>
-      <div 
-      v-if="loading" 
-      class="overlay"
-    >
-      <div class="spinner"></div>
-      <p>Iltimos kuting...</p>
-    </div>
-    <div v-if="message" :class="['message-box', messageType]">
-      {{ message }}
-</div>
-      <button class="submit-btn" @click="submitDavolanish">📥 Saqlash</button>
+      <div v-if="loading" class="overlay">
+        <div class="spinner"></div>
+        <p>Iltimos kuting...</p>
+      </div>
+      <div v-if="message" :class="['message-box', messageType]">
+        {{ message }}
+      </div>
+     <button 
+  class="submit-btn" 
+  @click="submitDavolanish" 
+  :disabled="loading"
+>
+  <span v-if="loading">Saqlanmoqda...</span>
+  <span v-else>📥 Saqlash</span>
+</button>
+
       <button class="cancel-btn" @click="cancelSelection">Bekor</button>
     </div>
   </div>
@@ -368,127 +357,128 @@ export default {
       }, 5000);
     },
 
-    async submitDavolanish() {
-  if (this.loading) return; // double-click oldini olish
+   async submitDavolanish() {
+  // 🔹 Ikki martta bosishga qarshi himoya
+  if (this.loading) return;
   this.loading = true;
+
+  // Xabarlarni tozalash
   this.message = '';
   this.messageType = '';
 
-  // Xona tanlanganini tekshirish
-  if (!this.selectedRoom) {
-    this.showMessage('Xona tanlang!', 'error');
-    this.loading = false;
-    return;
-  }
-  // Mijoz mavjudligini tekshirish
-  if (!this.client?.id) {
-    this.showMessage('Mijoz tanlanmagan!', 'error');
-    this.loading = false;
-    return;
-  }
-
-  let davolanish = null;
-
-  // Davolanish yaratish
   try {
-    const res = await api.post('/api/v1/davolanish', {
-      client_id: this.client.id,
-      xona_id: this.selectedRoom.id,
-      kelish_sanasi: this.arrivalDate,
-      ketish_sanasi: this.leaveDate
-    });
-    davolanish = res.data.data || res.data;
-  } catch (error) {
-    this.showMessage('Davolanish saqlanmadi', 'error');
+    // 1️⃣ Xona tanlanganini tekshirish
+    if (!this.selectedRoom) {
+      this.showMessage('Xona tanlang!', 'error');
+      return;
+    }
+
+    // 2️⃣ Mijoz tanlanganini tekshirish
+    if (!this.client?.id) {
+      this.showMessage('Mijoz tanlanmagan!', 'error');
+      return;
+    }
+
+    // 3️⃣ Davolanish yaratish
+    let davolanish;
+    try {
+      const res = await api.post('/api/v1/davolanish', {
+        client_id: this.client.id,
+        xona_id: this.selectedRoom.id,
+        kelish_sanasi: this.arrivalDate,
+        ketish_sanasi: this.leaveDate
+      });
+      davolanish = res.data.data || res.data;
+    } catch (error) {
+      this.showMessage('Davolanish saqlanmadi', 'error');
+      return;
+    }
+
+    // Davolanish ID tekshirish
+    if (!davolanish?.id) {
+      this.showMessage('Davolanish ID topilmadi', 'error');
+      return;
+    }
+
+    // 4️⃣ Xona joylashuvini saqlash
+    try {
+      await api.post('/api/v1/xona-joylashuv', {
+        davolanish_id: davolanish.id,
+        room_id: this.selectedRoom.id,
+        from_date: this.arrivalDate,
+        to_date: this.leaveDate,
+        has_child: this.has_child ? 1 : 0,
+        num_child: this.childCount || 0,
+        price_per_day: this.selectedRoom.price
+      });
+    } catch (error) {
+      this.showMessage('Joylashuv saqlanmadi', 'error');
+      return;
+    }
+
+    // 5️⃣ Xizmatlarni tayyorlash
+    const selectedServices = [
+      ...this.mandatoryServices.filter(s => s.selected),
+      ...this.additionalServices.filter(s => s.selected)
+    ];
+
+    // 6️⃣ Xizmatlarni saqlash
+    try {
+      await api.post('/api/v1/client-services', {
+        client_id: this.client.id,
+        davolanish_id: davolanish.id,
+        services: selectedServices.map(s => ({
+          service_id: s.id,
+          price: s.price,
+          mahal: s.mahal || 1,
+          total_days: this.stayDays,
+          start_date: this.arrivalDate,
+          kunlik_vaqtlari: s.kunlik_vaqtlari || []
+        }))
+      });
+    } catch (error) {
+      this.showMessage('Xizmatlar saqlanmadi', 'error');
+      return;
+    }
+
+    // 7️⃣ To‘lovni saqlash
+    try {
+      await api.post('/api/v1/payments', {
+        davolanish_id: davolanish.id,
+        is_patient_payment: 1,
+        client_id: this.client.id,
+        cash: this.extraPayments.cash,
+        card: this.extraPayments.card,
+        click: this.extraPayments.click,
+        total: this.totalSum,
+        type: 'kirim',
+        from: `${this.client.familiya} ${this.client.ism}`,
+        datetime: new Date().toISOString()
+      });
+    } catch (error) {
+      this.showMessage('To‘lov ma\'lumotlari saqlanmadi', 'error');
+      return;
+    }
+
+    // 8️⃣ Formani tozalash
+    this.cancelSelection();
+
+    // 9️⃣ Ma’lumotlarni qayta yuklash
+    await Promise.all([
+      this.loadRooms(),
+      this.loadDavolanishlar(),
+      this.loadBronlar(),
+      this.loadServices()
+    ]);
+    this.markBusyRooms();
+
+    // 🔟 Muvaffaqiyat xabari
+    this.showMessage('Davolanish muvaffaqiyatli saqlandi!', 'success');
+  } finally {
+    // Har qanday holatda loading ni o‘chirish
     this.loading = false;
-    return;
   }
-  if (!davolanish?.id) {
-    this.showMessage('Davolanish ID topilmadi', 'error');
-    this.loading = false;
-    return;
-  }
-
-  // Xona joylashuv ma’lumotlarini saqlash
-  try {
-    await api.post('/api/v1/xona-joylashuv', {
-      davolanish_id: davolanish.id,
-      room_id: this.selectedRoom.id,
-      from_date: this.arrivalDate,
-      to_date: this.leaveDate,
-      has_child: this.has_child ? 1 : 0,
-      num_child: this.childCount || 0,
-      price_per_day: this.selectedRoom.price
-    });
-  } catch (error) {
-    this.showMessage('Joylashuv saqlanmadi', 'error');
-    this.loading = false;
-    return;
-  }
-
-  // Tanlangan xizmatlar ro‘yxatini tayyorlash
-  const selectedServices = [
-    ...this.mandatoryServices.filter(s => s.selected),
-    ...this.additionalServices.filter(s => s.selected)
-  ];
-
-  // Xizmatlarni saqlash
-  try {
-    await api.post('/api/v1/client-services', {
-      client_id: this.client.id,
-      davolanish_id: davolanish.id,
-      services: selectedServices.map(s => ({
-        service_id: s.id,
-        price: s.price,
-        mahal: s.mahal || 1,
-        total_days: this.stayDays,
-        start_date: this.arrivalDate,
-        kunlik_vaqtlari: s.kunlik_vaqtlari || []
-      }))
-    });
-  } catch (error) {
-    this.showMessage('Xizmatlar saqlanmadi', 'error');
-    this.loading = false;
-    return;
-  }
-
-  // To‘lovlarni saqlash
-  try {
-    await api.post('/api/v1/payments', {
-      davolanish_id: davolanish.id,
-      is_patient_payment: 1,
-      client_id: this.client.id,
-      cash: this.extraPayments.cash,
-      card: this.extraPayments.card,
-      click: this.extraPayments.click,
-      total: this.totalSum,
-      type: 'kirim',
-      from: `${this.client.familiya} ${this.client.ism}`,
-      datetime: new Date().toISOString()
-    });
-  } catch (error) {
-    this.showMessage('To‘lov ma\'lumotlari saqlanmadi', 'error');
-    this.loading = false;
-    return;
-  }
-
-  // Formani tozalash
-  this.cancelSelection();
-
-  // Ma’lumotlarni qayta yuklash
-  await Promise.all([
-    this.loadRooms(),
-    this.loadDavolanishlar(),
-    this.loadBronlar(),
-    this.loadServices()
-  ]);
-  this.markBusyRooms();
-
-  // Muvaffaqiyat xabarini ko‘rsatish
-  this.showMessage('Davolanish muvaffaqiyatli saqlandi!', 'success');
-  this.loading = false;
-}
-,
+},
 
     async loadAllData() {
       await Promise.all([
@@ -514,26 +504,35 @@ export default {
 
 
 <style scoped>
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .taklif-container {
-  max-width: 900px;
+  max-width: 1200px;
   margin: auto;
   padding: 1rem;
   font-family: Arial, sans-serif;
 }
+
 .title {
   text-align: center;
   margin-bottom: 1rem;
 }
+
 .filter-row {
   display: flex;
   gap: 10px;
   margin-bottom: 15px;
 }
+
 .filter-row input {
   flex: 1;
   padding: 5px 10px;
   font-size: 1rem;
 }
+
 .clear-filter-btn {
   padding: 5px 10px;
   background-color: #e3342f;
@@ -541,6 +540,7 @@ export default {
   border: none;
   cursor: pointer;
 }
+
 .message-box {
   padding: 12px 20px;
   margin-bottom: 20px;
@@ -567,12 +567,14 @@ export default {
   width: 100%;
   border-collapse: collapse;
 }
+
 .rooms-table th,
 .rooms-table td {
   border: 1px solid #ddd;
   padding: 8px;
   text-align: center;
 }
+
 .overlay {
   position: fixed;
   top: 0;
@@ -586,6 +588,7 @@ export default {
   align-items: center;
   justify-content: center;
 }
+
 .spinner {
   width: 50px;
   height: 50px;
@@ -594,47 +597,57 @@ export default {
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
+
 .room-row.busy {
   background-color: #f8d7da;
   cursor: not-allowed;
 }
+
 .room-row.current {
   background-color: #fff3cd;
 }
+
 .no-rooms {
   text-align: center;
   font-style: italic;
   color: #777;
 }
+
 .selected-room {
   border: 1px solid #ccc;
   padding: 15px;
   margin-top: 20px;
   background: #f9f9f9;
 }
+
 .date-row {
   display: flex;
   gap: 15px;
   margin-bottom: 15px;
 }
+
 .form-group {
   display: flex;
   flex-direction: column;
 }
+
 .services-section {
   margin-top: 10px;
 }
+
 .service-item {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 5px;
 }
+
 .remove-btn {
   background: transparent;
   border: none;
@@ -643,15 +656,18 @@ export default {
   font-weight: bold;
   font-size: 1rem;
 }
+
 .extra-payments {
   display: flex;
   gap: 15px;
 }
+
 .payment-item {
   display: flex;
   flex-direction: column;
   flex: 1;
 }
+
 .submit-btn {
   background-color: #38c172;
   border: none;
@@ -661,6 +677,7 @@ export default {
   cursor: pointer;
   margin-right: 10px;
 }
+
 .cancel-btn {
   background-color: #6c757d;
   border: none;
