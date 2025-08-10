@@ -61,7 +61,7 @@
 
           <label>
             Rol:
-            <select v-model="form.section_id" required>
+            <select v-model="form.role" required>
               <option disabled value="">-- Rolni tanlang --</option>
               <option v-for="role in roles" :key="role" :value="role">{{ role }}</option>
             </select>
@@ -113,7 +113,7 @@ export default {
         login: '',
         parol: '',
         parol2: '',
-        section_id: '',  // endi string bo'ladi
+        role: '',  // endi string bo'ladi
       },
     };
   },
@@ -169,7 +169,7 @@ export default {
           login: xodim.username,
           parol: '',
           parol2: '',
-          section_id: xodim.section_id, // string kutilmoqda
+          role: xodim.role, // string kutilmoqda
         };
       } else {
         this.resetForm();
@@ -193,7 +193,7 @@ export default {
         login: '',
         parol: '',
         parol2: '',
-        section_id: '',
+        role: '',
       };
     },
     async saveXodim() {
@@ -201,7 +201,7 @@ export default {
       this.successMsg = null;
       const f = this.form;
 
-      if (!f.ism || !f.familiya || !f.telefon || !f.email || !f.login || !f.section_id) {
+      if (!f.ism || !f.familiya || !f.telefon || !f.email || !f.login || !f.role) {
         this.formError = 'Iltimos, barcha maydonlarni toʻldiring!';
         return;
       }
@@ -215,7 +215,7 @@ export default {
         phone: f.telefon,
         email: f.email,
         username: f.login,
-        section_id: f.section_id,  // string, masalan "admin"
+        role: f.role,  // string, masalan "admin"
         // Password faqat yangi qo'shilganda yoki o'zgartirilganda jo'natiladi
         ...(f.parol ? { password: f.parol, password_confirmation: f.parol2 } : {}),
       };

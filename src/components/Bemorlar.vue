@@ -146,6 +146,13 @@ export default {
   },
 
   methods: {
+    isLeavingToday(date) {
+  if (!date) return false;
+  const ketish = dayjs(date).format("YYYY-MM-DD");
+  const today = dayjs().format("YYYY-MM-DD");
+  // 🔹 Agar bugungi yoki undan oldin bo'lsa — qizil bo'ladi
+  return ketish <= today;
+},
     async fetchPatients() {
       this.loading = true;
       try {
@@ -233,145 +240,109 @@ export default {
 };
 </script>
 
-
-
 <style scoped>
-.today-leaving {
-  border: 5px solid red;
-}
-.btn-today {
-  background-color: red;
-  color: white;
-}
+/* ===== Umumiy konteyner va shrift ===== */
 .patients-container {
-  width:100%;
-  margin:20px auto;
-  max-width:1200px;
-  padding: 20px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f9fafb;
+  width: 100%;
+  max-width: 1200px; /* kattaroq ekranga moslash uchun oshirildi */
+  margin: 30px auto;
+  padding: 25px 20px;
   min-height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: #222;
+  user-select: none;
+  box-sizing: border-box;
 }
 
-/* Header va sarlavha */
+/* ===== Header ===== */
 .header-section {
-  margin-bottom: 15px;
+  margin-bottom: 25px;
   text-align: center;
 }
 
 .page-title {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 700;
   color: #007bff;
   user-select: none;
 }
 
-/* Yuqori boshqaruvlar */
+/* ===== Yuqori boshqaruvlar ===== */
 .top-controls {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
 }
 
-/* Qidiruv qutisi */
+/* ----- Qidiruv qutisi ----- */
 .search-box {
   display: flex;
   align-items: center;
   background: white;
-  border-radius: 8px;
-  padding: 6px 12px;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 0.1);
+  border-radius: 10px;
+  padding: 8px 16px;
+  box-shadow: 0 3px 8px rgb(0 0 0 / 0.12);
   flex-grow: 1;
-  max-width: 400px;
+  max-width: 450px;
+  transition: box-shadow 0.3s ease;
+}
+
+.search-box:hover,
+.search-box input:focus {
+  box-shadow: 0 0 12px #007bffaa;
 }
 
 .search-box img {
-  width: 20px;
-  height: 20px;
-  filter: grayscale(80%) brightness(60%);
+  width: 22px;
+  height: 22px;
+  filter: grayscale(70%) brightness(60%);
 }
 
 .search-box input {
   border: none;
   outline: none;
-  margin-left: 8px;
-  font-size: 15px;
+  margin-left: 10px;
+  font-size: 16px;
   width: 100%;
   background: transparent;
   color: #333;
-  transition: box-shadow 0.3s ease;
+  user-select: text;
 }
 
 .search-box input::placeholder {
-  color: #999;
+  color: #aaa;
 }
 
-.search-box input:focus {
-  box-shadow: 0 0 5px #007bff;
-  border-radius: 4px;
-}
-
-/* Ko‘rinish toggle tugmalari */
-.view-toggle {
-  display: flex;
-  gap: 8px;
-}
-
-.view-toggle button {
-  background: #e9ecef;
-  border: 1.5px solid #ced4da;
-  border-radius: 6px;
-  font-size: 22px;
-  width: 44px;
-  height: 44px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 0.25s, border-color 0.25s, color 0.25s;
-  user-select: none;
-}
-
-.view-toggle button:hover:not(.active) {
-  background-color: #d1e7ff;
-}
-
-.view-toggle button.active {
-  background-color: #007bff;
-  border-color: #0056b3;
-  color: white;
-  box-shadow: 0 0 8px #0056b3aa;
-}
-
-/* Sana oralig‘i filtri */
+/* ===== Sana oralig‘i filtri ===== */
 .date-range-filter {
-  margin-bottom: 20px;
+  margin-bottom: 25px;
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 18px;
   flex-wrap: wrap;
   justify-content: center;
 }
 
 .date-range-filter label {
-  font-size: 14px;
+  font-size: 15px;
   color: #555;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  user-select: none;
 }
 
 .date-range-filter input[type="date"] {
-  padding: 6px 10px;
-  border: 1.5px solid #ced4da;
-  border-radius: 6px;
-  font-size: 14px;
+  padding: 7px 12px;
+  border: 1.8px solid #ced4da;
+  border-radius: 8px;
+  font-size: 15px;
   cursor: pointer;
-  transition: border-color 0.25s ease;
+  transition: border-color 0.3s ease;
+  user-select: text;
 }
 
 .date-range-filter input[type="date"]:focus {
@@ -383,42 +354,45 @@ export default {
   background-color: #007bff;
   color: white;
   border: none;
-  padding: 8px 18px;
-  font-weight: 600;
-  border-radius: 8px;
+  padding: 10px 22px;
+  font-weight: 700;
+  font-size: 15px;
+  border-radius: 10px;
   cursor: pointer;
   user-select: none;
-  transition: background-color 0.25s ease;
+  box-shadow: 0 5px 15px rgb(0 123 255 / 0.4);
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .date-range-filter button:hover {
   background-color: #0056b3;
+  box-shadow: 0 7px 20px rgb(0 86 179 / 0.6);
 }
 
-/* Jami bemorlar soni */
+/* ===== Jami bemorlar soni ===== */
 .total-count {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 20px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 30px;
   text-align: center;
   user-select: none;
 }
 
-/* Yuklanish spinner */
+/* ===== Yuklanish spinner ===== */
 .loading-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 150px;
+  height: 180px;
 }
 
 .spinner {
-  border: 5px solid #e0e0e0;
-  border-top: 5px solid #007bff;
+  border: 6px solid #e0e0e0;
+  border-top: 6px solid #007bff;
   border-radius: 50%;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   animation: spin 1s linear infinite;
 }
 
@@ -428,109 +402,185 @@ export default {
   }
 }
 
-/* Card ko‘rinish */
+/* ===== Kartalar konteyneri ===== */
 .cards-wrapper {
-  margin-top: 10px;
+  margin-top: 15px;
 }
 
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 20px;
+  gap: 28px 22px;
+  grid-template-columns: repeat(4, 1fr); /* default 4 ustun */
 }
 
+/* 5 ta ustun katta ekran uchun */
+@media (min-width: 1300px) {
+  .cards-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 30px 24px;
+  }
+}
+
+/* 3 ustun o‘rta ekranlarda */
+@media (max-width: 1199px) and (min-width: 768px) {
+  .cards-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* 2 ustun kichik ekranlarda */
+@media (max-width: 767px) and (min-width: 480px) {
+  .cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px 18px;
+  }
+}
+
+/* 1 ustun mobilda */
+@media (max-width: 479px) {
+  .cards-grid {
+    grid-template-columns: 1fr;
+    gap: 18px 15px;
+  }
+}
+
+/* ===== Har bir bemor kartasi ===== */
 .patient1-card {
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 6px 12px rgb(0 0 0 / 0.07);
-  padding: 18px 20px;
+  background-color: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgb(0 0 0 / 0.1);
+  padding: 28px 26px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
   cursor: default;
   user-select: none;
+  border: 3px solid transparent;
 }
 
 .patient1-card:hover {
-  box-shadow: 0 12px 20px rgb(0 0 0 / 0.15);
-  transform: translateY(-4px);
+  box-shadow: 0 14px 38px rgb(0 0 0 / 0.18);
+  transform: translateY(-8px);
+  border-color: #007bff;
 }
 
-.card-link {
-  text-decoration: none;
-  color: inherit;
-  user-select: none;
+/* Bugun ketadigan bemorlar uchun qizil chegara */
+.today-leaving {
+  border-color: #dc3545 !important;
+}
+
+/* Kartaning sarlavhasi */
+.card__header {
+  margin-bottom: 20px;
+  user-select: text;
 }
 
 .card__header h3 {
   margin: 0 0 8px 0;
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
   color: #007bff;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .card__header span {
-  font-size: 14px;
-  color: #555;
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 600;
+  color: #495057;
+  user-select: text;
 }
 
+/* Kartaning asosiy ma'lumotlari */
 .card__body p {
-  margin: 7px 0;
-  font-size: 14px;
-  color: #444;
+  margin: 12px 0;
+  font-size: 16px;
+  color: #343a40;
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
+  user-select: text;
 }
 
 .card__body strong {
-  color: #222;
+  color: #212529;
 }
 
-/* "Ketdi" tugmasi */
+/* Text qisqartirish */
+.card__body p strong,
+.card__body p span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 70%;
+}
+
+/* ===== "Ketdi" tugmasi ===== */
 .btn-ketdi {
   background-color: #28a745;
   border: none;
   color: white;
-  padding: 4px 10px;
-  border-radius: 6px;
+  padding: 8px 18px;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  transition: background-color 0.25s ease;
+  font-size: 15px;
+  font-weight: 700;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  margin-left: 14px;
   user-select: none;
-  margin-left: 12px;
+  flex-shrink: 0;
+  box-shadow: 0 5px 15px rgb(40 167 69 / 0.5);
 }
 
 .btn-ketdi:hover {
-  background-color: #1e7e34;
+  background-color: #218838;
+  box-shadow: 0 8px 18px rgb(33 136 56 / 0.6);
 }
 
-/* Pagination */
+/* Bugun ketadiganlar uchun qizil tugma */
+.btn-today {
+  background-color: #dc3545;
+  box-shadow: 0 5px 15px rgb(220 53 69 / 0.6);
+}
+
+.btn-today:hover {
+  background-color: #b02a37;
+  box-shadow: 0 8px 20px rgb(176 42 55 / 0.7);
+}
+
+/* ===== Pagination ===== */
 .pagination {
-  margin-top: 25px;
+  margin-top: 35px;
   display: flex;
   justify-content: center;
-  gap: 8px;
+  gap: 12px;
   flex-wrap: wrap;
   user-select: none;
 }
 
 .pagination-btn {
-  border: 1.8px solid #007bff;
+  border: 2px solid #007bff;
   background-color: white;
   color: #007bff;
-  padding: 7px 14px;
-  border-radius: 8px;
+  padding: 9px 18px;
+  border-radius: 10px;
   cursor: pointer;
   font-weight: 700;
-  font-size: 15px;
-  transition: background-color 0.3s ease, color 0.3s ease;
-  min-width: 48px;
+  font-size: 16px;
+  min-width: 52px;
   text-align: center;
+  transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
   user-select: none;
+  box-shadow: none;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: #007bff;
+  color: white;
+  box-shadow: 0 0 14px #007bffaa;
 }
 
 .pagination-btn:disabled {
@@ -538,47 +588,77 @@ export default {
   color: #cfd4da;
   cursor: not-allowed;
   background-color: #f8f9fa;
+  box-shadow: none;
 }
 
 .pagination-btn.active {
   background-color: #007bff;
   color: white;
-  box-shadow: 0 0 10px #007bffaa;
+  box-shadow: 0 0 18px #007bffaa;
 }
 
-/* Responsive adjustments */
+/* ===== Responsive ===== */
 @media (max-width: 1024px) {
-  .cards-grid {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  .page-title {
+    font-size: 28px;
   }
-  .top-controls {
-    flex-direction: column;
-    align-items: stretch;
-  }
+
   .search-box {
     max-width: 100%;
   }
-  .view-toggle {
-    justify-content: flex-start;
+
+  .date-range-filter button {
+    padding: 9px 18px;
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 767px) {
   .cards-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
   }
-  .page-title {
-    font-size: 22px;
+
+  .patient1-card {
+    padding: 22px 20px;
   }
+
+  .card__header h3 {
+    font-size: 20px;
+  }
+
+  .card__header span,
+  .card__body p {
+    font-size: 14px;
+  }
+
   .btn-ketdi {
-    padding: 3px 7px;
-    font-size: 11px;
-  }
-  .pagination-btn {
-    padding: 6px 10px;
-    font-size: 13px;
-    min-width: 40px;
+    font-size: 14px;
+    padding: 7px 14px;
+    margin-left: 10px;
   }
 }
 
+@media (max-width: 479px) {
+  .cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .patient1-card {
+    padding: 18px 16px;
+  }
+
+  .card__header h3 {
+    font-size: 18px;
+  }
+
+  .card__header span,
+  .card__body p {
+    font-size: 13px;
+  }
+
+  .btn-ketdi {
+    font-size: 13px;
+    padding: 6px 12px;
+    margin-left: 8px;
+  }
+}
 </style>

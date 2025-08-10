@@ -153,6 +153,9 @@
       <div class="spinner"></div>
       <p>Iltimos kuting...</p>
     </div>
+    <div v-if="message" :class="['message-box', messageType]">
+      {{ message }}
+</div>
       <button class="submit-btn" @click="submitDavolanish">📥 Saqlash</button>
       <button class="cancel-btn" @click="cancelSelection">Bekor</button>
     </div>
@@ -168,7 +171,7 @@ export default {
     return {
       today: new Date().toISOString().slice(0, 10),
       client: null,
-       loading: false,
+      loading: false,  // submit jarayonini nazorat qilish uchun
       selectedRoom: null,
       rooms: [],
       mandatoryServices: [],
@@ -187,6 +190,8 @@ export default {
         card: 0,
         click: 0,
       },
+      message: '',       // Ekranda ko‘rsatiladigan xabar
+      messageType: '',   // 'success' yoki 'error' uchun
     };
   },
   computed: {
@@ -231,6 +236,7 @@ export default {
         this.client = res.data;
       } catch (error) {
         console.error('Client load error:', error);
+        this.showMessage('Mijoz ma\'lumotlari yuklanishda xatolik yuz berdi', 'error');
       }
     },
     async loadRooms() {
@@ -247,6 +253,7 @@ export default {
         }));
       } catch (error) {
         console.error('Rooms load error:', error);
+        this.showMessage('Xonalar yuklanishda xatolik yuz berdi', 'error');
       }
     },
     async loadServices() {
@@ -260,6 +267,7 @@ export default {
           .map(s => ({ ...s, selected: false, price: +s.price }));
       } catch (error) {
         console.error('Services load error:', error);
+        this.showMessage('Xizmatlar yuklanishda xatolik yuz berdi', 'error');
       }
     },
     async loadDavolanishlar() {
@@ -269,17 +277,7 @@ export default {
       } catch (error) {
         console.error('Davolanish load error:', error);
         this.davolanishlar = [];
-      }
-    },
-    async submitDavolanish() {
-      if (this.loading) return; // double-click oldini olish
-      this.loading = true;
-      try {
-        // ... sizning submit logikangiz ...
-      } catch (error) {
-        console.error(error);
-      } finally {
-        this.loading = false; // qayta yoqish
+        this.showMessage('Davolanishlar yuklanmadi', 'error');
       }
     },
     async loadBronlar() {
@@ -289,6 +287,7 @@ export default {
       } catch (error) {
         console.error('Bron load error:', error);
         this.bronlar = [];
+        this.showMessage('Bronlar yuklanmadi', 'error');
       }
     },
     markBusyRooms() {
@@ -340,7 +339,7 @@ export default {
       if (!room.busy) {
         this.selectedRoom = { ...room };
       } else {
-        alert('Bu xona band!');
+        this.showMessage('Bu xona band!', 'error');
       }
     },
     clearFilters() {
@@ -358,104 +357,139 @@ export default {
     removeAdditionalService(index) {
       this.additionalServices.splice(index, 1);
     },
-    async submitDavolanish() {
-      if (!this.selectedRoom) {
-        alert('Xona tanlang!');
-        return;
-      }
-      if (!this.client?.id) {
-        alert('Mijoz tanlanmagan!');
-        return;
-      }
 
-      let davolanish = null;
-      try {
-        // Davolanish yaratish
-        const res = await api.post('/api/v1/davolanish', {
-          client_id: this.client.id,
-          xona_id: this.selectedRoom.id,
-          kelish_sanasi: this.arrivalDate,
-          ketish_sanasi: this.leaveDate
-        });
-        davolanish = res.data.data || res.data;
-      } catch (error) {
-        alert('Davolanish saqlanmadi');
-        return;
-      }
-      if (!davolanish?.id) {
-        alert('Davolanish ID topilmadi');
-        return;
-      }
-
-      try {
-        // Xona joylashuv yaratish
-        await api.post('/api/v1/xona-joylashuv', {
-          davolanish_id: davolanish.id,
-          room_id: this.selectedRoom.id,
-          from_date: this.arrivalDate,
-          to_date: this.leaveDate,
-          has_child: this.has_child ? 1 : 0,
-          num_child: this.childCount || 0,
-          price_per_day: this.selectedRoom.price
-        });
-      } catch (error) {
-        alert('Joylashuv saqlanmadi');
-        return;
-      }
-
-      const selectedServices = [
-        ...this.mandatoryServices.filter(s => s.selected),
-        ...this.additionalServices.filter(s => s.selected)
-      ];
-
-      try {
-        // Xizmatlarni saqlash
-        await api.post('/api/v1/client-services', {
-          client_id: this.client.id,
-          davolanish_id: davolanish.id,
-          services: selectedServices.map(s => ({
-            service_id: s.id,
-            price: s.price,
-            mahal: s.mahal || 1,
-            total_days: this.stayDays,
-            start_date: this.arrivalDate,
-            kunlik_vaqtlari: s.kunlik_vaqtlari || []
-          }))
-        });
-      } catch (error) {
-        alert('Xizmatlar saqlanmadi');
-      }
-
-      try {
-        // To‘lovlarni saqlash
-        await api.post('/api/v1/payments', {
-          davolanish_id: davolanish.id,
-          is_patient_payment: 1,
-          client_id: this.client.id,
-          cash: this.extraPayments.cash,
-          card: this.extraPayments.card,
-          click: this.extraPayments.click,
-          total: this.totalSum,
-          type: 'kirim',
-          from: `${this.client.familiya} ${this.client.ism}`,
-          datetime: new Date().toISOString()
-        });
-      } catch (error) {
-        alert('To‘lov ma\'lumotlari saqlanmadi');
-        return;
-      }
-
-      // Tozalash va qayta yuklash
-      this.cancelSelection();
-
-      await Promise.all([
-        this.loadRooms(),
-        this.loadDavolanishlar(),
-        this.loadBronlar(),
-        this.loadServices()
-      ]);
-      this.markBusyRooms();
+    showMessage(text, type = 'success') {
+      this.message = text;
+      this.messageType = type;
+      // 5 sekunddan keyin xabarni o‘chirish
+      setTimeout(() => {
+        this.message = '';
+        this.messageType = '';
+      }, 5000);
     },
+
+    async submitDavolanish() {
+  if (this.loading) return; // double-click oldini olish
+  this.loading = true;
+  this.message = '';
+  this.messageType = '';
+
+  // Xona tanlanganini tekshirish
+  if (!this.selectedRoom) {
+    this.showMessage('Xona tanlang!', 'error');
+    this.loading = false;
+    return;
+  }
+  // Mijoz mavjudligini tekshirish
+  if (!this.client?.id) {
+    this.showMessage('Mijoz tanlanmagan!', 'error');
+    this.loading = false;
+    return;
+  }
+
+  let davolanish = null;
+
+  // Davolanish yaratish
+  try {
+    const res = await api.post('/api/v1/davolanish', {
+      client_id: this.client.id,
+      xona_id: this.selectedRoom.id,
+      kelish_sanasi: this.arrivalDate,
+      ketish_sanasi: this.leaveDate
+    });
+    davolanish = res.data.data || res.data;
+  } catch (error) {
+    this.showMessage('Davolanish saqlanmadi', 'error');
+    this.loading = false;
+    return;
+  }
+  if (!davolanish?.id) {
+    this.showMessage('Davolanish ID topilmadi', 'error');
+    this.loading = false;
+    return;
+  }
+
+  // Xona joylashuv ma’lumotlarini saqlash
+  try {
+    await api.post('/api/v1/xona-joylashuv', {
+      davolanish_id: davolanish.id,
+      room_id: this.selectedRoom.id,
+      from_date: this.arrivalDate,
+      to_date: this.leaveDate,
+      has_child: this.has_child ? 1 : 0,
+      num_child: this.childCount || 0,
+      price_per_day: this.selectedRoom.price
+    });
+  } catch (error) {
+    this.showMessage('Joylashuv saqlanmadi', 'error');
+    this.loading = false;
+    return;
+  }
+
+  // Tanlangan xizmatlar ro‘yxatini tayyorlash
+  const selectedServices = [
+    ...this.mandatoryServices.filter(s => s.selected),
+    ...this.additionalServices.filter(s => s.selected)
+  ];
+
+  // Xizmatlarni saqlash
+  try {
+    await api.post('/api/v1/client-services', {
+      client_id: this.client.id,
+      davolanish_id: davolanish.id,
+      services: selectedServices.map(s => ({
+        service_id: s.id,
+        price: s.price,
+        mahal: s.mahal || 1,
+        total_days: this.stayDays,
+        start_date: this.arrivalDate,
+        kunlik_vaqtlari: s.kunlik_vaqtlari || []
+      }))
+    });
+  } catch (error) {
+    this.showMessage('Xizmatlar saqlanmadi', 'error');
+    this.loading = false;
+    return;
+  }
+
+  // To‘lovlarni saqlash
+  try {
+    await api.post('/api/v1/payments', {
+      davolanish_id: davolanish.id,
+      is_patient_payment: 1,
+      client_id: this.client.id,
+      cash: this.extraPayments.cash,
+      card: this.extraPayments.card,
+      click: this.extraPayments.click,
+      total: this.totalSum,
+      type: 'kirim',
+      from: `${this.client.familiya} ${this.client.ism}`,
+      datetime: new Date().toISOString()
+    });
+  } catch (error) {
+    this.showMessage('To‘lov ma\'lumotlari saqlanmadi', 'error');
+    this.loading = false;
+    return;
+  }
+
+  // Formani tozalash
+  this.cancelSelection();
+
+  // Ma’lumotlarni qayta yuklash
+  await Promise.all([
+    this.loadRooms(),
+    this.loadDavolanishlar(),
+    this.loadBronlar(),
+    this.loadServices()
+  ]);
+  this.markBusyRooms();
+
+  // Muvaffaqiyat xabarini ko‘rsatish
+  this.showMessage('Davolanish muvaffaqiyatli saqlandi!', 'success');
+  this.loading = false;
+}
+,
+
     async loadAllData() {
       await Promise.all([
         this.loadRooms(),
@@ -469,7 +503,7 @@ export default {
   async mounted() {
     const id = this.clientId || this.$route.params.clientId;
     if (!id) {
-      alert('Client ID topilmadi!');
+      this.showMessage('Client ID topilmadi!', 'error');
       return;
     }
     await this.loadClient(id);
@@ -477,6 +511,7 @@ export default {
   }
 };
 </script>
+
 
 <style scoped>
 .taklif-container {
@@ -506,6 +541,28 @@ export default {
   border: none;
   cursor: pointer;
 }
+.message-box {
+  padding: 12px 20px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 16px;
+  user-select: none;
+  text-align: center;
+}
+
+.message-box.success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1.5px solid #c3e6cb;
+}
+
+.message-box.error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1.5px solid #f5c6cb;
+}
+
 .rooms-table {
   width: 100%;
   border-collapse: collapse;
