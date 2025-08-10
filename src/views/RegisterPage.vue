@@ -125,7 +125,7 @@ export default {
   data() {
     return {
       viloyatlar: [
-        'Toshkent', 'Andijon', 'Farg‘ona', 'Namangan',
+        'Toshkent viloyat', 'Toshkent shaxar', 'Andijon', 'Farg‘ona', 'Namangan',
         'Samarqand', 'Buxoro', 'Xorazm', 'Qashqadaryo',
         'Surxondaryo', 'Jizzax', 'Sirdaryo', 'Navoiy',
         'Qoraqalpog‘iston Respublikasi'
