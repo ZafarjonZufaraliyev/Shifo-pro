@@ -26,7 +26,7 @@
       <!-- Jins -->
       <div class="form-group">
         <label>Jins</label>
-        <select v-model="form.jins" required>
+        <select v-model="form.jinsi" required>
           <option disabled value="">Tanlang</option>
           <option value="Erkak">Erkak</option>
           <option value="Ayol">Ayol</option>
@@ -146,7 +146,7 @@ export default {
       form: {
         familiya: '',
         ism: '',
-        jins: '',
+        jinsi: '',
         davlat: '',
         pasport: '',
         tugulgan_sana: '',

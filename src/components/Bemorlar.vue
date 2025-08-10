@@ -60,14 +60,14 @@
             <p><strong>Keldi:</strong> {{ formatDateTime(patient.kelish_sanasi) || '—' }}</p>
             <p>
               <strong>Ketdi:</strong> {{ formatDateTime(patient.ketish_sanasi) || '—' }}
-              <button
-                v-if="patient.status === '1'"
-                @click="markAsLeft(patient)"
-                class="btn-ketdi"
-                :class="{ 'btn-today': isLeavingToday(patient.ketish_sanasi) }"
-              >
-                Ketdi
-              </button>
+             <button
+  v-if="patient.status === '1' && isLeavingToday(patient.ketish_sanasi)"
+  @click="markAsLeft(patient)"
+  class="btn-ketdi btn-today"
+>
+  Ketdi
+</button>
+
             </p>
           </div>
         </div>
