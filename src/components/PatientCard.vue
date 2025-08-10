@@ -423,68 +423,95 @@ export default {
       }
     },
 
-    // Qayta ro‘yxatga olish
-    async submitReRegister() {
-      const r = this.rr;
-      if (!r.kirish_sanasi || !r.chiqish_sanasi || !r.xona_id) {
-        return alert('❗ Barcha maydonlar toʻldirilishi kerak');
-      }
+   // Qayta ro‘yxatga olish
+async submitReRegister() {
+  const r = this.rr;
 
-      try {
-        let stay = this.latestStay;
+  // Majburiy maydonlar tekshiruvi
+  if (!r.kirish_sanasi || !r.chiqish_sanasi || !r.xona_id) {
+    alert('❗ Barcha maydonlar toʻldirilishi kerak');
+    return;
+  }
 
-        // Agar oxirgi davolanish yo‘q yoki chiqqan bo‘lsa yangi yaratamiz
-        if (!stay || stay.ketish_sanasi || stay.to_date) {
-          const { data: newStay } = await api.post('/api/v1/davolanish', {
-            client_id: this.patient.id,
-            kelish_sanasi: r.kirish_sanasi,
-            ketish_sanasi: r.chiqish_sanasi,
-            create_user_id: this.currentUser.id,
-          });
-          stay = newStay;
-        }
+  try {
+    let stay = this.latestStay;
 
-        // Oxirgi xona joylashuvni yopish (chiqish sanasini o‘zgartirish)
-        const lastRoom = [...this.roomAssignments]
-          .filter((ra) => ra.davolanish_id === stay.id)
-          .sort((a, b) => new Date(b.kirish_sanasi || b.from_date) - new Date(a.kirish_sanasi || a.from_date))[0];
+    // Agar oxirgi davolanish yo‘q yoki chiqqan bo‘lsa, yangi yaratamiz
+    if (!stay || stay.ketish_sanasi || stay.to_date) {
+      const { data: newStay } = await api.post('/api/v1/davolanish', {
+        client_id: this.patient.id,
+        kelish_sanasi: r.kirish_sanasi,
+        ketish_sanasi: r.chiqish_sanasi,
+         xona_id: r.xona_id, 
+        create_user_id: this.currentUser.id,
+      });
+      stay = newStay;
+    }
 
-        if (lastRoom) {
-          await api.put(`/api/v1/xona-joylashuv/${lastRoom.id}`, {
-            ...lastRoom,
-            to_date: r.kirish_sanasi,
-          });
-        }
+    // Oxirgi xona joylashuvni yopish
+    const lastRoom = [...this.roomAssignments]
+      .filter((ra) => ra.davolanish_id === stay.id)
+      .sort(
+        (a, b) =>
+          new Date(b.kirish_sanasi || b.from_date) -
+          new Date(a.kirish_sanasi || a.from_date)
+      )[0];
 
-        // Yangi xona joylashuv yaratish
-        await api.post('/api/v1/xona-joylashuv', {
-          davolanish_id: stay.id,
-          room_id: r.xona_id,
-          from_date: r.kirish_sanasi,
-          to_date: r.chiqish_sanasi,
-          price_per_day: r.price || 0,
-        });
+    if (lastRoom) {
+      await api.put(`/api/v1/xona-joylashuv/${lastRoom.id}`, {
+        ...lastRoom,
+        to_date: r.kirish_sanasi,
+      });
+    }
 
-        // Tanlangan xizmatlarni qo‘shish
-        for (const sid of r.xizmatlar) {
-          const s = this.allServices.find((srv) => srv.id === sid);
-          await api.post('/api/v1/client-services', {
-            client_id: this.patient.id,
-            davolanish_id: stay.id,
-            service_id: sid,
-            start_date: r.kirish_sanasi,
-            price: s ? (s.narxi || s.price || 0) : 0,
-          });
-        }
+    // Yangi xona joylashuv yaratish
+    console.log('➡ Yuborilayotgan xona joylashuv maʼlumotlari:', {
+      davolanish_id: stay.id,
+      room_id: r.xona_id,
+      from_date: r.kirish_sanasi,
+      to_date: r.chiqish_sanasi,
+      price_per_day: r.price || 0,
+    });
 
-        // Formani tozalash
-        this.rr = { kirish_sanasi: '', chiqish_sanasi: '', xona_id: '', xizmatlar: [], price: 0 };
-        await this.fetchAll();
-      } catch (err) {
-        console.error('❌ Qayta ro‘yxatga olishda xatolik:', err);
-        alert('Qayta ro‘yxatga olishda xatolik yuz berdi');
-      }
-    },
+    await api.post('/api/v1/xona-joylashuv', {
+      davolanish_id: stay.id,
+      // ⚠ Backend agar room_id kutsa, shu yerda o'zgartirish kerak
+      xona_id: r.xona_id,
+      from_date: r.kirish_sanasi,
+      to_date: r.chiqish_sanasi,
+      price_per_day: r.price || 0,
+    });
+
+    // Tanlangan xizmatlarni qo‘shish
+    for (const sid of r.xizmatlar) {
+      const s = this.allServices.find((srv) => srv.id === sid);
+      await api.post('/api/v1/client-services', {
+        client_id: this.patient.id,
+        davolanish_id: stay.id,
+        service_id: sid,
+        start_date: r.kirish_sanasi,
+        price: s ? s.narxi || s.price || 0 : 0,
+      });
+    }
+
+    // Forma tozalash va ro‘yxatni yangilash
+    this.rr = {
+      kirish_sanasi: '',
+      chiqish_sanasi: '',
+      xona_id: '',
+      xizmatlar: [],
+      price: 0,
+    };
+
+    await this.fetchAll();
+  } catch (err) {
+    console.error(
+      '❌ Qayta ro‘yxatga olishda xatolik:',
+      err.response?.data || err.message
+    );
+    alert('Qayta ro‘yxatga olishda xatolik yuz berdi');
+  }
+},
   },
 
   mounted() {

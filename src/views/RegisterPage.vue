@@ -10,12 +10,18 @@
           <input v-model="form.ism" type="text" placeholder="Ism" required />
         </div>
       </div>
-
-      <!-- Uy manzili -->
       <div class="form-group">
-        <label>Uy manzili</label>
-        <input v-model="form.manzil" type="text" placeholder="To‘liq manzilingizni kiriting" required />
+        <label>Fuqaroligi</label>
+        <select v-model="form.davlat" required>
+          <option disabled value="">Tanlang</option>
+          <option value="O‘zbekiston">O‘zbekiston</option>
+          <option value="Xorijiy">Xorijiy</option>
+        </select>
       </div>
+      <div class="form-group">
+          <label>Tug‘ilgan sana</label>
+          <input v-model="form.tugulgan_sana" type="date" required />
+        </div>
 
       <!-- Jins -->
       <div class="form-group">
@@ -28,28 +34,9 @@
       </div>
 
       <!-- Fuqarolik -->
-      <div class="form-group">
-        <label>Fuqaroligi</label>
-        <select v-model="form.davlat" required>
-          <option disabled value="">Tanlang</option>
-          <option value="O‘zbekiston">O‘zbekiston</option>
-          <option value="Xorijiy">Xorijiy</option>
-        </select>
-      </div>
+      
 
-      <!-- Pasport va Tug‘ilgan sana -->
-      <div class="form-row">
-        <div class="form-group">
-          <label>Pasport seriyasi va raqami</label>
-          <input v-model="form.pasport" type="text" placeholder="AA1234567" pattern="[A-ZА-ЯЁ]{2}[0-9]{7}"
-            title="Ikki harf va yetti raqam kiriting, harflar lotin yoki kiril bo‘lishi mumkin" required />
-
-        </div>
-        <div class="form-group">
-          <label>Tug‘ilgan sana</label>
-          <input v-model="form.tugulgan_sana" type="date" required />
-        </div>
-      </div>
+    
 
       <!-- Viloyat -->
       <div v-if="form.davlat === 'O‘zbekiston'" class="form-group">
@@ -65,7 +52,16 @@
         <label>Viloyat (yozma)</label>
         <input v-model="form.viloyat" type="text" placeholder="Viloyatni kiriting" required />
       </div>
+  <!-- Pasport va Tug‘ilgan sana -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>Pasport seriyasi va raqami</label>
+          <input v-model="form.pasport" type="text" placeholder="AA1234567" pattern="[A-ZА-ЯЁ]{2}[0-9]{7}"
+            title="Ikki harf va yetti raqam kiriting, harflar lotin yoki kiril bo‘lishi mumkin" required />
 
+        </div>
+        
+      </div>
       <!-- Telefon raqamlari -->
       <div class="form-group">
         <label>Telefon raqamlari</label>
@@ -74,7 +70,10 @@
           <input v-model="form.tel2" type="tel" placeholder="Qo‘shimcha: +998901234568" />
         </div>
       </div>
-
+      <div class="form-group">
+        <label>Uy manzili</label>
+        <input v-model="form.manzil" type="text" placeholder="To‘liq manzilingizni kiriting" required />
+      </div>
       <!-- Biz haqimizda qayerdan eshitdingiz? -->
       <div class="form-group">
         <label>Biz haqimizda qayerdan eshitdingiz?</label>
