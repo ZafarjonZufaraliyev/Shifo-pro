@@ -5,7 +5,6 @@
     </div>
 
     <div class="top-controls">
-      <!-- Qidiruv -->
       <div class="search-box">
         <img src="@/assets/image/sorch.svg" alt="Qidiruv" />
         <input
@@ -15,15 +14,8 @@
           aria-label="Bemorlarni qidirish"
         />
       </div>
-
-      <!-- Ko'rinish toggle -->
-      <div class="view-toggle">
-     
-       
-      </div>
     </div>
 
-    <!-- Sana oralig‘i filtri -->
     <div class="date-range-filter">
       <label>
         Boshlanish sanasi:
@@ -36,24 +28,21 @@
       <button @click="onFilterClick">Filtrlash</button>
     </div>
 
-
-    <!-- Jami bemorlar soni -->
     <p class="total-count">
       <strong>Jami bemorlar soni:</strong> {{ totalPatientsCount }}
     </p>
 
-    <!-- Yuklanish spinneri -->
     <div v-if="loading" class="loading-container">
       <div class="spinner"></div>
     </div>
 
-    <!-- Card ko‘rinish -->
     <div v-else-if="isCardView" class="cards-wrapper">
       <div class="cards-grid" :style="{ gridTemplateColumns: 'repeat(4, 1fr)' }">
         <div
           v-for="patient in patients"
           :key="patient.id"
           class="patient1-card"
+          :class="{ 'today-leaving': isLeavingToday(patient.ketish_sanasi) }"
         >
           <router-link
             :to="`/${role}/BemorCard/${patient.client.id}`"
@@ -75,6 +64,7 @@
                 v-if="patient.status === '1'"
                 @click="markAsLeft(patient)"
                 class="btn-ketdi"
+                :class="{ 'btn-today': isLeavingToday(patient.ketish_sanasi) }"
               >
                 Ketdi
               </button>
@@ -83,7 +73,6 @@
         </div>
       </div>
 
-      <!-- Pagination -->
       <div class="pagination" v-if="pageCount > 1">
         <button
           :disabled="currentPage === 1"
@@ -111,31 +100,25 @@
         </button>
       </div>
     </div>
-
-   
   </div>
 </template>
 
 <script>
-import PatientTable from "@/components/PatientTable.vue";
 import api from "@/api";
 import dayjs from "dayjs";
 import debounce from "lodash.debounce";
 
 export default {
-  components: { PatientTable },
-
   data() {
     return {
       isCardView: true,
       search: "",
       startDate: "",
       endDate: "",
-      patients: [],          // Faqat hozirgi sahifadagi yozuvlar
-      totalPatientsCount: 0, // Jami bemorlar soni
+      patients: [],
+      totalPatientsCount: 0,
       loading: false,
       role: localStorage.getItem("role") || "mini",
-
       currentPage: 1,
       itemsPerPage: 20,
     };
@@ -176,13 +159,20 @@ export default {
 
         const res = await api.get("/api/v1/davolanish", { params });
 
-        // API javobidan hozirgi sahifa yozuvlari
-        this.patients = res.data.data || [];
-        // Jami yozuvlar soni (backenddan keladi)
+        let allPatients = res.data.data || [];
+
+        // Ketish sanasi bugungi kunga teng bo'lganlarni oldinga chiqarish
+        const today = dayjs().format("YYYY-MM-DD");
+        const todayLeaving = allPatients.filter(p =>
+          p.ketish_sanasi && dayjs(p.ketish_sanasi).format("YYYY-MM-DD") === today
+        );
+        const others = allPatients.filter(
+          p => !p.ketish_sanasi || dayjs(p.ketish_sanasi).format("YYYY-MM-DD") !== today
+        );
+
+        this.patients = [...todayLeaving, ...others];
         this.totalPatientsCount = res.data.total || 0;
 
-        console.log("Bemorlar (sahifa):", this.patients);
-        console.log("Jami bemorlar soni:", this.totalPatientsCount);
       } catch (error) {
         console.error("Ma'lumot olishda xatolik:", error);
       } finally {
@@ -190,15 +180,17 @@ export default {
       }
     },
 
+    isLeavingToday(date) {
+      if (!date) return false;
+      return dayjs(date).format("YYYY-MM-DD") === dayjs().format("YYYY-MM-DD");
+    },
+
     calculateAge(birthdate) {
       if (!birthdate) return "—";
       const birth = dayjs(birthdate);
       const today = dayjs();
       let age = today.year() - birth.year();
-      if (
-        today.month() < birth.month() ||
-        (today.month() === birth.month() && today.date() < birth.date())
-      ) {
+      if (today.month() < birth.month() || (today.month() === birth.month() && today.date() < birth.date())) {
         age--;
       }
       return age;
@@ -214,10 +206,8 @@ export default {
         this.loading = true;
         await api.put(`/api/v1/davolanish/${patient.id}`, { status: "0" });
         await this.fetchPatients();
-        alert(`${patient.client.ism} ${patient.client.familiya} ketdi deb belgilandi.`);
       } catch (error) {
         console.error("Statusni o'zgartirishda xatolik:", error);
-        alert("Xatolik yuz berdi. Iltimos, qayta urinib ko‘ring.");
       } finally {
         this.loading = false;
       }
@@ -227,7 +217,6 @@ export default {
       if (page >= 1 && page <= this.pageCount) {
         this.currentPage = page;
         window.scrollTo(0, 0);
-        console.log(`Sahifa: ${page} ga o‘tildi`);
       }
     },
   },
@@ -243,7 +232,17 @@ export default {
   },
 };
 </script>
+
+
+
 <style scoped>
+.today-leaving {
+  border: 5px solid red;
+}
+.btn-today {
+  background-color: red;
+  color: white;
+}
 .patients-container {
   width:100%;
   margin:20px auto;

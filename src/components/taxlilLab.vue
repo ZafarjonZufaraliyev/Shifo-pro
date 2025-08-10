@@ -66,35 +66,35 @@ export default {
       }
     },
 
-    async addParameter() {
-      try {
-        if (!this.newParameter.lab_test_type_id) {
-          alert('Iltimos, tahlil turini tanlang!');
-          return;
-        }
-
-        const payload = {
-          lab_test_type_id: this.newParameter.lab_test_type_id,
-          name: this.newParameter.name,
-          unit: this.newParameter.unit,
-          normal_range: this.newParameter.normal_range
-        };
-
-        await api.post('/api/v1/test-parameters', payload);
-        alert('Parametr muvaffaqiyatli qo‘shildi');
-
-        // Forma maydonlarini tozalash
-        this.newParameter = {
-          lab_test_type_id: '',
-          name: '',
-          unit: '',
-          normal_range: ''
-        };
-      } catch (error) {
-        console.error('Parametr qo‘shishda xato:', error);
-        alert(error.response?.data?.message || 'Parametr qo‘shishda xatolik yuz berdi');
-      }
+async addParameter() {
+  try {
+    if (!this.newParameter.lab_test_type_id) {
+      alert('Iltimos, tahlil turini tanlang!');
+      return;
     }
+
+    const payload = {
+      test_type_id: this.newParameter.lab_test_type_id, // 🔹 Nomini to‘g‘riladik
+      name: this.newParameter.name,
+      unit: this.newParameter.unit,
+      normal_range: this.newParameter.normal_range
+    };
+
+    await api.post('/api/v1/test-parameters', payload);
+    alert('Parametr muvaffaqiyatli qo‘shildi');
+
+    this.newParameter = {
+      lab_test_type_id: '',
+      name: '',
+      unit: '',
+      normal_range: ''
+    };
+  } catch (error) {
+    console.error('Parametr qo‘shishda xato:', error);
+    alert(error.response?.data?.message || 'Parametr qo‘shishda xatolik yuz berdi');
+  }
+}
+
   }
 };
 </script>
