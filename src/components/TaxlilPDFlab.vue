@@ -2,7 +2,7 @@
   <div class="containerrr">
     <h2>Tahlil varog‘i to‘ldirish va PDF olish</h2>
 
-    <!-- Bemorni tanlash -->
+    <!-- Bemor tanlash -->
     <div class="form-group">
       <label for="clientSelect">Bemor:</label>
       <select id="clientSelect" v-model="selectedClientId" @change="onClientSelect">
@@ -21,21 +21,64 @@
       <p><strong>Tug‘ilgan sana:</strong> {{ formatDate(selectedClient.tugilgan_sana) }}</p>
     </div>
 
-    <!-- Tahlil turini tanlash -->
-    <div class="form-group">
-      <label for="testTypeSelect">Tahlil turi:</label>
-      <select id="testTypeSelect" v-model="labTestData.test_type_id" @change="onTestTypeSelect">
-        <option value="" disabled>-- Tahlil turini tanlang --</option>
-        <option v-for="testType in testTypes" :key="testType.id" :value="testType.id">
-          {{ testType.name }}
-        </option>
-      </select>
+    <!-- Barcha tahlil turlari -->
+    <div class="test-types-list">
+      <h3>Tahlil turlari</h3>
+      <div
+        v-for="testType in testTypes"
+        :key="testType.id"
+        class="test-type-item"
+        @click="selectTestType(testType)"
+        :class="{ active: labTestData.test_type_id === testType.id }"
+      >
+        <h4>{{ testType.name }} - {{ testType.price ? testType.price + ' so‘m' : 'Narx kiritilmagan' }}</h4>
+        <p>{{ testType.description || '-' }}</p>
+      </div>
     </div>
 
-    <!-- Tanlangan tahlil turi nomi va ta'rif -->
-    <div v-if="selectedTestType" class="test-type-info">
-      <p><strong>Tahlil nomi:</strong> {{ selectedTestType.name }}</p>
-      <p><strong>Ta'rif:</strong> {{ selectedTestType.description || '-' }}</p>
+    <!-- Tanlangan tahlil parametrlari -->
+    <div v-if="selectedTestType" class="test-parameters">
+      <h3>{{ selectedTestType.name }} parametrlari</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Parametr nomi</th>
+            <th>Norma oralig‘i</th>
+            <th>Natija</th>
+            <th>O‘chirish</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(result, index) in labTestData.results" :key="result.parametr_name">
+            <td>{{ result.parametr_name }}</td>
+            <td>{{ result.parametr_norma }}</td>
+            <td>
+              <input v-model="result.parametr_value" placeholder="Natija" />
+            </td>
+            <td>
+              <button @click="removeResult(index)">×</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Parametr qo‘shish -->
+      <div class="form-group">
+        <label for="paramSelect">Parametr qo‘shish:</label>
+        <select v-model="selectedParamToAdd" id="paramSelect">
+          <option disabled value="">-- Parametr tanlang --</option>
+          <option
+            v-for="param in filteredAvailableParams"
+            :key="param.name"
+            :value="param.name"
+          >
+            {{ param.name }} ({{ param.norma || '-' }})
+          </option>
+        </select>
+        <button @click="addSelectedParam" :disabled="!selectedParamToAdd">
+          Qo‘shish
+        </button>
+      </div>
     </div>
 
     <!-- Test sanasi -->
@@ -55,64 +98,6 @@
       ></textarea>
     </div>
 
-    <!-- Yangi parametr tanlash va qo'shish -->
-    <div
-      v-if="selectedTestType && selectedTestType.parameters && selectedTestType.parameters.length > 0"
-      class="form-group"
-    >
-      <label for="paramSelect">Parametr qo‘shish:</label>
-      <select v-model="selectedParamToAdd" id="paramSelect">
-        <option disabled value="">-- Parametr tanlang --</option>
-        <option
-          v-for="param in filteredAvailableParams"
-          :key="param.name"
-          :value="param.name"
-        >
-          {{ param.name }} ({{ param.norma || '-' }})
-        </option>
-      </select>
-      <button @click="addSelectedParam" type="button" :disabled="!selectedParamToAdd">
-        Qo'shish
-      </button>
-    </div>
-
-    <!-- Natijalar (tanlangan parametrlar) -->
-    <div class="results-section" v-if="labTestData.results.length > 0">
-      <h3>Tahlil natijalari</h3>
-      <div
-        v-for="(result, index) in labTestData.results"
-        :key="result.parametr_name"
-        class="result-row"
-      >
-        <!-- Parametr nomi (readonly) -->
-        <input
-          v-model="result.parametr_name"
-          class="result-input"
-          readonly
-          style="background-color:#eee; cursor:not-allowed;"
-        />
-        <!-- Natija (foydalanuvchi kiritadi) -->
-        <input v-model="result.parametr_value" placeholder="Natija" class="result-input" />
-        <!-- Norma (readonly) -->
-        <input
-          v-model="result.parametr_norma"
-          class="result-input"
-          readonly
-          style="background-color:#eee; cursor:not-allowed;"
-        />
-        <!-- O'chirish tugmasi -->
-        <button
-          v-if="labTestData.results.length > 1"
-          @click="removeResult(index)"
-          type="button"
-          class="btn-remove"
-          title="O‘chirish"
-        >
-          &times;
-        </button>
-      </div>
-    </div>
-
     <!-- Tugmalar -->
     <div class="actions">
       <button @click="saveLabTest" type="button" class="btn-save">Saqlash</button>
@@ -121,13 +106,13 @@
         type="button"
         :disabled="!selectedClient || !selectedTestType || !labTestData.test_date"
         class="btn-pdf"
-        title="PDF yaratish va yuklab olish"
       >
         PDF olish
       </button>
     </div>
   </div>
 </template>
+
 
 <script>
 import axios from "axios";
@@ -154,78 +139,87 @@ export default {
     };
   },
   created() {
-    this.fetchClients();
+    this.fetchPatients();
     this.fetchTestTypes();
   },
   methods: {
-    async fetchClients() {
+    async fetchPatients() {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("/api/v1/clients", {
+        const res = await axios.get("/api/v1/davolanish", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        this.clients = res.data || [];
+
+        // API javob strukturasini tekshiramiz
+        const davolanishlar = Array.isArray(res.data)
+          ? res.data
+          : (res.data.data || []);
+
+        // faqat status = 1 bo'lganlarni olish
+        this.clients = davolanishlar
+          .filter(item => item.status === 1 && item.client)
+          .map(item => item.client);
+
       } catch (error) {
         console.error("❌ Bemorlar ro'yxatini olishda xatolik:", error);
       }
     },
+
     async fetchTestTypes() {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get("/api/v1/lab-test-types", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        this.testTypes = res.data || [];
+        this.testTypes = Array.isArray(res.data) ? res.data : (res.data.data || []);
       } catch (error) {
         console.error("❌ Tahlil turlarini olishda xatolik:", error);
       }
     },
+
     onClientSelect() {
       const id = Number(this.selectedClientId);
-      this.selectedClient = this.clients.find((c) => c.id === id) || null;
+      this.selectedClient = this.clients.find(c => c.id === id) || null;
       this.labTestData.client_id = id;
     },
-    onTestTypeSelect() {
-      const id = Number(this.labTestData.test_type_id);
-      this.selectedTestType = this.testTypes.find((t) => t.id === id) || null;
-      this.labTestData.test_type_id = id;
 
-      // Natijalar tozalansin
+    selectTestType(testType) {
+      this.selectedTestType = testType;
+      this.labTestData.test_type_id = testType.id;
       this.labTestData.results = [];
       this.selectedParamToAdd = "";
     },
+
     addSelectedParam() {
       if (!this.selectedParamToAdd) return;
-
-      // Parametr allaqachon qo‘shilganligini tekshirish
-      if (this.labTestData.results.some((r) => r.parametr_name === this.selectedParamToAdd)) {
+      if (this.labTestData.results.some(r => r.parametr_name === this.selectedParamToAdd)) {
         alert("Ushbu parametr allaqachon qo‘shilgan!");
         return;
       }
-
       const paramObj = this.selectedTestType.parameters.find(
-        (p) => p.name === this.selectedParamToAdd
+        p => p.name === this.selectedParamToAdd
       );
       if (!paramObj) return;
-
       this.labTestData.results.push({
         parametr_name: paramObj.name,
         parametr_value: "",
         parametr_norma: paramObj.norma || "",
       });
-
       this.selectedParamToAdd = "";
     },
+
     removeResult(index) {
-      if (this.labTestData.results.length > 1) {
+      if (this.labTestData.results.length > 0) {
         this.labTestData.results.splice(index, 1);
       }
     },
+
     formatDate(dateStr) {
       if (!dateStr) return "-";
       const d = new Date(dateStr);
       return d.toLocaleDateString("uz-UZ");
     },
+
     async saveLabTest() {
       if (
         !this.labTestData.client_id ||
@@ -242,7 +236,6 @@ export default {
           return;
         }
       }
-
       try {
         const token = localStorage.getItem("token");
         const payload = {
@@ -250,7 +243,7 @@ export default {
           test_type_id: this.labTestData.test_type_id,
           test_date: this.labTestData.test_date,
           doctor_comment: this.labTestData.doctor_comment,
-          results: this.labTestData.results.map((r) => ({
+          results: this.labTestData.results.map(r => ({
             parametr_name: r.parametr_name.trim(),
             parametr_value: r.parametr_value.trim(),
             parametr_norma: r.parametr_norma.trim(),
@@ -262,27 +255,21 @@ export default {
             "Content-Type": "application/json",
           },
         });
-
         alert("✅ Ma'lumotlar muvaffaqiyatli saqlandi!");
       } catch (error) {
         console.error("❌ Saqlashda xatolik:", error);
         alert("❌ Ma'lumotlarni saqlashda xatolik yuz berdi");
       }
     },
+
     generatePDF() {
       if (!this.selectedClient || !this.selectedTestType || !this.labTestData.test_date) {
         alert("Iltimos, barcha maydonlarni to‘ldiring!");
         return;
       }
-
-      const testDateTime = new Date(this.labTestData.test_date).toLocaleString("uz-UZ", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      });
-
+      const testDateTime = new Date(this.labTestData.test_date).toLocaleDateString("uz-UZ");
       const htmlContent = `
-        <div style="max-width: 800px; margin: 20px auto; font-family: Arial, sans-serif;">
+        <div style="max-width: 800px; font-family: Arial, sans-serif;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
             <div style="font-size: 24px; font-weight: bold; color: #004c97; display: flex; align-items: center;">
               <img src="${logo}" alt="Logo" style="height:40px; margin-right:8px;" />
@@ -309,60 +296,50 @@ export default {
               <td style="border: 1px solid #ccc; padding: 8px;">Qodirov Anzabek</td>
             </tr>
           </table>
-
           <table style="border-collapse: collapse; width: 100%;">
             <caption style="font-weight: bold; margin-bottom: 10px;">${this.selectedTestType.name.toUpperCase()}</caption>
             <thead>
               <tr>
-                <th style="border: 1px solid #ccc; padding: 8px; background: #f9f9f9;">Tahlil turi</th>
-                <th style="border: 1px solid #ccc; padding: 8px; background: #f9f9f9;">Natija</th>
-                <th style="border: 1px solid #ccc; padding: 8px; background: #f9f9f9;">Norma</th>
+                <th style="border: 1px solid #ccc; padding: 8px;">Tahlil turi</th>
+                <th style="border: 1px solid #ccc; padding: 8px;">Natija</th>
+                <th style="border: 1px solid #ccc; padding: 8px;">Norma</th>
               </tr>
             </thead>
             <tbody>
-              ${this.labTestData.results
-                .map(
-                  (r) => `
-                  <tr>
-                    <td style="border: 1px solid #ccc; padding: 8px;">${r.parametr_name}</td>
-                    <td style="border: 1px solid #ccc; padding: 8px;">${r.parametr_value}</td>
-                    <td style="border: 1px solid #ccc; padding: 8px;">${r.parametr_norma || "-"}</td>
-                  </tr>`
-                )
-                .join("")}
+              ${this.labTestData.results.map(r => `
+                <tr>
+                  <td style="border: 1px solid #ccc; padding: 8px;">${r.parametr_name}</td>
+                  <td style="border: 1px solid #ccc; padding: 8px;">${r.parametr_value}</td>
+                  <td style="border: 1px solid #ccc; padding: 8px;">${r.parametr_norma || "-"}</td>
+                </tr>
+              `).join("")}
             </tbody>
           </table>
-
           <p style="margin-top: 20px;"><strong>Shifokor kommentariyasi:</strong> ${this.labTestData.doctor_comment || "-"}</p>
         </div>
       `;
-
-      const doc = new jsPDF({
-        unit: "pt",
-        format: "a4",
-      });
-
+      const doc = new jsPDF({ unit: "pt", format: "a4" });
       doc.html(htmlContent, {
         callback: function (doc) {
           doc.save(`Bemor_${this.selectedClient.familiya}_tahlil_natijalari.pdf`);
         }.bind(this),
         x: 10,
         y: 10,
-        html2canvas: {
-          scale: 0.6,
-        },
+        html2canvas: { scale: 0.6 },
       });
     },
   },
   computed: {
     filteredAvailableParams() {
       if (!this.selectedTestType || !Array.isArray(this.selectedTestType.parameters)) return [];
-      const addedNames = this.labTestData.results.map((r) => r.parametr_name);
-      return this.selectedTestType.parameters.filter((p) => !addedNames.includes(p.name));
+      const addedNames = this.labTestData.results.map(r => r.parametr_name);
+      return this.selectedTestType.parameters.filter(p => !addedNames.includes(p.name));
     },
   },
 };
 </script>
+
+
 
 <style scoped>
 .containerrr {

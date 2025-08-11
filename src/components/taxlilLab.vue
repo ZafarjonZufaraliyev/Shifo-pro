@@ -28,6 +28,19 @@
         <input type="text" id="normal_range" v-model="newParameter.normal_range" required />
       </div>
 
+      <div>
+        <label for="price">Narxi (so‘mda):</label>
+        <input
+          type="number"
+          id="price"
+          v-model.number="newParameter.price"
+          min="0"
+          step="0.01"
+          required
+          placeholder="Masalan: 10000"
+        />
+      </div>
+
       <button type="submit">Qo'shish</button>
     </form>
   </div>
@@ -46,8 +59,9 @@ export default {
         lab_test_type_id: '',
         name: '',
         unit: '',
-        normal_range: ''
-      }
+        normal_range: '',
+        price: null,
+      },
     };
   },
 
@@ -66,36 +80,42 @@ export default {
       }
     },
 
-async addParameter() {
-  try {
-    if (!this.newParameter.lab_test_type_id) {
-      alert('Iltimos, tahlil turini tanlang!');
-      return;
-    }
+    async addParameter() {
+      try {
+        if (!this.newParameter.lab_test_type_id) {
+          alert('Iltimos, tahlil turini tanlang!');
+          return;
+        }
+        if (!this.newParameter.price && this.newParameter.price !== 0) {
+          alert('Iltimos, narxini kiriting!');
+          return;
+        }
 
-    const payload = {
-      test_type_id: this.newParameter.lab_test_type_id, // 🔹 Nomini to‘g‘riladik
-      name: this.newParameter.name,
-      unit: this.newParameter.unit,
-      normal_range: this.newParameter.normal_range
-    };
+        const payload = {
+          lab_test_type_id: this.newParameter.lab_test_type_id,
+          name: this.newParameter.name,
+          unit: this.newParameter.unit,
+          normal_range: this.newParameter.normal_range,
+          price: this.newParameter.price,
+        };
 
-    await api.post('/api/v1/test-parameters', payload);
-    alert('Parametr muvaffaqiyatli qo‘shildi');
+        await api.post('/api/v1/test-parameters', payload);
+        alert('Parametr muvaffaqiyatli qo‘shildi');
 
-    this.newParameter = {
-      lab_test_type_id: '',
-      name: '',
-      unit: '',
-      normal_range: ''
-    };
-  } catch (error) {
-    console.error('Parametr qo‘shishda xato:', error);
-    alert(error.response?.data?.message || 'Parametr qo‘shishda xatolik yuz berdi');
-  }
-}
-
-  }
+        // Formani tozalash
+        this.newParameter = {
+          lab_test_type_id: '',
+          name: '',
+          unit: '',
+          normal_range: '',
+          price: null,
+        };
+      } catch (error) {
+        console.error('Parametr qo‘shishda xato:', error);
+        alert(error.response?.data?.message || 'Parametr qo‘shishda xatolik yuz berdi');
+      }
+    },
+  },
 };
 </script>
 
