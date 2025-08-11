@@ -170,96 +170,48 @@ export default {
       return ketish <= today;
     },
 
-   async fetchPatients() {
-  this.loading = true;
-  this.onlyExpiredMode = false;
-  try {
-    const params = {
-      page: this.currentPage,
-      per_page: this.itemsPerPage,
-      search: this.search,
-    };
-    if (this.startDate) params.kelish_sanasi_from = this.startDate;
-    if (this.endDate) params.kelish_sanasi_to = this.endDate;
-
-    const res = await api.get("/api/v1/davolanish", { params });
-
-    let allPatients = res.data.data || [];
-    // statusi 0 bo‘lganlarni chiqarma
-    allPatients = allPatients.filter(p => p.status !== "0");
-
-    const today = dayjs().format("YYYY-MM-DD");
-
-    const expiredOrToday = allPatients.filter(
-      (p) =>
-        p.ketish_sanasi &&
-        dayjs(p.ketish_sanasi).format("YYYY-MM-DD") <= today
-    );
-
-    const others = allPatients.filter(
-      (p) =>
-        !p.ketish_sanasi ||
-        dayjs(p.ketish_sanasi).format("YYYY-MM-DD") > today
-    );
-
-    if (this.currentPage === 1) {
-      this.patients = [...expiredOrToday, ...others];
-    } else {
-      this.patients = others;
-    }
-
-    this.totalPatientsCount = res.data.total || 0;
-  } catch (error) {
-    console.error("Ma'lumot olishda xatolik:", error);
-  } finally {
-    this.loading = false;
-  }
-},
-
-async fetchAllExpiredPatients() {
-  this.loading = true;
-  this.onlyExpiredMode = true;
-  try {
-    let allPatients = [];
-    let page = 1;
-    let hasMore = true;
-
-    while (hasMore) {
-      const res = await api.get("/api/v1/davolanish", {
-        params: {
-          page,
+    async fetchPatients() {
+      this.loading = true;
+      this.onlyExpiredMode = false;
+      try {
+        const params = {
+          page: this.currentPage,
           per_page: this.itemsPerPage,
           search: this.search,
-        },
-      });
+          status: "1", // faqat faol bemorlar
+        };
+        if (this.startDate) params.kelish_sanasi_from = this.startDate;
+        if (this.endDate) params.kelish_sanasi_to = this.endDate;
 
-      const data = res.data.data || [];
-      allPatients.push(...data);
+        const res = await api.get("/api/v1/davolanish", { params });
 
-      if (data.length < this.itemsPerPage) {
-        hasMore = false;
-      } else {
-        page++;
+        let allPatients = res.data.data || [];
+
+        // Serverdan kelganlar all status=1 bo'lishi kerak, lekin qo'shimcha tekshiruv:
+        allPatients = allPatients.filter((p) => p.status === "1");
+
+        const today = dayjs().format("YYYY-MM-DD");
+
+        const expiredOrToday = allPatients.filter(
+          (p) => p.ketish_sanasi && dayjs(p.ketish_sanasi).format("YYYY-MM-DD") <= today
+        );
+        const others = allPatients.filter(
+          (p) => !p.ketish_sanasi || dayjs(p.ketish_sanasi).format("YYYY-MM-DD") > today
+        );
+
+        if (this.currentPage === 1) {
+          this.patients = [...expiredOrToday, ...others];
+        } else {
+          this.patients = others;
+        }
+
+        this.totalPatientsCount = res.data.total || allPatients.length;
+      } catch (error) {
+        console.error("Ma'lumot olishda xatolik:", error);
+      } finally {
+        this.loading = false;
       }
-    }
-
-    const today = dayjs().format("YYYY-MM-DD");
-
-    this.patients = allPatients.filter(
-      (p) =>
-        p.ketish_sanasi &&
-        dayjs(p.ketish_sanasi).format("YYYY-MM-DD") <= today &&
-        p.status !== "0"
-    );
-
-    this.totalPatientsCount = this.patients.length;
-  } catch (error) {
-    console.error("Xatolik:", error);
-  } finally {
-    this.loading = false;
-  }
-},
-
+    },
 
     async fetchAllExpiredPatients() {
       this.loading = true;
@@ -275,6 +227,7 @@ async fetchAllExpiredPatients() {
               page,
               per_page: this.itemsPerPage,
               search: this.search,
+              status: "1",
             },
           });
 
@@ -291,9 +244,7 @@ async fetchAllExpiredPatients() {
         const today = dayjs().format("YYYY-MM-DD");
 
         this.patients = allPatients.filter(
-          (p) =>
-            p.ketish_sanasi &&
-            dayjs(p.ketish_sanasi).format("YYYY-MM-DD") <= today
+          (p) => p.status === "1" && p.ketish_sanasi && dayjs(p.ketish_sanasi).format("YYYY-MM-DD") <= today
         );
 
         this.totalPatientsCount = this.patients.length;
@@ -311,7 +262,7 @@ async fetchAllExpiredPatients() {
       let age = today.year() - birth.year();
       if (
         today.month() < birth.month() ||
-        (today.month() === birth.month() && today.date() < birth.date())
+        (today.month() === birth.month && today.date() < birth.date())
       ) {
         age--;
       }
@@ -319,25 +270,29 @@ async fetchAllExpiredPatients() {
     },
 
     formatDateTime(datetimeStr) {
-      if (!datetimeStr) return null;
+      if (!datetimeStr) return "—";
       return dayjs(datetimeStr).format("YYYY-MM-DD HH:mm");
     },
 
     async markAsLeft(patient) {
       try {
         this.loading = true;
-        await api.put(`/api/v1/davolanish/${patient.id}`, {
+
+        const payload = {
           id: patient.id,
           client_id: patient.client_id,
           kelish_sanasi: patient.kelish_sanasi,
           ketish_sanasi: patient.ketish_sanasi,
           xona_id: patient.xona_id,
-          status: "0", // faqat status o'zgartirildi
+          status: "0", // Ketgan holatga o‘zgartirish
           create_user_id: patient.create_user_id,
           create_user_name: patient.create_user_name,
           created_at: patient.created_at,
-          updated_at: dayjs().format("YYYY-MM-DD HH:mm:ss"), // hozirgi vaqt
-        });
+          updated_at: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+        };
+
+        const response = await api.put(`/api/v1/davolanish/${patient.id}`, payload);
+
         await this.fetchPatients();
       } catch (error) {
         console.error("Statusni o'zgartirishda xatolik:", error);
@@ -370,6 +325,8 @@ async fetchAllExpiredPatients() {
   },
 };
 </script>
+
+
 
 <style scoped>
 .patients-table {
@@ -416,32 +373,40 @@ async fetchAllExpiredPatients() {
 .table-wrapper {
   overflow-x: auto;
 }
+
 .patients-table {
   width: 100%;
   border-collapse: collapse;
 }
+
 .patients-table th,
 .patients-table td {
   border: 1px solid #ddd;
   padding: 8px;
 }
+
 .patients-table th {
   background-color: #f4f4f4;
   text-align: left;
 }
+
 .name-link {
   color: #3498db;
   text-decoration: none;
 }
+
 .name-link:hover {
   text-decoration: underline;
 }
+
 .today-leaving {
   background-color: #ffe6e6;
 }
+
 .pagination-btn {
   margin: 0 3px;
 }
+
 .btn-red {
   background-color: #e74c3c;
   color: white;
@@ -450,9 +415,11 @@ async fetchAllExpiredPatients() {
   border-radius: 6px;
   cursor: pointer;
 }
+
 .btn-red:hover {
   background-color: #c0392b;
 }
+
 /* ===== Umumiy konteyner va shrift ===== */
 .patients-container {
   width: 100%;
