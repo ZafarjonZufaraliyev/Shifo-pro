@@ -47,7 +47,7 @@
           <th>Telefon</th>
           <th>Keldi</th>
           <th>Ketdi</th>
-          <th>Status</th>
+          <th>Xonasi</th>
           <th>Harakatlar</th>
         </tr>
       </thead>
@@ -69,7 +69,7 @@
           <td>{{ patient.client.tel1 || "—" }}</td>
           <td>{{ formatDateTime(patient.kelish_sanasi) || "—" }}</td>
           <td>{{ formatDateTime(patient.ketish_sanasi) || "—" }}</td>
-          <td>{{ patient.status === "1" ? "Faol" : "Ketgan" }}</td>
+          <td>{{ patient.room.xona }}</td>
           <td>
             <button
               v-if="patient.status === '1' && isLeavingToday(patient.ketish_sanasi)"

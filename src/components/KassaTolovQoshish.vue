@@ -171,6 +171,7 @@ const fetchClients = async () => {
   try {
     const res = await api.get("/api/v1/davolanish");
     davolanishlar.value = res.data?.data || [];
+    console.log( davolanishlar.value )
   } catch (e) {
     console.error("Bemorlar ro‘yxatini olishda xatolik:", e);
   }
