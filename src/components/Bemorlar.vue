@@ -26,7 +26,6 @@
         <input type="date" v-model="endDate" />
       </label>
       <button @click="onFilterClick">Filtrlash</button>
-      <!-- Yangi tugma -->
       <button @click="fetchAllExpiredPatients" class="btn-red">
         Faqat Ketishi Keraklar
       </button>
@@ -40,71 +39,75 @@
       <div class="spinner"></div>
     </div>
 
-    <div v-else-if="isCardView" class="cards-wrapper">
-      <div class="cards-grid" :style="{ gridTemplateColumns: 'repeat(4, 1fr)' }">
-        <div
+    <table v-else class="patients-table">
+      <thead>
+        <tr>
+          <th>F.I.Sh</th>
+          <th>Yosh | Jinsi</th>
+          <th>Telefon</th>
+          <th>Keldi</th>
+          <th>Ketdi</th>
+          <th>Status</th>
+          <th>Harakatlar</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
           v-for="patient in patients"
           :key="patient.id"
-          class="patient1-card"
           :class="{ 'today-leaving': isLeavingToday(patient.ketish_sanasi) }"
         >
-          <router-link
-            :to="`/${role}/BemorCard/${patient.client.id}`"
-            class="card-link"
-          >
-            <div class="card__header">
-              <h3>
-                {{ patient.client.ism }} {{ patient.client.familiya }}
-              </h3>
-              <span>
-                {{ calculateAge(patient.client.tugulgan_sana) }} yosh |
-                {{ patient.client.jinsi }}
-              </span>
-            </div>
-          </router-link>
-          <div class="card__body">
-            <p><strong>📞 Telefon:</strong> {{ patient.client.tel1 || "—" }}</p>
-            <p><strong>Keldi:</strong> {{ formatDateTime(patient.kelish_sanasi) || "—" }}</p>
-            <p>
-              <strong>Ketdi:</strong> {{ formatDateTime(patient.ketish_sanasi) || "—" }}
-              <button
-                v-if="patient.status === '1' && isLeavingToday(patient.ketish_sanasi)"
-                @click="markAsLeft(patient)"
-                class="btn-ketdi btn-today"
-              >
-                Ketdi
-              </button>
-            </p>
-          </div>
-        </div>
-      </div>
+          <td>
+            <router-link :to="`/${role}/BemorCard/${patient.client.id}`">
+              {{ patient.client.ism }} {{ patient.client.familiya }}
+            </router-link>
+          </td>
+          <td>
+            {{ calculateAge(patient.client.tugulgan_sana) }} yosh |
+            {{ patient.client.jinsi }}
+          </td>
+          <td>{{ patient.client.tel1 || "—" }}</td>
+          <td>{{ formatDateTime(patient.kelish_sanasi) || "—" }}</td>
+          <td>{{ formatDateTime(patient.ketish_sanasi) || "—" }}</td>
+          <td>{{ patient.status === "1" ? "Faol" : "Ketgan" }}</td>
+          <td>
+            <button
+              v-if="patient.status === '1' && isLeavingToday(patient.ketish_sanasi)"
+              @click="markAsLeft(patient)"
+              class="btn-ketdi btn-today"
+            >
+              Ketdi
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
 
-      <div class="pagination" v-if="pageCount > 1 && !onlyExpiredMode">
-        <button
-          :disabled="currentPage === 1"
-          @click="goToPage(currentPage - 1)"
-          class="pagination-btn"
-        >
-          &lt; Oldingi
-        </button>
+    <div class="pagination" v-if="pageCount > 1 && !onlyExpiredMode">
+      <button
+        :disabled="currentPage === 1"
+        @click="goToPage(currentPage - 1)"
+        class="pagination-btn"
+      >
+        &lt; Oldingi
+      </button>
 
-        <button
-          v-for="page in pageCount"
-          :key="page"
-          @click="goToPage(page)"
-          :class="['pagination-btn', { active: page === currentPage }]"
-        >
-          {{ page }}
-        </button>
+      <button
+        v-for="page in pageCount"
+        :key="page"
+        @click="goToPage(page)"
+        :class="['pagination-btn', { active: page === currentPage }]"
+      >
+        {{ page }}
+      </button>
 
-        <button
-          :disabled="currentPage === pageCount"
-          @click="goToPage(currentPage + 1)"
-          class="pagination-btn"
-        >
-          Keyingi &gt;
-        </button>
-      </div>
+      <button
+        :disabled="currentPage === pageCount"
+        @click="goToPage(currentPage + 1)"
+        class="pagination-btn"
+      >
+        Keyingi &gt;
+      </button>
     </div>
   </div>
 </template>
@@ -117,7 +120,6 @@ import debounce from "lodash.debounce";
 export default {
   data() {
     return {
-      isCardView: true,
       search: "",
       startDate: "",
       endDate: "",
@@ -168,43 +170,96 @@ export default {
       return ketish <= today;
     },
 
-    async fetchPatients() {
-      this.loading = true;
-      this.onlyExpiredMode = false;
-      try {
-        const params = {
-          page: this.currentPage,
+   async fetchPatients() {
+  this.loading = true;
+  this.onlyExpiredMode = false;
+  try {
+    const params = {
+      page: this.currentPage,
+      per_page: this.itemsPerPage,
+      search: this.search,
+    };
+    if (this.startDate) params.kelish_sanasi_from = this.startDate;
+    if (this.endDate) params.kelish_sanasi_to = this.endDate;
+
+    const res = await api.get("/api/v1/davolanish", { params });
+
+    let allPatients = res.data.data || [];
+    // statusi 0 bo‘lganlarni chiqarma
+    allPatients = allPatients.filter(p => p.status !== "0");
+
+    const today = dayjs().format("YYYY-MM-DD");
+
+    const expiredOrToday = allPatients.filter(
+      (p) =>
+        p.ketish_sanasi &&
+        dayjs(p.ketish_sanasi).format("YYYY-MM-DD") <= today
+    );
+
+    const others = allPatients.filter(
+      (p) =>
+        !p.ketish_sanasi ||
+        dayjs(p.ketish_sanasi).format("YYYY-MM-DD") > today
+    );
+
+    if (this.currentPage === 1) {
+      this.patients = [...expiredOrToday, ...others];
+    } else {
+      this.patients = others;
+    }
+
+    this.totalPatientsCount = res.data.total || 0;
+  } catch (error) {
+    console.error("Ma'lumot olishda xatolik:", error);
+  } finally {
+    this.loading = false;
+  }
+},
+
+async fetchAllExpiredPatients() {
+  this.loading = true;
+  this.onlyExpiredMode = true;
+  try {
+    let allPatients = [];
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore) {
+      const res = await api.get("/api/v1/davolanish", {
+        params: {
+          page,
           per_page: this.itemsPerPage,
           search: this.search,
-        };
-        if (this.startDate) params.kelish_sanasi_from = this.startDate;
-        if (this.endDate) params.kelish_sanasi_to = this.endDate;
+        },
+      });
 
-        const res = await api.get("/api/v1/davolanish", { params });
+      const data = res.data.data || [];
+      allPatients.push(...data);
 
-        let allPatients = res.data.data || [];
-        const today = dayjs().format("YYYY-MM-DD");
-
-        const expiredOrToday = allPatients.filter(
-          (p) =>
-            p.ketish_sanasi &&
-            dayjs(p.ketish_sanasi).format("YYYY-MM-DD") <= today
-        );
-
-        const others = allPatients.filter(
-          (p) =>
-            !p.ketish_sanasi ||
-            dayjs(p.ketish_sanasi).format("YYYY-MM-DD") > today
-        );
-
-        this.patients = [...expiredOrToday, ...others];
-        this.totalPatientsCount = res.data.total || 0;
-      } catch (error) {
-        console.error("Ma'lumot olishda xatolik:", error);
-      } finally {
-        this.loading = false;
+      if (data.length < this.itemsPerPage) {
+        hasMore = false;
+      } else {
+        page++;
       }
-    },
+    }
+
+    const today = dayjs().format("YYYY-MM-DD");
+
+    this.patients = allPatients.filter(
+      (p) =>
+        p.ketish_sanasi &&
+        dayjs(p.ketish_sanasi).format("YYYY-MM-DD") <= today &&
+        p.status !== "0"
+    );
+
+    this.totalPatientsCount = this.patients.length;
+  } catch (error) {
+    console.error("Xatolik:", error);
+  } finally {
+    this.loading = false;
+  }
+},
+
 
     async fetchAllExpiredPatients() {
       this.loading = true;
@@ -271,7 +326,18 @@ export default {
     async markAsLeft(patient) {
       try {
         this.loading = true;
-        await api.put(`/api/v1/davolanish/${patient.id}`, { status: "0" });
+        await api.put(`/api/v1/davolanish/${patient.id}`, {
+          id: patient.id,
+          client_id: patient.client_id,
+          kelish_sanasi: patient.kelish_sanasi,
+          ketish_sanasi: patient.ketish_sanasi,
+          xona_id: patient.xona_id,
+          status: "0", // faqat status o'zgartirildi
+          create_user_id: patient.create_user_id,
+          create_user_name: patient.create_user_name,
+          created_at: patient.created_at,
+          updated_at: dayjs().format("YYYY-MM-DD HH:mm:ss"), // hozirgi vaqt
+        });
         await this.fetchPatients();
       } catch (error) {
         console.error("Statusni o'zgartirishda xatolik:", error);
@@ -285,6 +351,11 @@ export default {
         this.currentPage = page;
         window.scrollTo(0, 0);
       }
+    },
+
+    onFilterClick() {
+      this.currentPage = 1;
+      this.fetchPatients();
     },
   },
 
@@ -300,9 +371,77 @@ export default {
 };
 </script>
 
+<style scoped>
+.patients-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.patients-table th,
+.patients-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.patients-table th {
+  background-color: #f2f2f2;
+}
+
+.today-leaving {
+  background-color: #ffe6e6;
+}
+
+.btn-ketdi {
+  background-color: #ff6666;
+  border: none;
+  padding: 5px 10px;
+  color: white;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.btn-ketdi:hover {
+  background-color: #ff4c4c;
+}
+</style>
+
+
+
+
+
 
 
 <style scoped>
+.table-wrapper {
+  overflow-x: auto;
+}
+.patients-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.patients-table th,
+.patients-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+.patients-table th {
+  background-color: #f4f4f4;
+  text-align: left;
+}
+.name-link {
+  color: #3498db;
+  text-decoration: none;
+}
+.name-link:hover {
+  text-decoration: underline;
+}
+.today-leaving {
+  background-color: #ffe6e6;
+}
+.pagination-btn {
+  margin: 0 3px;
+}
 .btn-red {
   background-color: #e74c3c;
   color: white;
