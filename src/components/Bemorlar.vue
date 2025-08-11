@@ -26,6 +26,10 @@
         <input type="date" v-model="endDate" />
       </label>
       <button @click="onFilterClick">Filtrlash</button>
+      <!-- Yangi tugma -->
+      <button @click="fetchAllExpiredPatients" class="btn-red">
+        Faqat Ketishi Keraklar
+      </button>
     </div>
 
     <p class="total-count">
@@ -49,31 +53,33 @@
             class="card-link"
           >
             <div class="card__header">
-              <h3>{{ patient.client.ism }} {{ patient.client.familiya }}</h3>
+              <h3>
+                {{ patient.client.ism }} {{ patient.client.familiya }}
+              </h3>
               <span>
-                {{ calculateAge(patient.client.tugulgan_sana) }} yosh | {{ patient.client.jinsi }}
+                {{ calculateAge(patient.client.tugulgan_sana) }} yosh |
+                {{ patient.client.jinsi }}
               </span>
             </div>
           </router-link>
           <div class="card__body">
-            <p><strong>📞 Telefon:</strong> {{ patient.client.tel1 || '—' }}</p>
-            <p><strong>Keldi:</strong> {{ formatDateTime(patient.kelish_sanasi) || '—' }}</p>
+            <p><strong>📞 Telefon:</strong> {{ patient.client.tel1 || "—" }}</p>
+            <p><strong>Keldi:</strong> {{ formatDateTime(patient.kelish_sanasi) || "—" }}</p>
             <p>
-              <strong>Ketdi:</strong> {{ formatDateTime(patient.ketish_sanasi) || '—' }}
-             <button
-  v-if="patient.status === '1' && isLeavingToday(patient.ketish_sanasi)"
-  @click="markAsLeft(patient)"
-  class="btn-ketdi btn-today"
->
-  Ketdi
-</button>
-
+              <strong>Ketdi:</strong> {{ formatDateTime(patient.ketish_sanasi) || "—" }}
+              <button
+                v-if="patient.status === '1' && isLeavingToday(patient.ketish_sanasi)"
+                @click="markAsLeft(patient)"
+                class="btn-ketdi btn-today"
+              >
+                Ketdi
+              </button>
             </p>
           </div>
         </div>
       </div>
 
-      <div class="pagination" v-if="pageCount > 1">
+      <div class="pagination" v-if="pageCount > 1 && !onlyExpiredMode">
         <button
           :disabled="currentPage === 1"
           @click="goToPage(currentPage - 1)"
@@ -121,40 +127,50 @@ export default {
       role: localStorage.getItem("role") || "mini",
       currentPage: 1,
       itemsPerPage: 20,
+      onlyExpiredMode: false,
     };
   },
 
   watch: {
     search: {
       handler: debounce(function () {
-        this.currentPage = 1;
-        this.fetchPatients();
+        if (!this.onlyExpiredMode) {
+          this.currentPage = 1;
+          this.fetchPatients();
+        }
       }, 500),
       immediate: true,
     },
     startDate() {
-      this.currentPage = 1;
-      this.fetchPatients();
+      if (!this.onlyExpiredMode) {
+        this.currentPage = 1;
+        this.fetchPatients();
+      }
     },
     endDate() {
-      this.currentPage = 1;
-      this.fetchPatients();
+      if (!this.onlyExpiredMode) {
+        this.currentPage = 1;
+        this.fetchPatients();
+      }
     },
     currentPage() {
-      this.fetchPatients();
+      if (!this.onlyExpiredMode) {
+        this.fetchPatients();
+      }
     },
   },
 
   methods: {
     isLeavingToday(date) {
-  if (!date) return false;
-  const ketish = dayjs(date).format("YYYY-MM-DD");
-  const today = dayjs().format("YYYY-MM-DD");
-  // 🔹 Agar bugungi yoki undan oldin bo'lsa — qizil bo'ladi
-  return ketish <= today;
-},
+      if (!date) return false;
+      const ketish = dayjs(date).format("YYYY-MM-DD");
+      const today = dayjs().format("YYYY-MM-DD");
+      return ketish <= today;
+    },
+
     async fetchPatients() {
       this.loading = true;
+      this.onlyExpiredMode = false;
       try {
         const params = {
           page: this.currentPage,
@@ -167,19 +183,22 @@ export default {
         const res = await api.get("/api/v1/davolanish", { params });
 
         let allPatients = res.data.data || [];
-
-        // Ketish sanasi bugungi kunga teng bo'lganlarni oldinga chiqarish
         const today = dayjs().format("YYYY-MM-DD");
-        const todayLeaving = allPatients.filter(p =>
-          p.ketish_sanasi && dayjs(p.ketish_sanasi).format("YYYY-MM-DD") === today
+
+        const expiredOrToday = allPatients.filter(
+          (p) =>
+            p.ketish_sanasi &&
+            dayjs(p.ketish_sanasi).format("YYYY-MM-DD") <= today
         );
+
         const others = allPatients.filter(
-          p => !p.ketish_sanasi || dayjs(p.ketish_sanasi).format("YYYY-MM-DD") !== today
+          (p) =>
+            !p.ketish_sanasi ||
+            dayjs(p.ketish_sanasi).format("YYYY-MM-DD") > today
         );
 
-        this.patients = [...todayLeaving, ...others];
+        this.patients = [...expiredOrToday, ...others];
         this.totalPatientsCount = res.data.total || 0;
-
       } catch (error) {
         console.error("Ma'lumot olishda xatolik:", error);
       } finally {
@@ -187,9 +206,47 @@ export default {
       }
     },
 
-    isLeavingToday(date) {
-      if (!date) return false;
-      return dayjs(date).format("YYYY-MM-DD") === dayjs().format("YYYY-MM-DD");
+    async fetchAllExpiredPatients() {
+      this.loading = true;
+      this.onlyExpiredMode = true;
+      try {
+        let allPatients = [];
+        let page = 1;
+        let hasMore = true;
+
+        while (hasMore) {
+          const res = await api.get("/api/v1/davolanish", {
+            params: {
+              page,
+              per_page: this.itemsPerPage,
+              search: this.search,
+            },
+          });
+
+          const data = res.data.data || [];
+          allPatients.push(...data);
+
+          if (data.length < this.itemsPerPage) {
+            hasMore = false;
+          } else {
+            page++;
+          }
+        }
+
+        const today = dayjs().format("YYYY-MM-DD");
+
+        this.patients = allPatients.filter(
+          (p) =>
+            p.ketish_sanasi &&
+            dayjs(p.ketish_sanasi).format("YYYY-MM-DD") <= today
+        );
+
+        this.totalPatientsCount = this.patients.length;
+      } catch (error) {
+        console.error("Xatolik:", error);
+      } finally {
+        this.loading = false;
+      }
     },
 
     calculateAge(birthdate) {
@@ -197,7 +254,10 @@ export default {
       const birth = dayjs(birthdate);
       const today = dayjs();
       let age = today.year() - birth.year();
-      if (today.month() < birth.month() || (today.month() === birth.month() && today.date() < birth.date())) {
+      if (
+        today.month() < birth.month() ||
+        (today.month() === birth.month() && today.date() < birth.date())
+      ) {
         age--;
       }
       return age;
@@ -240,13 +300,27 @@ export default {
 };
 </script>
 
+
+
 <style scoped>
+.btn-red {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn-red:hover {
+  background-color: #c0392b;
+}
 /* ===== Umumiy konteyner va shrift ===== */
 .patients-container {
   width: 100%;
-  max-width: 1200px; /* kattaroq ekranga moslash uchun oshirildi */
-  margin: 30px auto;
-  padding: 25px 20px;
+  max-width: 1200px;
+  /* kattaroq ekranga moslash uchun oshirildi */
+  margin: 20px auto;
+  padding: 20px;
   min-height: 100vh;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: #222;
@@ -410,7 +484,8 @@ export default {
 .cards-grid {
   display: grid;
   gap: 28px 22px;
-  grid-template-columns: repeat(4, 1fr); /* default 4 ustun */
+  grid-template-columns: repeat(4, 1fr);
+  /* default 4 ustun */
 }
 
 /* 5 ta ustun katta ekran uchun */
