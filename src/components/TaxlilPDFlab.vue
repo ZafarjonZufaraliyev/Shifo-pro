@@ -113,7 +113,6 @@
   </div>
 </template>
 
-
 <script>
 import axios from "axios";
 import { jsPDF } from "jspdf";
@@ -125,6 +124,7 @@ export default {
     return {
       clients: [],
       testTypes: [],
+      parameters: [], // 🔹 barcha parametrlar shu yerda saqlanadi
       selectedClientId: "",
       selectedClient: null,
       selectedTestType: null,
@@ -141,6 +141,7 @@ export default {
   created() {
     this.fetchPatients();
     this.fetchTestTypes();
+    this.fetchParameters();
   },
   methods: {
     async fetchPatients() {
@@ -150,16 +151,13 @@ export default {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        // API javob strukturasini tekshiramiz
         const davolanishlar = Array.isArray(res.data)
           ? res.data
           : (res.data.data || []);
-
-        // faqat status = 1 bo'lganlarni olish
+        
         this.clients = davolanishlar
-          .filter(item => item.status === 1 && item.client)
+          .filter(item => item.status != 0 && item.client)
           .map(item => item.client);
-
       } catch (error) {
         console.error("❌ Bemorlar ro'yxatini olishda xatolik:", error);
       }
@@ -174,6 +172,18 @@ export default {
         this.testTypes = Array.isArray(res.data) ? res.data : (res.data.data || []);
       } catch (error) {
         console.error("❌ Tahlil turlarini olishda xatolik:", error);
+      }
+    },
+
+    async fetchParameters() {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get("/api/v1/test-parameters", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        this.parameters = Array.isArray(res.data) ? res.data : (res.data.data || []);
+      } catch (error) {
+        console.error("❌ Parametrlarni olishda xatolik:", error);
       }
     },
 
@@ -196,14 +206,14 @@ export default {
         alert("Ushbu parametr allaqachon qo‘shilgan!");
         return;
       }
-      const paramObj = this.selectedTestType.parameters.find(
+      const paramObj = this.filteredAvailableParams.find(
         p => p.name === this.selectedParamToAdd
       );
       if (!paramObj) return;
       this.labTestData.results.push({
         parametr_name: paramObj.name,
         parametr_value: "",
-        parametr_norma: paramObj.norma || "",
+        parametr_norma: paramObj.normal_range || "", // API dagi maydon nomi
       });
       this.selectedParamToAdd = "";
     },
@@ -331,32 +341,49 @@ export default {
   },
   computed: {
     filteredAvailableParams() {
-      if (!this.selectedTestType || !Array.isArray(this.selectedTestType.parameters)) return [];
+      if (!this.selectedTestType) return [];
       const addedNames = this.labTestData.results.map(r => r.parametr_name);
-      return this.selectedTestType.parameters.filter(p => !addedNames.includes(p.name));
+      // API javobidagi 'lab_test_type_id' bilan solishtirish uchun tipni moslashtiramiz
+      return this.parameters
+        .filter(p => String(p.lab_test_type_id) === String(this.selectedTestType.id))
+        .filter(p => !addedNames.includes(p.name));
     },
   },
 };
 </script>
 
 
-
 <style scoped>
 .containerrr {
-  max-width: 1200px;
-  margin: 20px auto;
-  padding:20px;
-  font-family: Arial, sans-serif;
+  width:100%;
+    max-width: 1200px;
+  margin: 30px auto;
+  padding: 25px 30px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #fff;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  border-radius: 10px;
+  color: #222;
+}
+
+h2 {
+  text-align: center;
+  font-weight: 700;
+  color: #004c97;
+  margin-bottom: 30px;
+  user-select: none;
 }
 
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 20px;
 }
 
 label {
-  font-weight: 600;
   display: block;
-  margin-bottom: 5px;
+  font-weight: 600;
+  margin-bottom: 7px;
+  color: #333;
+  user-select: none;
 }
 
 select,
@@ -364,75 +391,227 @@ input[type="date"],
 textarea,
 input.result-input {
   width: 100%;
-  padding: 8px;
-  font-size: 14px;
+  padding: 10px 14px;
+  font-size: 15px;
+  border: 1.8px solid #ddd;
+  border-radius: 6px;
+  outline-offset: 2px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  font-family: inherit;
   box-sizing: border-box;
 }
 
-.results-section {
-  margin-top: 20px;
+select:focus,
+input[type="date"]:focus,
+textarea:focus,
+input.result-input:focus {
+  border-color: #1890ff;
+  box-shadow: 0 0 6px #1890ffaa;
 }
 
-.result-row {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 8px;
+.client-info p {
+  font-size: 15px;
+  margin: 5px 0;
+  user-select: text;
 }
 
-.result-input {
-  flex: 1;
+.test-types-list {
+  margin: 25px 0;
 }
 
-.btn-remove {
-  background-color: #ff4d4f;
-  border: none;
-  color: white;
-  font-weight: bold;
+.test-type-item {
+  padding: 15px 20px;
+  border: 2px solid transparent;
+  border-radius: 8px;
   cursor: pointer;
-  padding: 0 8px;
-  border-radius: 3px;
-  font-size: 18px;
-  line-height: 1;
+  margin-bottom: 14px;
+  background: #f9fbfd;
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+  user-select: none;
 }
 
-.btn-remove:hover {
+.test-type-item:hover {
+  background: #e6f0ff;
+  border-color: #1890ff;
+}
+
+.test-type-item.active {
+  border-color: #004c97;
+  background: #d7e6ff;
+  font-weight: 600;
+  color: #004c97;
+}
+
+.test-type-item h4 {
+  margin: 0 0 6px 0;
+  font-size: 18px;
+}
+
+.test-type-item p {
+  margin: 0;
+  font-size: 14px;
+  color: #555;
+}
+
+.test-parameters {
+  margin-top: 25px;
+  overflow-x: auto;
+}
+
+.test-parameters h3 {
+  margin-bottom: 15px;
+  color: #004c97;
+  font-weight: 600;
+  user-select: none;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+  user-select: none;
+}
+
+thead tr {
+  background-color: #f0f4ff;
+}
+
+th,
+td {
+  padding: 12px 14px;
+  border: 1px solid #ccc;
+  text-align: left;
+  vertical-align: middle;
+}
+
+tbody tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+input.result-input {
+  padding: 6px 10px;
+  font-size: 15px;
+  border: 1.5px solid #bbb;
+  border-radius: 4px;
+  transition: border-color 0.3s ease;
+}
+
+input.result-input:focus {
+  border-color: #1890ff;
+  outline: none;
+  box-shadow: 0 0 5px #1890ffaa;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 14px;
+  font-size: 15px;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+  user-select: none;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+button:hover:not(:disabled) {
+  filter: brightness(0.9);
+}
+
+.test-parameters button {
+  background-color: #ff4d4f;
+  color: white;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0 10px;
+}
+
+.test-parameters button:hover {
   background-color: #d9363e;
 }
 
-.actions {
-  margin-top: 20px;
-  display: flex;
-  gap: 15px;
+.form-group > button {
+  background-color: #1890ff;
+  color: white;
+  margin-left: 10px;
+  min-width: 100px;
+  user-select: none;
 }
 
-.btn-save,
-.btn-pdf {
-  padding: 10px 20px;
-  font-size: 16px;
-  cursor: pointer;
-  border-radius: 5px;
-  border: none;
-  color: white;
+.form-group > button:disabled {
+  background-color: #a0c4ff;
+}
+
+.actions {
+  margin-top: 30px;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  user-select: none;
 }
 
 .btn-save {
   background-color: #1890ff;
+  color: white;
+  min-width: 130px;
+  font-weight: 700;
+  border-radius: 8px;
+  box-shadow: 0 6px 12px rgb(24 144 255 / 0.4);
 }
 
 .btn-save:hover {
   background-color: #1070d3;
+  box-shadow: 0 8px 16px rgb(16 112 211 / 0.5);
 }
 
 .btn-pdf {
   background-color: #52c41a;
+  color: white;
+  min-width: 130px;
+  font-weight: 700;
+  border-radius: 8px;
+  box-shadow: 0 6px 12px rgb(82 196 26 / 0.4);
 }
 
 .btn-pdf:disabled {
   background-color: #a0d911;
+  box-shadow: none;
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .btn-pdf:hover:not(:disabled) {
   background-color: #389e0d;
+  box-shadow: 0 8px 16px rgb(56 158 13 / 0.6);
+}
+
+/* Responsive kichik ekranlar uchun */
+@media (max-width: 640px) {
+  .containerrr {
+    padding: 20px 15px;
+  }
+
+  .test-type-item h4 {
+    font-size: 16px;
+  }
+
+  table, thead, tbody, th, td, tr {
+    font-size: 13px;
+  }
+
+  .actions {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .form-group > button {
+    margin-left: 0;
+    width: 100%;
+  }
 }
 </style>
