@@ -1,21 +1,26 @@
 <template>
   <div class="patients-container">
+    <!-- Sarlavha -->
     <div class="header-section">
       <h2 class="page-title">🩺 Bemorlar Ro'yxati</h2>
     </div>
 
+    <!-- Qidiruvlar -->
     <div class="top-controls">
       <div class="search-box">
         <img src="@/assets/image/sorch.svg" alt="Qidiruv" />
-        <input
-          type="search"
-          placeholder="Ism yoki familiya bo‘yicha qidirish..."
-          v-model="search"
-          aria-label="Bemorlarni qidirish"
-        />
+        <input type="search" placeholder="Ism yoki familiya bo‘yicha qidirish..." v-model="search"
+          aria-label="Ism familiya qidirish" />
+      </div>
+
+      <div class="search-box">
+        <img src="@/assets/image/sorch.svg" alt="Xona qidiruv" />
+        <input type="search" placeholder="Xona raqami bo‘yicha qidirish..." v-model="roomSearch"
+          aria-label="Xona raqami qidirish" />
       </div>
     </div>
 
+    <!-- Sana filter -->
     <div class="date-range-filter">
       <label>
         Boshlanish sanasi:
@@ -31,14 +36,17 @@
       </button>
     </div>
 
+    <!-- Jami son -->
     <p class="total-count">
       <strong>Jami bemorlar soni:</strong> {{ totalPatientsCount }}
     </p>
 
+    <!-- Loader -->
     <div v-if="loading" class="loading-container">
       <div class="spinner"></div>
     </div>
 
+    <!-- Jadval -->
     <table v-else class="patients-table">
       <thead>
         <tr>
@@ -52,11 +60,8 @@
         </tr>
       </thead>
       <tbody>
-        <tr
-          v-for="patient in patients"
-          :key="patient.id"
-          :class="{ 'today-leaving': isLeavingToday(patient.ketish_sanasi) }"
-        >
+        <tr v-for="patient in filteredPatients" :key="patient.id"
+          :class="{ 'today-leaving': isLeavingToday(patient.ketish_sanasi) }">
           <td>
             <router-link :to="`/${role}/BemorCard/${patient.client.id}`">
               {{ patient.client.ism }} {{ patient.client.familiya }}
@@ -69,46 +74,18 @@
           <td>{{ patient.client.tel1 || "—" }}</td>
           <td>{{ formatDateTime(patient.kelish_sanasi) || "—" }}</td>
           <td>{{ formatDateTime(patient.ketish_sanasi) || "—" }}</td>
-          <td>{{ patient.room.xona }}</td>
+          <td>{{ patient.room?.xona || "—" }}</td>
           <td>
-            <button
-              v-if="patient.status === '1' && isLeavingToday(patient.ketish_sanasi)"
-              @click="markAsLeft(patient)"
-              class="btn-ketdi btn-today"
-            >
-              Ketdi
+            <button v-if="patient.status === '1' && isLeavingToday(patient.ketish_sanasi)" @click="markAsLeft(patient)"
+              class="btn-ketdi btn-today">
+              Ketadi
             </button>
           </td>
         </tr>
       </tbody>
     </table>
 
-    <div class="pagination" v-if="pageCount > 1 && !onlyExpiredMode">
-      <button
-        :disabled="currentPage === 1"
-        @click="goToPage(currentPage - 1)"
-        class="pagination-btn"
-      >
-        &lt; Oldingi
-      </button>
 
-      <button
-        v-for="page in pageCount"
-        :key="page"
-        @click="goToPage(page)"
-        :class="['pagination-btn', { active: page === currentPage }]"
-      >
-        {{ page }}
-      </button>
-
-      <button
-        :disabled="currentPage === pageCount"
-        @click="goToPage(currentPage + 1)"
-        class="pagination-btn"
-      >
-        Keyingi &gt;
-      </button>
-    </div>
   </div>
 </template>
 
@@ -121,6 +98,7 @@ export default {
   data() {
     return {
       search: "",
+      roomSearch: "",
       startDate: "",
       endDate: "",
       patients: [],
@@ -178,20 +156,18 @@ export default {
           page: this.currentPage,
           per_page: this.itemsPerPage,
           search: this.search,
-          status: "1", // faqat faol bemorlar
+          status: "1",
         };
         if (this.startDate) params.kelish_sanasi_from = this.startDate;
         if (this.endDate) params.kelish_sanasi_to = this.endDate;
 
         const res = await api.get("/api/v1/davolanish", { params });
-
         let allPatients = res.data.data || [];
 
-        // Serverdan kelganlar all status=1 bo'lishi kerak, lekin qo'shimcha tekshiruv:
+        // faqat status=1 bo‘lganlar
         allPatients = allPatients.filter((p) => p.status === "1");
 
         const today = dayjs().format("YYYY-MM-DD");
-
         const expiredOrToday = allPatients.filter(
           (p) => p.ketish_sanasi && dayjs(p.ketish_sanasi).format("YYYY-MM-DD") <= today
         );
@@ -199,12 +175,8 @@ export default {
           (p) => !p.ketish_sanasi || dayjs(p.ketish_sanasi).format("YYYY-MM-DD") > today
         );
 
-        if (this.currentPage === 1) {
-          this.patients = [...expiredOrToday, ...others];
-        } else {
-          this.patients = others;
-        }
-
+        this.patients =
+          this.currentPage === 1 ? [...expiredOrToday, ...others] : others;
         this.totalPatientsCount = res.data.total || allPatients.length;
       } catch (error) {
         console.error("Ma'lumot olishda xatolik:", error);
@@ -242,11 +214,12 @@ export default {
         }
 
         const today = dayjs().format("YYYY-MM-DD");
-
         this.patients = allPatients.filter(
-          (p) => p.status === "1" && p.ketish_sanasi && dayjs(p.ketish_sanasi).format("YYYY-MM-DD") <= today
+          (p) =>
+            p.status === "1" &&
+            p.ketish_sanasi &&
+            dayjs(p.ketish_sanasi).format("YYYY-MM-DD") <= today
         );
-
         this.totalPatientsCount = this.patients.length;
       } catch (error) {
         console.error("Xatolik:", error);
@@ -277,22 +250,12 @@ export default {
     async markAsLeft(patient) {
       try {
         this.loading = true;
-
         const payload = {
-          id: patient.id,
-          client_id: patient.client_id,
-          kelish_sanasi: patient.kelish_sanasi,
-          ketish_sanasi: patient.ketish_sanasi,
-          xona_id: patient.xona_id,
-          status: "0", // Ketgan holatga o‘zgartirish
-          create_user_id: patient.create_user_id,
-          create_user_name: patient.create_user_name,
-          created_at: patient.created_at,
+          ...patient,
+          status: "0",
           updated_at: dayjs().format("YYYY-MM-DD HH:mm:ss"),
         };
-
-        const response = await api.put(`/api/v1/davolanish/${patient.id}`, payload);
-
+        await api.put(`/api/v1/davolanish/${patient.id}`, payload);
         await this.fetchPatients();
       } catch (error) {
         console.error("Statusni o'zgartirishda xatolik:", error);
@@ -318,6 +281,22 @@ export default {
     pageCount() {
       return Math.ceil(this.totalPatientsCount / this.itemsPerPage);
     },
+
+    // 🔹 Ism, familiya va xona raqami bo‘yicha qidiruv
+    filteredPatients() {
+      return this.patients.filter((p) => {
+        const fullName = `${p.client.ism} ${p.client.familiya}`.toLowerCase();
+        const matchesName =
+          !this.search || fullName.includes(this.search.toLowerCase());
+
+        const matchesRoom =
+          !this.roomSearch ||
+          (p.room?.xona &&
+            String(p.room.xona).toLowerCase().includes(this.roomSearch.toLowerCase()));
+
+        return matchesName && matchesRoom;
+      });
+    },
   },
 
   mounted() {
@@ -325,254 +304,131 @@ export default {
   },
 };
 </script>
-
-
-
 <style scoped>
-.patients-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.patients-table th,
-.patients-table td {
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: left;
-}
-
-.patients-table th {
-  background-color: #f2f2f2;
-}
-
-.today-leaving {
-  background-color: #ffe6e6;
-}
-
-.btn-ketdi {
-  background-color: #ff6666;
-  border: none;
-  padding: 5px 10px;
-  color: white;
-  cursor: pointer;
-  border-radius: 3px;
-}
-
-.btn-ketdi:hover {
-  background-color: #ff4c4c;
-}
-</style>
-
-
-
-
-
-
-
-<style scoped>
-.table-wrapper {
-  overflow-x: auto;
-}
-
-.patients-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.patients-table th,
-.patients-table td {
-  border: 1px solid #ddd;
-  padding: 8px;
-}
-
-.patients-table th {
-  background-color: #f4f4f4;
-  text-align: left;
-}
-
-.name-link {
-  color: #3498db;
-  text-decoration: none;
-}
-
-.name-link:hover {
-  text-decoration: underline;
-}
-
-.today-leaving {
-  background-color: #ffe6e6;
-}
-
-.pagination-btn {
-  margin: 0 3px;
-}
-
-.btn-red {
-  background-color: #e74c3c;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.btn-red:hover {
-  background-color: #c0392b;
-}
-
-/* ===== Umumiy konteyner va shrift ===== */
+/* 📦 Container */
 .patients-container {
-  width: 100%;
-  max-width: 1200px;
-  /* kattaroq ekranga moslash uchun oshirildi */
-  margin: 20px auto;
-  padding: 20px;
-  min-height: 100vh;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: #222;
-  user-select: none;
-  box-sizing: border-box;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
 }
 
-/* ===== Header ===== */
+/* 🩺 Sarlavha */
 .header-section {
-  margin-bottom: 25px;
-  text-align: center;
+  margin-bottom: 12px;
 }
 
 .page-title {
-  font-size: 32px;
-  font-weight: 700;
-  color: #007bff;
-  user-select: none;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
 }
 
-/* ===== Yuqori boshqaruvlar ===== */
+/* 🔍 Qidiruvlar */
 .top-controls {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
-/* ----- Qidiruv qutisi ----- */
 .search-box {
+  flex: 1;
   display: flex;
   align-items: center;
-  background: white;
-  border-radius: 10px;
-  padding: 8px 16px;
-  box-shadow: 0 3px 8px rgb(0 0 0 / 0.12);
-  flex-grow: 1;
-  max-width: 450px;
-  transition: box-shadow 0.3s ease;
-}
-
-.search-box:hover,
-.search-box input:focus {
-  box-shadow: 0 0 12px #007bffaa;
+  gap: 6px;
+  background: #fafafa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 6px 8px;
 }
 
 .search-box img {
-  width: 22px;
-  height: 22px;
-  filter: grayscale(70%) brightness(60%);
+  width: 16px;
+  height: 16px;
+  opacity: 0.5;
 }
 
 .search-box input {
+  flex: 1;
   border: none;
   outline: none;
-  margin-left: 10px;
-  font-size: 16px;
-  width: 100%;
+  font-size: 14px;
   background: transparent;
-  color: #333;
-  user-select: text;
 }
 
-.search-box input::placeholder {
-  color: #aaa;
-}
-
-/* ===== Sana oralig‘i filtri ===== */
+/* 📅 Sana filterlari */
 .date-range-filter {
-  margin-bottom: 25px;
   display: flex;
-  align-items: center;
-  gap: 18px;
+  align-items: flex-end;
   flex-wrap: wrap;
-  justify-content: center;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .date-range-filter label {
-  font-size: 15px;
-  color: #555;
+  font-size: 13px;
+  color: #444;
   display: flex;
-  align-items: center;
-  gap: 8px;
-  user-select: none;
+  flex-direction: column;
 }
 
 .date-range-filter input[type="date"] {
-  padding: 7px 12px;
-  border: 1.8px solid #ced4da;
-  border-radius: 8px;
-  font-size: 15px;
-  cursor: pointer;
-  transition: border-color 0.3s ease;
-  user-select: text;
-}
-
-.date-range-filter input[type="date"]:focus {
-  border-color: #007bff;
-  outline: none;
+  margin-top: 3px;
+  padding: 6px 8px;
+  font-size: 13px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
 }
 
 .date-range-filter button {
-  background-color: #007bff;
-  color: white;
+  padding: 5px;
+  height: 40px;
+  background: #4b5563;
+  color: #fff;
+  font-size: 13px;
   border: none;
-  padding: 10px 22px;
-  font-weight: 700;
-  font-size: 15px;
-  border-radius: 10px;
+  border-radius: 4px;
   cursor: pointer;
-  user-select: none;
-  box-shadow: 0 5px 15px rgb(0 123 255 / 0.4);
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .date-range-filter button:hover {
-  background-color: #0056b3;
-  box-shadow: 0 7px 20px rgb(0 86 179 / 0.6);
+  background: #374151;
+  padding: 5px;
+  height: 40px;
 }
 
-/* ===== Jami bemorlar soni ===== */
+.date-range-filter .btn-red {
+  background: #b91c1c;
+  padding: 5px;
+  height: 40px;
+}
+
+.date-range-filter .btn-red:hover {
+
+  background: #991b1b;
+}
+
+/* 📊 Jami son */
 .total-count {
-  font-size: 18px;
-  font-weight: 700;
+  margin-bottom: 10px;
+  font-size: 14px;
   color: #222;
-  margin-bottom: 30px;
-  text-align: center;
-  user-select: none;
 }
 
-/* ===== Yuklanish spinner ===== */
+/* ⏳ Loader */
 .loading-container {
   display: flex;
   justify-content: center;
-  align-items: center;
-  height: 180px;
+  padding: 30px 0;
 }
 
 .spinner {
-  border: 6px solid #e0e0e0;
-  border-top: 6px solid #007bff;
+  border: 3px solid #eee;
+  border-top: 3px solid #555;
   border-radius: 50%;
-  width: 44px;
-  height: 44px;
+  width: 28px;
+  height: 28px;
   animation: spin 1s linear infinite;
 }
 
@@ -582,264 +438,80 @@ export default {
   }
 }
 
-/* ===== Kartalar konteyneri ===== */
-.cards-wrapper {
-  margin-top: 15px;
+/* 📋 Jadval */
+.patients-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid #e5e7eb;
 }
 
-.cards-grid {
-  display: grid;
-  gap: 28px 22px;
-  grid-template-columns: repeat(4, 1fr);
-  /* default 4 ustun */
+.patients-table th,
+.patients-table td {
+  padding: 10px;
+  font-size: 13px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
 }
 
-/* 5 ta ustun katta ekran uchun */
-@media (min-width: 1300px) {
-  .cards-grid {
-    grid-template-columns: repeat(5, 1fr);
-    gap: 30px 24px;
-  }
-}
-
-/* 3 ustun o‘rta ekranlarda */
-@media (max-width: 1199px) and (min-width: 768px) {
-  .cards-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-/* 2 ustun kichik ekranlarda */
-@media (max-width: 767px) and (min-width: 480px) {
-  .cards-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px 18px;
-  }
-}
-
-/* 1 ustun mobilda */
-@media (max-width: 479px) {
-  .cards-grid {
-    grid-template-columns: 1fr;
-    gap: 18px 15px;
-  }
-}
-
-/* ===== Har bir bemor kartasi ===== */
-.patient1-card {
-  background-color: #fff;
-  border-radius: 16px;
-  box-shadow: 0 8px 20px rgb(0 0 0 / 0.1);
-  padding: 28px 26px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
-  cursor: default;
-  user-select: none;
-  border: 3px solid transparent;
-}
-
-.patient1-card:hover {
-  box-shadow: 0 14px 38px rgb(0 0 0 / 0.18);
-  transform: translateY(-8px);
-  border-color: #007bff;
-}
-
-/* Bugun ketadigan bemorlar uchun qizil chegara */
-.today-leaving {
-  border-color: #dc3545 !important;
-}
-
-/* Kartaning sarlavhasi */
-.card__header {
-  margin-bottom: 20px;
-  user-select: text;
-}
-
-.card__header h3 {
-  margin: 0 0 8px 0;
-  font-size: 24px;
-  font-weight: 700;
-  color: #007bff;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.card__header span {
-  font-size: 16px;
+.patients-table th {
   font-weight: 600;
-  color: #495057;
-  user-select: text;
+  color: #333;
+  background: #f9fafb;
 }
 
-/* Kartaning asosiy ma'lumotlari */
-.card__body p {
-  margin: 12px 0;
-  font-size: 16px;
-  color: #343a40;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  user-select: text;
+.patients-table td {
+  color: #444;
 }
 
-.card__body strong {
-  color: #212529;
+.patients-table tbody tr:hover {
+  background: #fafafa;
 }
 
-/* Text qisqartirish */
-.card__body p strong,
-.card__body p span {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 70%;
+.today-leaving {
+  background: #e56d6d;
 }
 
-/* ===== "Ketdi" tugmasi ===== */
+/* 🟦 Tugmalar jadval ichida */
 .btn-ketdi {
-  background-color: #28a745;
-  border: none;
+  background: #16a34a;
   color: white;
-  padding: 8px 18px;
-  border-radius: 10px;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 12px;
   cursor: pointer;
-  font-size: 15px;
-  font-weight: 700;
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
-  margin-left: 14px;
-  user-select: none;
-  flex-shrink: 0;
-  box-shadow: 0 5px 15px rgb(40 167 69 / 0.5);
 }
 
 .btn-ketdi:hover {
-  background-color: #218838;
-  box-shadow: 0 8px 18px rgb(33 136 56 / 0.6);
+  background: #15803d;
 }
 
-/* Bugun ketadiganlar uchun qizil tugma */
 .btn-today {
-  background-color: #dc3545;
-  box-shadow: 0 5px 15px rgb(220 53 69 / 0.6);
+  background: #dc2626;
 }
 
 .btn-today:hover {
-  background-color: #b02a37;
-  box-shadow: 0 8px 20px rgb(176 42 55 / 0.7);
+  background: #b91c1c;
 }
 
-/* ===== Pagination ===== */
-.pagination {
-  margin-top: 35px;
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  user-select: none;
-}
+/* 📱 Responsiv */
+@media (max-width: 768px) {
 
-.pagination-btn {
-  border: 2px solid #007bff;
-  background-color: white;
-  color: #007bff;
-  padding: 9px 18px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: 700;
-  font-size: 16px;
-  min-width: 52px;
-  text-align: center;
-  transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
-  user-select: none;
-  box-shadow: none;
-}
-
-.pagination-btn:hover:not(:disabled) {
-  background-color: #007bff;
-  color: white;
-  box-shadow: 0 0 14px #007bffaa;
-}
-
-.pagination-btn:disabled {
-  border-color: #cfd4da;
-  color: #cfd4da;
-  cursor: not-allowed;
-  background-color: #f8f9fa;
-  box-shadow: none;
-}
-
-.pagination-btn.active {
-  background-color: #007bff;
-  color: white;
-  box-shadow: 0 0 18px #007bffaa;
-}
-
-/* ===== Responsive ===== */
-@media (max-width: 1024px) {
-  .page-title {
-    font-size: 28px;
+  .top-controls,
+  .date-range-filter {
+    flex-direction: column;
   }
 
-  .search-box {
-    max-width: 100%;
-  }
-
+  .search-box,
   .date-range-filter button {
-    padding: 9px 18px;
-  }
-}
-
-@media (max-width: 767px) {
-  .cards-grid {
-    grid-template-columns: repeat(2, 1fr);
+    width: 100%;
   }
 
-  .patient1-card {
-    padding: 22px 20px;
-  }
-
-  .card__header h3 {
-    font-size: 20px;
-  }
-
-  .card__header span,
-  .card__body p {
-    font-size: 14px;
-  }
-
-  .btn-ketdi {
-    font-size: 14px;
-    padding: 7px 14px;
-    margin-left: 10px;
-  }
-}
-
-@media (max-width: 479px) {
-  .cards-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .patient1-card {
-    padding: 18px 16px;
-  }
-
-  .card__header h3 {
-    font-size: 18px;
-  }
-
-  .card__header span,
-  .card__body p {
-    font-size: 13px;
-  }
-
-  .btn-ketdi {
-    font-size: 13px;
-    padding: 6px 12px;
-    margin-left: 8px;
+  .patients-table th,
+  .patients-table td {
+    font-size: 12px;
+    padding: 8px;
   }
 }
 </style>
