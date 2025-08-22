@@ -60,7 +60,7 @@ import TaxlilPDFlab from "@/components/TaxlilPDFlab.vue";
 import taxlilLab from "../components/taxlilLab.vue";
 import LabKassa from "@/components/LabKassa.vue";
 import LabKassaTolov from "@/components/LabKassaTolov.vue";
-
+import BronTaxrir from "@/components/BronTaxrir.vue";
 const routes = [
   { path: "/", redirect: "/login" },
   { path: "/TaklifDetelis", name: "TaklifDetelis", component: TaklifDetelis },
@@ -75,7 +75,7 @@ const routes = [
       { path: "", name: "adminDashboard", component: SuperDashboard },
       { path: "BemorCard/:id", name: "adminBemor_card", component: Bemor_card,meta: { role: "admin" },},
       { path: "xodimlar", name: "adminXodimlar", component: Xodimlar },
-
+      { path: "taxrirBron:roomId", name: "taxrirBron", component: BronTaxrir, props: true,  },
       { path: "bemorSpiska", name: "BemorSpiska", component: BemorSpiska },
       { path: "room/:id", name: "adminRoomDetails", component: RoomDetels },
       { path: "bemorlar", name: "adminBemorlar", component: Bemorlar },

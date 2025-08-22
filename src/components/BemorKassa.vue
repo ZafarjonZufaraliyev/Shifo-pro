@@ -117,7 +117,7 @@ const fetchPatientPayments = async (page = 1) => {
 
     const res = await api.get('/api/v1/patient_payments', { params })
     const data = res.data
-
+    console.log(data)
     // Agar sana oralig'i berilgan bo'lsa, statusga qaramay barcha yozuvlar chiqadi
     if (fromDate.value || toDate.value) {
       payments.value = data.data || []
