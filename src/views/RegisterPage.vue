@@ -39,7 +39,7 @@
         </select>
       </div>
 
-      <!-- Viloyat -->
+      <!-- Viloyat yoki Mamlakat -->
       <div class="form-group" v-if="form.davlat === 'O‘zbekiston'">
         <label>Viloyat</label>
         <select v-model="form.viloyat" required>
@@ -49,24 +49,27 @@
       </div>
 
       <div class="form-group" v-else-if="form.davlat === 'Xorijiy'">
-        <label>Viloyat (yozma)</label>
-        <input v-model="form.viloyat" type="text" placeholder="Viloyatni kiriting" required />
+        <label>Mamlakat</label>
+        <select v-model="form.viloyat" required>
+          <option disabled value="">Tanlang</option>
+          <option v-for="(davlat, index) in sssrDavlatlari" :key="index" :value="davlat">{{ davlat }}</option>
+        </select>
       </div>
 
       <div class="form-group" v-else-if="form.davlat === 'Boshqa davlat'">
-        <label>Viloyat (davlat nomi avtomatik)</label>
-        <input v-model="form.viloyat" type="text" readonly />
+        <label>Mamlakat (yozma)</label>
+        <input v-model="form.viloyat" type="text" placeholder="Davlat nomi" required />
       </div>
 
-      <!-- Pasport (O‘zbekiston va Xorijiy fuqarolarga) -->
-      <div class="form-group" v-if="['O‘zbekiston', 'Xorijiy'].includes(form.davlat)">
+      <!-- Pasport (faqat O‘zbekiston uchun) -->
+      <div class="form-group" v-if="form.davlat === 'O‘zbekiston'">
         <label>Pasport</label>
         <input 
           v-model="form.pasport"
           type="text"
           placeholder="AA1234567"
           pattern="[A-ZА-ЯЁ]{2}[0-9]{7}"
-          title="Ikki harf va yetti raqam kiriting, harflar lotin yoki kiril bo‘lishi mumkin"
+          title="Ikki harf va yetti raqam kiriting"
           required
           @input="form.pasport = form.pasport.toUpperCase()"
         />
@@ -143,10 +146,15 @@ export default {
     return {
       loading: false,
       viloyatlar: [
-        'Toshkent viloyat', 'Toshkent shaxar', 'Andijon', 'Farg‘ona', 'Namangan',
+        'Toshkent viloyat', 'Toshkent shahar', 'Andijon', 'Farg‘ona', 'Namangan',
         'Samarqand', 'Buxoro', 'Xorazm', 'Qashqadaryo',
         'Surxondaryo', 'Jizzax', 'Sirdaryo', 'Navoiy',
         'Qoraqalpog‘iston Respublikasi'
+      ],
+      sssrDavlatlari: [
+        'Rossiya', 'Qozog‘iston', 'Qirg‘iziston', 'Turkmaniston', 'Tojikiston',
+        'Armaniston', 'Ozarbayjon', 'Belarus', 'Ukraina', 'Moldova',
+        'Litva', 'Latviya', 'Estoniya', 'Gruziya'
       ],
       defaultReferrals: ["Do‘stdan", "Reklama", "Ijtimoiy tarmoq", "Vrach tavsiyasi", "Boshqa"],
       referrals: [],
@@ -173,20 +181,15 @@ export default {
 
   watch: {
     'form.davlat'(newVal) {
-      if (newVal === 'Boshqa davlat') {
-        this.form.viloyat = newVal;  // avtomatik yoziladi
-        this.form.pasport = '';      // pasport maydoni bo‘sh
-      } else if (newVal === 'O‘zbekiston') {
-        this.form.viloyat = '';
-      } else if (newVal === 'Xorijiy') {
-        this.form.viloyat = '';
+      if (newVal === 'Boshqa davlat' || newVal === 'Xorijiy') {
+        this.form.pasport = '---'; // avtomatik qiymat
       }
     },
-    referrals: {
-      handler(newVal) { localStorage.setItem('referrals', JSON.stringify(newVal)); },
-      deep: true,
-    },
-    'form.referral'(newVal) { localStorage.setItem('referral', newVal); }
+    'form.referral'(newVal) {
+      if (newVal) {
+        localStorage.setItem('last_referral', newVal); // referralni saqlash
+      }
+    }
   },
 
   mounted() {
@@ -198,24 +201,13 @@ export default {
       return;
     }
 
+    // oldingi referralni localStorage dan olish
+    const savedReferral = localStorage.getItem('last_referral');
+    if (savedReferral) {
+      this.form.referral = savedReferral;
+    }
+
     this.fetchCurrentUser();
-
-    const storedReferrals = localStorage.getItem('referrals');
-    if (storedReferrals) {
-      try {
-        const parsed = JSON.parse(storedReferrals);
-        this.referrals = [...new Set([...this.defaultReferrals, ...parsed])];
-      } catch {
-        this.referrals = [...this.defaultReferrals];
-      }
-    } else {
-      this.referrals = [...this.defaultReferrals];
-    }
-
-    const storedSelectedReferral = localStorage.getItem('referral');
-    if (storedSelectedReferral && this.referrals.includes(storedSelectedReferral)) {
-      this.form.referral = storedSelectedReferral;
-    }
   },
 
   methods: {
@@ -232,7 +224,10 @@ export default {
     },
 
     toggleReferralList() { this.referralListOpen = !this.referralListOpen; },
-    selectReferral(item) { this.form.referral = item; this.referralListOpen = false; },
+    selectReferral(item) { 
+      this.form.referral = item; 
+      this.referralListOpen = false;
+    },
     addReferral() {
       const val = this.newReferral.trim();
       if (!val) return;
@@ -244,7 +239,10 @@ export default {
     },
     removeReferral(index) {
       const item = this.referrals[index];
-      if (this.defaultReferrals.includes(item)) { alert('Standart variantni o‘chirib bo‘lmaydi!'); return; }
+      if (this.defaultReferrals.includes(item)) { 
+        alert('Standart variantni o‘chirib bo‘lmaydi!'); 
+        return; 
+      }
       this.referrals.splice(index, 1);
       if (this.form.referral === item) this.form.referral = '';
     },
@@ -253,28 +251,41 @@ export default {
     async registerClient() {
       if (this.loading) return;
       this.loading = true;
+
       try {
+        if (this.form.davlat === 'O‘zbekiston' && !this.form.pasport) {
+          alert("❌ Pasport kiritilishi shart!");
+          this.loading = false;
+          return;
+        }
+
+        if (this.form.davlat !== 'O‘zbekiston') {
+          this.form.pasport = this.form.pasport || '---';
+        }
+
         const res = await api.post('/api/v1/clients', this.form);
-        const client = res.data?.data;
-        if (!client?.id) { alert('Ro‘yxatdan o‘tishda mijoz ID topilmadi!'); this.loading = false; return; }
         alert("✅ Mijoz muvaffaqiyatli qo‘shildi.");
+        const client = res.data?.data;
+        if (!client?.id) return;
+
         const role = (localStorage.getItem('role') || '').trim();
         if (role === 'kassa') this.$router.push({ name: 'miniTakliflar', params: { clientId: client.id } });
         else if (role === 'admin') this.$router.push({ name: 'adminTakliflar', params: { clientId: client.id } });
         else this.$router.push({ name: 'ClientListPage' });
+
       } catch (err) {
-        if (err.response && err.response.status === 422) {
-          const errors = err.response.data.errors;
-          let msg = '❗ Xatoliklar:\n';
-          for (let key in errors) msg += `- ${key}: ${errors[key].join(', ')}\n`;
-          alert(msg);
-        } else if (err.response) alert(`❌ Serverdan xatolik qaytdi: ${err.response.status} ${err.response.statusText}`);
-        else { console.error(err); alert('❌ Ro‘yxatdan o‘tishda nomaʼlum xatolik yuz berdi!'); }
-      } finally { this.loading = false; }
+        console.error(err);
+        alert(err.response?.data?.message || '❌ Ro‘yxatdan o‘tishda xatolik yuz berdi!');
+      } finally {
+        this.loading = false;
+      }
     }
   }
 };
 </script>
+
+
+
 
 <style scoped>
 .register-container {
