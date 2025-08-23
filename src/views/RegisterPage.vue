@@ -2,7 +2,8 @@
   <div class="register-container">
     <h2>Ro'yxatdan O'tkazish</h2>
     <form @submit.prevent="registerClient" class="form">
-      <!-- Familiya, Ism -->
+
+      <!-- Familiya va Ism -->
       <div class="form-group">
         <label>Familiya, Ism</label>
         <div class="ismfamilya">
@@ -10,18 +11,23 @@
           <input v-model="form.ism" type="text" placeholder="Ism" required />
         </div>
       </div>
+
+      <!-- Fuqarolik -->
       <div class="form-group">
         <label>Fuqaroligi</label>
         <select v-model="form.davlat" required>
           <option disabled value="">Tanlang</option>
           <option value="O‘zbekiston">O‘zbekiston</option>
           <option value="Xorijiy">Xorijiy</option>
+          <option value="Boshqa davlat">Boshqa davlat</option>
         </select>
       </div>
+
+      <!-- Tug‘ilgan sana -->
       <div class="form-group">
-          <label>Tug‘ilgan sana</label>
-          <input v-model="form.tugulgan_sana" type="date" required />
-        </div>
+        <label>Tug‘ilgan sana</label>
+        <input v-model="form.tugulgan_sana" type="date" required />
+      </div>
 
       <!-- Jins -->
       <div class="form-group">
@@ -33,35 +39,38 @@
         </select>
       </div>
 
-      <!-- Fuqarolik -->
-      
-
-    
-
       <!-- Viloyat -->
-      <div v-if="form.davlat === 'O‘zbekiston'" class="form-group">
+      <div class="form-group" v-if="form.davlat === 'O‘zbekiston'">
         <label>Viloyat</label>
         <select v-model="form.viloyat" required>
           <option disabled value="">Tanlang</option>
-          <option v-for="(viloyat, index) in viloyatlar" :key="index" :value="viloyat">
-            {{ viloyat }}
-          </option>
+          <option v-for="(viloyat, index) in viloyatlar" :key="index" :value="viloyat">{{ viloyat }}</option>
         </select>
       </div>
-      <div v-else-if="form.davlat === 'Xorijiy'" class="form-group">
+
+      <div class="form-group" v-else-if="form.davlat === 'Xorijiy'">
         <label>Viloyat (yozma)</label>
         <input v-model="form.viloyat" type="text" placeholder="Viloyatni kiriting" required />
       </div>
-  <!-- Pasport va Tug‘ilgan sana -->
-     <input 
-  v-model="form.pasport" 
-  type="text" 
-  placeholder="AA1234567" 
-  pattern="[A-ZА-ЯЁ]{2}[0-9]{7}"
-  title="Ikki harf va yetti raqam kiriting, harflar lotin yoki kiril bo‘lishi mumkin"
-  required
-  @input="form.pasport = form.pasport.toUpperCase()" 
-/>
+
+      <div class="form-group" v-else-if="form.davlat === 'Boshqa davlat'">
+        <label>Viloyat (davlat nomi avtomatik)</label>
+        <input v-model="form.viloyat" type="text" readonly />
+      </div>
+
+      <!-- Pasport (O‘zbekiston va Xorijiy fuqarolarga) -->
+      <div class="form-group" v-if="['O‘zbekiston', 'Xorijiy'].includes(form.davlat)">
+        <label>Pasport</label>
+        <input 
+          v-model="form.pasport"
+          type="text"
+          placeholder="AA1234567"
+          pattern="[A-ZА-ЯЁ]{2}[0-9]{7}"
+          title="Ikki harf va yetti raqam kiriting, harflar lotin yoki kiril bo‘lishi mumkin"
+          required
+          @input="form.pasport = form.pasport.toUpperCase()"
+        />
+      </div>
 
       <!-- Telefon raqamlari -->
       <div class="form-group">
@@ -71,11 +80,14 @@
           <input v-model="form.tel2" type="tel" placeholder="Qo‘shimcha: +998901234568" />
         </div>
       </div>
+
+      <!-- Uy manzili -->
       <div class="form-group">
         <label>Uy manzili</label>
         <input v-model="form.manzil" type="text" placeholder="To‘liq manzilingizni kiriting" required />
       </div>
-      <!-- Biz haqimizda qayerdan eshitdingiz? -->
+
+      <!-- Biz haqimizda qayerdan eshitdingiz -->
       <div class="form-group">
         <label>Biz haqimizda qayerdan eshitdingiz?</label>
         <div class="referral-dropdown">
@@ -89,8 +101,7 @@
               <li v-for="(item, index) in referrals" :key="index"
                 :class="{ 'default-referral': isDefaultReferral(item), 'custom-referral': !isDefaultReferral(item) }">
                 <span @click="selectReferral(item)" class="referral-text">{{ item }}</span>
-                <button type="button" @click.stop="removeReferral(index)" :disabled="isDefaultReferral(item)"
-                  class="remove-btn">×</button>
+                <button type="button" @click.stop="removeReferral(index)" :disabled="isDefaultReferral(item)" class="remove-btn">×</button>
               </li>
             </ul>
             <div class="add-referral">
@@ -115,10 +126,11 @@
       <!-- Submit -->
       <button type="submit">Yuborish</button>
     </form>
+
     <div v-if="loading" class="overlay">
-    <div class="spinner"></div>
-    <p>Iltimos, kuting...</p>
-  </div>
+      <div class="spinner"></div>
+      <p>Iltimos, kuting...</p>
+    </div>
   </div>
 </template>
 
@@ -136,10 +148,7 @@ export default {
         'Surxondaryo', 'Jizzax', 'Sirdaryo', 'Navoiy',
         'Qoraqalpog‘iston Respublikasi'
       ],
-      defaultReferrals: [
-        "Do‘stdan", "Reklama", "Ijtimoiy tarmoq",
-        "Vrach tavsiyasi", "Boshqa"
-      ],
+      defaultReferrals: ["Do‘stdan", "Reklama", "Ijtimoiy tarmoq", "Vrach tavsiyasi", "Boshqa"],
       referrals: [],
       referralListOpen: false,
       newReferral: '',
@@ -163,15 +172,21 @@ export default {
   },
 
   watch: {
+    'form.davlat'(newVal) {
+      if (newVal === 'Boshqa davlat') {
+        this.form.viloyat = newVal;  // avtomatik yoziladi
+        this.form.pasport = '';      // pasport maydoni bo‘sh
+      } else if (newVal === 'O‘zbekiston') {
+        this.form.viloyat = '';
+      } else if (newVal === 'Xorijiy') {
+        this.form.viloyat = '';
+      }
+    },
     referrals: {
-      handler(newVal) {
-        localStorage.setItem('referrals', JSON.stringify(newVal));
-      },
+      handler(newVal) { localStorage.setItem('referrals', JSON.stringify(newVal)); },
       deep: true,
     },
-    'form.referral'(newVal) {
-      localStorage.setItem('referral', newVal);
-    },
+    'form.referral'(newVal) { localStorage.setItem('referral', newVal); }
   },
 
   mounted() {
@@ -213,96 +228,51 @@ export default {
             this.form.create_user_name = user.name;
           }
         })
-        .catch(err => {
-          console.error('Foydalanuvchini olishda xatolik:', err);
-        });
+        .catch(err => console.error('Foydalanuvchini olishda xatolik:', err));
     },
 
-    toggleReferralList() {
-      this.referralListOpen = !this.referralListOpen;
-    },
-
-    selectReferral(item) {
-      this.form.referral = item;
-      this.referralListOpen = false;
-    },
-
+    toggleReferralList() { this.referralListOpen = !this.referralListOpen; },
+    selectReferral(item) { this.form.referral = item; this.referralListOpen = false; },
     addReferral() {
       const val = this.newReferral.trim();
       if (!val) return;
-      if (this.referrals.includes(val)) {
-        alert('Bu variant allaqachon mavjud!');
-        return;
-      }
+      if (this.referrals.includes(val)) { alert('Bu variant allaqachon mavjud!'); return; }
       this.referrals.push(val);
       this.form.referral = val;
       this.newReferral = '';
       this.referralListOpen = true;
     },
-
     removeReferral(index) {
       const item = this.referrals[index];
-      if (this.isDefaultReferral(item)) {
-        alert('Standart variantni o‘chirib bo‘lmaydi!');
-        return;
-      }
+      if (this.defaultReferrals.includes(item)) { alert('Standart variantni o‘chirib bo‘lmaydi!'); return; }
       this.referrals.splice(index, 1);
-      if (this.form.referral === item) {
-        this.form.referral = '';
-      }
+      if (this.form.referral === item) this.form.referral = '';
     },
-
-    isDefaultReferral(item) {
-      return this.defaultReferrals.includes(item);
-    },
+    isDefaultReferral(item) { return this.defaultReferrals.includes(item); },
 
     async registerClient() {
-  if (this.loading) return; // ikki marta yuborishni oldini olish
-  this.loading = true;
-
-  try {
-    console.log('Yuborilayotgan form:', this.form); // Debug uchun
-
-    const res = await api.post('/api/v1/clients', this.form);
-    const client = res.data?.data;
-
-    if (!client?.id) {
-      alert('Ro‘yxatdan o‘tishda mijoz ID topilmadi!');
-      this.loading = false;
-      return;
+      if (this.loading) return;
+      this.loading = true;
+      try {
+        const res = await api.post('/api/v1/clients', this.form);
+        const client = res.data?.data;
+        if (!client?.id) { alert('Ro‘yxatdan o‘tishda mijoz ID topilmadi!'); this.loading = false; return; }
+        alert("✅ Mijoz muvaffaqiyatli qo‘shildi.");
+        const role = (localStorage.getItem('role') || '').trim();
+        if (role === 'kassa') this.$router.push({ name: 'miniTakliflar', params: { clientId: client.id } });
+        else if (role === 'admin') this.$router.push({ name: 'adminTakliflar', params: { clientId: client.id } });
+        else this.$router.push({ name: 'ClientListPage' });
+      } catch (err) {
+        if (err.response && err.response.status === 422) {
+          const errors = err.response.data.errors;
+          let msg = '❗ Xatoliklar:\n';
+          for (let key in errors) msg += `- ${key}: ${errors[key].join(', ')}\n`;
+          alert(msg);
+        } else if (err.response) alert(`❌ Serverdan xatolik qaytdi: ${err.response.status} ${err.response.statusText}`);
+        else { console.error(err); alert('❌ Ro‘yxatdan o‘tishda nomaʼlum xatolik yuz berdi!'); }
+      } finally { this.loading = false; }
     }
-
-    alert("✅ Mijoz muvaffaqiyatli qo‘shildi.");
-
-    const role = (localStorage.getItem('role') || '').trim();
-
-    if (role === 'kassa') {
-      this.$router.push({ name: 'miniTakliflar', params: { clientId: client.id } });
-    } else if (role === 'admin') {
-      this.$router.push({ name: 'adminTakliflar', params: { clientId: client.id } });
-    } else {
-      this.$router.push({ name: 'ClientListPage' });
-    }
-  } catch (err) {
-    if (err.response && err.response.status === 422) {
-      const errors = err.response.data.errors;
-      let msg = '❗ Xatoliklar:\n';
-      for (let key in errors) {
-        msg += `- ${key}: ${errors[key].join(', ')}\n`;
-      }
-      alert(msg);
-    } else if (err.response) {
-      alert(`❌ Serverdan xatolik qaytdi: ${err.response.status} ${err.response.statusText}`);
-    } else {
-      console.error('API xatosi:', err);
-      alert('❌ Ro‘yxatdan o‘tishda nomaʼlum xatolik yuz berdi!');
-    }
-  } finally {
-    this.loading = false;
   }
-},
-
-  },
 };
 </script>
 

@@ -122,6 +122,10 @@
           <label>Click to'lov:</label>
           <input type="number" min="0" v-model.number="extraPayments.click" />
         </div>
+        <div class="payment-item">
+          <label>O'tkazma:</label>
+          <input type="number" min="0" v-model.number="extraPayments.money_transfer" />
+        </div>
       </div>
 
       <div class="total-sum" style="margin: 15px 0;">
@@ -178,6 +182,7 @@ export default {
         cash: 0,
         card: 0,
         click: 0,
+        money_transfer:0,
       },
       message: '',       // Ekranda ko‘rsatiladigan xabar
       messageType: '',   // 'success' yoki 'error' uchun
@@ -211,7 +216,8 @@ export default {
       return (
         (this.extraPayments.cash || 0) +
         (this.extraPayments.card || 0) +
-        (this.extraPayments.click || 0)
+        (this.extraPayments.click || 0)+
+        (this.extraPayments.money_transfer || 0)
       );
     },
     balance() {
@@ -460,6 +466,7 @@ export default {
         cash: this.extraPayments.cash,
         card: this.extraPayments.card,
         click: this.extraPayments.click,
+        click: this.extraPayments.money_transfer,
         total: this.totalSum,
         type: 'kirim',
         from: `${this.client.familiya} ${this.client.ism}`,
